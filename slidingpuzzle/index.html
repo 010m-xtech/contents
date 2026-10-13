@@ -74,7 +74,7 @@
       cursor: pointer;
       border-radius: 4px;
       transition: transform 0.1s ease;
-      background-image: url('photo/000000.png'); 
+      background-image: url('000000.png'); /* デフォルト画像を直接指定 */
     }
     .piece:active {
       transform: scale(0.95);
@@ -238,7 +238,7 @@
   <script>
     let gridSize = 3;
     let board = [];
-    const DEFAULT_IMAGE = 'photo/000000.png'; // デフォルト画像 (B案対応: photo/フォルダ内)
+    const DEFAULT_IMAGE = '000000.png'; // デフォルト画像（同じ階層）
     let currentImageUrl = DEFAULT_IMAGE;
     
     let startTime = 0;
@@ -248,7 +248,7 @@
     const overlay = document.getElementById('clear-overlay');
     const timerDisplay = document.getElementById('timer-display');
 
-    // 拡張子(.png, .jpg, .jpeg, .webp)を順に試して画像が存在するか検証する関数
+    // 拡張子(.png, .jpg, .jpeg, .webp)を順に試して画像が存在するか検証
     function findExistingImage(id) {
       const extensions = ['.png', '.jpg', '.jpeg', '.webp'];
       
@@ -256,19 +256,18 @@
         let index = 0;
 
         function tryNext() {
-          // すべての拡張子を試してもダメだった場合は、デフォルト画像を返す
           if (index >= extensions.length) {
-            resolve(DEFAULT_IMAGE);
+            resolve(DEFAULT_IMAGE); // なければ000000.png
             return;
           }
 
-          const path = `photo/${id}${extensions[index]}`;
+          const path = `${id}${extensions[index]}`; // 同一階層からファイル探索
           const img = new Image();
           img.src = path;
-          img.onload = () => resolve(path); // 画像が存在し、読み込み完了
+          img.onload = () => resolve(path);
           img.onerror = () => {
             index++;
-            tryNext(); // 存在しない場合は次の拡張子を試す
+            tryNext();
           };
         }
 
@@ -278,22 +277,18 @@
 
     // ハッシュ（#）からの画像読み込み処理
     async function loadDynamicImage() {
-      // URLのハッシュ（#以降）を取得し、無駄な文字やトリム処理を実施
       const hashParam = window.location.hash.replace('#', '').trim();
       
       try {
         if (hashParam) {
-          // 非同期で画像を探す（失敗しても DEFAULT_IMAGE が確実に返る設計）
           currentImageUrl = await findExistingImage(hashParam);
         } else {
           currentImageUrl = DEFAULT_IMAGE;
         }
       } catch (error) {
-        // 万が一エラーが発生した場合の保険
-        console.error("画像の判定中にエラーが発生しました:", error);
+        console.warn("画像読み込み中にエラーが発生しました:", error);
         currentImageUrl = DEFAULT_IMAGE;
       } finally {
-        // 画像が何であろうと、必ずスタイルの適用と初期化（ゲームスタート）を行う
         applyImageToStyle(currentImageUrl);
         initPuzzle();
       }
@@ -305,7 +300,7 @@
         const styleSheet = document.styleSheets[0];
         styleSheet.insertRule(`.piece { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
       } catch (e) {
-        console.warn("スタイルの適用に失敗しました:", e);
+        console.warn("スタイルの差し替えに失敗しました:", e);
       }
     }
 
@@ -442,13 +437,12 @@
       }
     }
 
-    // ハッシュ変更時にも安全に読み込み
     window.addEventListener('hashchange', loadDynamicImage);
 
     document.getElementById('shuffle-btn').onclick = shuffleBoard;
     document.getElementById('retry-btn').onclick = initPuzzle;
 
-    // 起動時に動的画像を読み込み
+    // 初回実行
     loadDynamicImage();
   </script>
 </body>

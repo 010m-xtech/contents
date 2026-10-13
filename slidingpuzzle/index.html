@@ -238,7 +238,7 @@
   <script>
     let gridSize = 3;
     let board = [];
-    const DEFAULT_IMAGE = 'photo/000000.png'; // デフォルト画像
+    const DEFAULT_IMAGE = 'photo/000000.png'; // デフォルト画像 (B案対応: photo/フォルダ内)
     let currentImageUrl = DEFAULT_IMAGE;
     
     let startTime = 0;
@@ -256,18 +256,19 @@
         let index = 0;
 
         function tryNext() {
+          // すべての拡張子を試してもダメだった場合は、デフォルト画像を返す
           if (index >= extensions.length) {
-            resolve(DEFAULT_IMAGE); // 全ての拡張子で見つからなければデフォルト
+            resolve(DEFAULT_IMAGE);
             return;
           }
 
           const path = `photo/${id}${extensions[index]}`;
           const img = new Image();
           img.src = path;
-          img.onload = () => resolve(path); // 読み込み成功したらそのパスを返す
+          img.onload = () => resolve(path); // 画像が存在し、読み込み完了
           img.onerror = () => {
             index++;
-            tryNext(); // 失敗したら次の拡張子を試す
+            tryNext(); // 存在しない場合は次の拡張子を試す
           };
         }
 
@@ -277,24 +278,35 @@
 
     // ハッシュ（#）からの画像読み込み処理
     async function loadDynamicImage() {
-      // URLのハッシュ（#以降）を取得し、英数字以外の余計な文字を除去
+      // URLのハッシュ（#以降）を取得し、無駄な文字やトリム処理を実施
       const hashParam = window.location.hash.replace('#', '').trim();
       
-      // ハッシュが存在する場合
-      if (hashParam) {
-        currentImageUrl = await findExistingImage(hashParam);
-      } else {
+      try {
+        if (hashParam) {
+          // 非同期で画像を探す（失敗しても DEFAULT_IMAGE が確実に返る設計）
+          currentImageUrl = await findExistingImage(hashParam);
+        } else {
+          currentImageUrl = DEFAULT_IMAGE;
+        }
+      } catch (error) {
+        // 万が一エラーが発生した場合の保険
+        console.error("画像の判定中にエラーが発生しました:", error);
         currentImageUrl = DEFAULT_IMAGE;
+      } finally {
+        // 画像が何であろうと、必ずスタイルの適用と初期化（ゲームスタート）を行う
+        applyImageToStyle(currentImageUrl);
+        initPuzzle();
       }
-
-      applyImageToStyle(currentImageUrl);
-      initPuzzle();
     }
 
     // CSSのルールを動的に変更して背景画像を差し替える
     function applyImageToStyle(url) {
-      const styleSheet = document.styleSheets[0];
-      styleSheet.insertRule(`.piece { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
+      try {
+        const styleSheet = document.styleSheets[0];
+        styleSheet.insertRule(`.piece { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
+      } catch (e) {
+        console.warn("スタイルの適用に失敗しました:", e);
+      }
     }
 
     function initPuzzle() {
@@ -430,7 +442,7 @@
       }
     }
 
-    // URLのハッシュが変わった時に自動再読み込み
+    // ハッシュ変更時にも安全に読み込み
     window.addEventListener('hashchange', loadDynamicImage);
 
     document.getElementById('shuffle-btn').onclick = shuffleBoard;

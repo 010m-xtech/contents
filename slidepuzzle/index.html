@@ -74,8 +74,7 @@
       cursor: pointer;
       border-radius: 4px;
       transition: transform 0.1s ease;
-      /* デフォルト画像設定 */
-      background-image: url('image.png'); 
+      background-image: url('photo/000000.png'); 
     }
     .piece:active {
       transform: scale(0.95);
@@ -239,7 +238,8 @@
   <script>
     let gridSize = 3;
     let board = [];
-    let currentImageUrl = 'image.png'; // デフォルト画像
+    const DEFAULT_IMAGE = 'photo/000000.png'; // デフォルト画像
+    let currentImageUrl = DEFAULT_IMAGE;
     
     let startTime = 0;
     let timerInterval = null;
@@ -248,29 +248,15 @@
     const overlay = document.getElementById('clear-overlay');
     const timerDisplay = document.getElementById('timer-display');
 
-    // URL解析・画像読み込み処理
+    // ハッシュ（#）からの画像読み込み処理
     function loadDynamicImage() {
-      const pathname = window.location.pathname;
-      // パスの末尾（スラッシュを除去した文字列）を取得
-      const pathSegments = pathname.split('/').filter(Boolean);
-      const lastSegment = pathSegments[pathSegments.length - 1];
+      // URLのハッシュ（#以降）を取得（例: "#073810" -> "073810"）
+      const hashParam = window.location.hash.replace('#', '').trim();
 
-      // クエリパラメータ (?img=000000) やハッシュ (#000000) もサポート
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryParam = urlParams.get('img');
-      const hashParam = window.location.hash.replace('#', '');
-
-      let imgId = queryParam || hashParam;
-
-      // パス末尾が 'slidingpuzzle' や 'index.html' でない場合に画像IDとして扱う
-      if (!imgId && lastSegment && lastSegment !== 'slidingpuzzle' && lastSegment !== 'index.html') {
-        imgId = lastSegment;
-      }
-
-      if (imgId) {
-        const targetPath = `photo/${imgId}.png`;
+      if (hashParam) {
+        const targetPath = `photo/${hashParam}.png`;
         
-        // 画像が存在するかチェック
+        // 指定画像が存在するかチェック
         const img = new Image();
         img.src = targetPath;
         img.onload = () => {
@@ -280,19 +266,21 @@
         };
         img.onerror = () => {
           console.warn(`画像が見つかりません: ${targetPath}。デフォルト画像を使用します。`);
+          currentImageUrl = DEFAULT_IMAGE;
           applyImageToStyle(currentImageUrl);
           initPuzzle();
         };
       } else {
+        // ハッシュがない場合はデフォルト画像を使用
+        currentImageUrl = DEFAULT_IMAGE;
         applyImageToStyle(currentImageUrl);
         initPuzzle();
       }
     }
 
-    // 動的にCSSルールを変更してピースの背景画像を差し替える
+    // CSSのルールを動的に変更して背景画像を差し替える
     function applyImageToStyle(url) {
       const styleSheet = document.styleSheets[0];
-      // .piece の背景画像を上書き
       styleSheet.insertRule(`.piece { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
     }
 
@@ -323,117 +311,4 @@
       initPuzzle();
     }
 
-    function renderBoard() {
-      container.innerHTML = '';
-      const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
-      const piecePixelSize = 352 / gridSize;
-      
-      board.forEach((pieceValue, currentPos) => {
-        const cell = document.createElement('div');
-        
-        if (pieceValue === emptyValue) {
-          cell.className = 'piece empty';
-        } else {
-          cell.className = 'piece';
-          
-          const correctRow = Math.floor(pieceValue / gridSize);
-          const correctCol = pieceValue % gridSize;
-          const bgX = -correctCol * piecePixelSize;
-          const bgY = -correctRow * piecePixelSize;
-          
-          cell.style.backgroundPosition = `${bgX}px ${bgY}px`;
-          cell.onclick = () => movePiece(currentPos);
-        }
-        
-        container.appendChild(cell);
-      });
-    }
-
-    function movePiece(currentPos) {
-      const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
-      const emptyPos = board.indexOf(emptyValue);
-      
-      const isNeighbor = 
-        (Math.abs(currentPos - emptyPos) === 1 && Math.floor(currentPos / gridSize) === Math.floor(emptyPos / gridSize)) || 
-        (Math.abs(currentPos - emptyPos) === gridSize);
-      
-      if (isNeighbor) {
-        board[emptyPos] = board[currentPos];
-        board[currentPos] = emptyValue;
-        
-        renderBoard();
-        checkWin();
-      }
-    }
-
-    function startTimer() {
-      clearInterval(timerInterval);
-      startTime = Date.now();
-      timerInterval = setInterval(updateTimer, 1000);
-      timerDisplay.textContent = "00:00";
-    }
-
-    function stopTimer() {
-      clearInterval(timerInterval);
-    }
-
-    function updateTimer() {
-      const elapsedTime = Date.now() - startTime;
-      const totalSeconds = Math.floor(elapsedTime / 1000);
-      
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      
-      const displayMinutes = String(minutes).padStart(2, '0');
-      const displaySeconds = String(seconds).padStart(2, '0');
-      
-      timerDisplay.textContent = `${displayMinutes}:${displaySeconds}`;
-    }
-
-    function shuffleBoard() {
-      overlay.classList.remove('show');
-      const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
-      
-      board = [];
-      for(let i = 0; i < totalPieces; i++) board.push(i);
-      
-      const shuffleCount = gridSize === 3 ? 100 : 200;
-      
-      for (let i = 0; i < shuffleCount; i++) {
-        const emptyPos = board.indexOf(emptyValue);
-        const validMoves = [];
-        
-        if (emptyPos % gridSize > 0) validMoves.push(emptyPos - 1); 
-        if (emptyPos % gridSize < gridSize - 1) validMoves.push(emptyPos + 1); 
-        if (emptyPos >= gridSize) validMoves.push(emptyPos - gridSize); 
-        if (emptyPos < gridSize * (gridSize - 1)) validMoves.push(emptyPos + gridSize); 
-        
-        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-        board[emptyPos] = board[randomMove];
-        board[randomMove] = emptyValue;
-      }
-      renderBoard();
-      startTimer();
-    }
-
-    function checkWin() {
-      const isWin = board.every((val, idx) => val === idx);
-      if (isWin) {
-        stopTimer();
-        setTimeout(() => {
-          overlay.classList.add('show');
-        }, 200);
-      }
-    }
-
-    document.getElementById('shuffle-btn').onclick = shuffleBoard;
-    document.getElementById('retry-btn').onclick = initPuzzle;
-
-    // 起動時に動的画像を読み込み
-    loadDynamicImage();
-  </script>
-</body>
-</html>
+    function renderBoard

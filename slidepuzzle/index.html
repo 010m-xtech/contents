@@ -248,34 +248,47 @@
     const overlay = document.getElementById('clear-overlay');
     const timerDisplay = document.getElementById('timer-display');
 
-    // ハッシュ（#）からの画像読み込み処理
-    function loadDynamicImage() {
-      // URLのハッシュ（#以降）を取得（例: "#073810" -> "073810"）
-      const hashParam = window.location.hash.replace('#', '').trim();
+    // 拡張子(.png, .jpg, .jpeg, .webp)を順に試して画像が存在するか検証する関数
+    function findExistingImage(id) {
+      const extensions = ['.png', '.jpg', '.jpeg', '.webp'];
+      
+      return new Promise((resolve) => {
+        let index = 0;
 
+        function tryNext() {
+          if (index >= extensions.length) {
+            resolve(DEFAULT_IMAGE); // 全ての拡張子で見つからなければデフォルト
+            return;
+          }
+
+          const path = `photo/${id}${extensions[index]}`;
+          const img = new Image();
+          img.src = path;
+          img.onload = () => resolve(path); // 読み込み成功したらそのパスを返す
+          img.onerror = () => {
+            index++;
+            tryNext(); // 失敗したら次の拡張子を試す
+          };
+        }
+
+        tryNext();
+      });
+    }
+
+    // ハッシュ（#）からの画像読み込み処理
+    async function loadDynamicImage() {
+      // URLのハッシュ（#以降）を取得し、英数字以外の余計な文字を除去
+      const hashParam = window.location.hash.replace('#', '').trim();
+      
+      // ハッシュが存在する場合
       if (hashParam) {
-        const targetPath = `photo/${hashParam}.png`;
-        
-        // 指定画像が存在するかチェック
-        const img = new Image();
-        img.src = targetPath;
-        img.onload = () => {
-          currentImageUrl = targetPath;
-          applyImageToStyle(currentImageUrl);
-          initPuzzle();
-        };
-        img.onerror = () => {
-          console.warn(`画像が見つかりません: ${targetPath}。デフォルト画像を使用します。`);
-          currentImageUrl = DEFAULT_IMAGE;
-          applyImageToStyle(currentImageUrl);
-          initPuzzle();
-        };
+        currentImageUrl = await findExistingImage(hashParam);
       } else {
-        // ハッシュがない場合はデフォルト画像を使用
         currentImageUrl = DEFAULT_IMAGE;
-        applyImageToStyle(currentImageUrl);
-        initPuzzle();
       }
+
+      applyImageToStyle(currentImageUrl);
+      initPuzzle();
     }
 
     // CSSのルールを動的に変更して背景画像を差し替える
@@ -311,4 +324,120 @@
       initPuzzle();
     }
 
-    function renderBoard
+    function renderBoard() {
+      container.innerHTML = '';
+      const totalPieces = gridSize * gridSize;
+      const emptyValue = totalPieces - 1;
+      const piecePixelSize = 352 / gridSize;
+      
+      board.forEach((pieceValue, currentPos) => {
+        const cell = document.createElement('div');
+        
+        if (pieceValue === emptyValue) {
+          cell.className = 'piece empty';
+        } else {
+          cell.className = 'piece';
+          
+          const correctRow = Math.floor(pieceValue / gridSize);
+          const correctCol = pieceValue % gridSize;
+          const bgX = -correctCol * piecePixelSize;
+          const bgY = -correctRow * piecePixelSize;
+          
+          cell.style.backgroundPosition = `${bgX}px ${bgY}px`;
+          cell.onclick = () => movePiece(currentPos);
+        }
+        
+        container.appendChild(cell);
+      });
+    }
+
+    function movePiece(currentPos) {
+      const totalPieces = gridSize * gridSize;
+      const emptyValue = totalPieces - 1;
+      const emptyPos = board.indexOf(emptyValue);
+      
+      const isNeighbor = 
+        (Math.abs(currentPos - emptyPos) === 1 && Math.floor(currentPos / gridSize) === Math.floor(emptyPos / gridSize)) || 
+        (Math.abs(currentPos - emptyPos) === gridSize);
+      
+      if (isNeighbor) {
+        board[emptyPos] = board[currentPos];
+        board[currentPos] = emptyValue;
+        
+        renderBoard();
+        checkWin();
+      }
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      startTime = Date.now();
+      timerInterval = setInterval(updateTimer, 1000);
+      timerDisplay.textContent = "00:00";
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function updateTimer() {
+      const elapsedTime = Date.now() - startTime;
+      const totalSeconds = Math.floor(elapsedTime / 1000);
+      
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      
+      const displayMinutes = String(minutes).padStart(2, '0');
+      const displaySeconds = String(seconds).padStart(2, '0');
+      
+      timerDisplay.textContent = `${displayMinutes}:${displaySeconds}`;
+    }
+
+    function shuffleBoard() {
+      overlay.classList.remove('show');
+      const totalPieces = gridSize * gridSize;
+      const emptyValue = totalPieces - 1;
+      
+      board = [];
+      for(let i = 0; i < totalPieces; i++) board.push(i);
+      
+      const shuffleCount = gridSize === 3 ? 100 : 200;
+      
+      for (let i = 0; i < shuffleCount; i++) {
+        const emptyPos = board.indexOf(emptyValue);
+        const validMoves = [];
+        
+        if (emptyPos % gridSize > 0) validMoves.push(emptyPos - 1); 
+        if (emptyPos % gridSize < gridSize - 1) validMoves.push(emptyPos + 1); 
+        if (emptyPos >= gridSize) validMoves.push(emptyPos - gridSize); 
+        if (emptyPos < gridSize * (gridSize - 1)) validMoves.push(emptyPos + gridSize); 
+        
+        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        board[emptyPos] = board[randomMove];
+        board[randomMove] = emptyValue;
+      }
+      renderBoard();
+      startTimer();
+    }
+
+    function checkWin() {
+      const isWin = board.every((val, idx) => val === idx);
+      if (isWin) {
+        stopTimer();
+        setTimeout(() => {
+          overlay.classList.add('show');
+        }, 200);
+      }
+    }
+
+    // URLのハッシュが変わった時に自動再読み込み
+    window.addEventListener('hashchange', loadDynamicImage);
+
+    document.getElementById('shuffle-btn').onclick = shuffleBoard;
+    document.getElementById('retry-btn').onclick = initPuzzle;
+
+    // 起動時に動的画像を読み込み
+    loadDynamicImage();
+  </script>
+</body>
+</html>

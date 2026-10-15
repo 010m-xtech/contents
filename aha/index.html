@@ -1,1 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>アハ体験パズル</title>
+  <style>
+    :root {
+      --bg-color: #1a0f08;
+      --card-bg: #2b1d11;
+      --border-color: #82604a;
+      --accent-color: #ebdcb9;
+      --btn-red: #b81c22;
+      --green-color: #34c759;
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: var(--bg-color);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    /* カメラの微細揺れ演出 */
+    .viewport-shaker {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: cameraDrift 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes cameraDrift {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(0.4px, -0.2px) scale(1.001); }
+      100% { transform: translate(-0.2px, 0.4px) scale(1); }
+    }
+
+    /* 不正解・タイムアップ時の画面揺れ */
+    .viewport-shaker.miss-shake {
+      animation: missWobble 0.4s ease-in-out;
+    }
+
+    @keyframes missWobble {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+
+    /* ゲームカード枠 */
+    .game-card {
+      width: 360px;
+      background-color: var(--card-bg);
+      border: 4px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      transition: background-color 0.3s ease;
+    }
+
+    .game-card.miss-flash {
+      background-color: #4a1518;
+      border-color: #b81c22;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: var(--accent-color);
+      margin-bottom: 4px;
+    }
+
+    p.sub-title {
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .stage-indicator {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--accent-color);
+      font-weight: bold;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+      margin-top: 8px;
+    }
+
+    .pause-btn {
+      background: #1a0f08;
+      border: 1px solid var(--border-color);
+      color: var(--accent-color);
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    /* メイン画像ビューポート */
+    .stage-viewport {
+      position: relative;
+      width: 312px;
+      height: 312px;
+      margin: 0 auto;
+      background-color: #000;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    .image-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .base-image, .dynamic-target-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .dynamic-target-layer {
+      z-index: 10;
+    }
+
+    /* 正解のアタリ判定（5か所共有エリア） */
+    .hit-detector-box {
+      position: absolute;
+      cursor: pointer;
+      z-index: 20;
+      pointer-events: auto;
+      background-color: rgba(255, 255, 255, 0);
+    }
+
+    /* PAUSE オーバーレイ */
+    .pause-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 15, 8, 0.9);
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .pause-label {
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 0.2em;
+      color: var(--accent-color);
+    }
+
+    /* タップ時のエフェクト */
+    .miss-indicator {
+      position: absolute;
+      color: #ff3b30;
+      font-size: 28px;
+      font-weight: bold;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      z-index: 98;
+    }
+    .miss-indicator.animate {
+      animation: missActive 0.6s ease-out forwards;
+    }
+    @keyframes missActive {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .hit-indicator {
+      position: absolute;
+      color: #ff3b30;
+      font-size: 40px;
+      font-weight: bold;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      z-index: 98;
+      text-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
+    }
+    .hit-indicator.show {
+      animation: hitPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes hitPop {
+      0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    /* フッター・解説＆コントロールエリア */
+    footer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-textbox {
+      background: #1a0f08;
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--accent-color);
+      line-height: 1.5;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .result-panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background: #1a0f08;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .review-title {
+      font-size: 11px;
+      color: var(--accent-color);
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .timelapse-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #4a3425;
+      outline: none;
+      border-radius: 3px;
+      margin: 6px 0;
+    }
+    .timelapse-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 50px;
+      background: var(--btn-red);
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+    }
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+    .action-btn:disabled {
+      background: #4a3425 !important;
+      color: #82604a !important;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* スタート画面オーバーレイ */
+    .overlay-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 15, 8, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 1000;
+    }
+    .overlay-screen.show { opacity: 1; pointer-events: auto; }
+
+    .overlay-box {
+      background: var(--card-bg);
+      border: 3px solid var(--border-color);
+      padding: 30px 20px;
+      border-radius: 16px;
+      text-align: center;
+      width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .overlay-box h2 {
+      font-size: 15px;
+      color: var(--accent-color);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- スタートオーバーレイ -->
+  <div class="overlay-screen show" id="startOverlay">
+    <div class="overlay-box">
+      <h2>これから表示される写真の5箇所が<br>ゆっくりと変化していきます。<br>変化している箇所を<br>タップしてください。</h2>
+      <button class="action-btn" onclick="startGame()">開始する</button>
+    </div>
+  </div>
+
+  <div id="mainShaker" class="viewport-shaker">
+    <div id="gameCard" class="game-card">
+      
+      <header>
+        <h1>アハ体験パズル</h1>
+        <p class="sub-title">変化している部分をタップしよう！</p>
+        <div class="stage-indicator">
+          <span id="currentStageLabel">残りの変化：5 / 5</span>
+          <button class="pause-btn" id="pauseBtn" onclick="togglePause(event)" style="display:none;">一時停止</button>
+        </div>
+      </header>
+
+      <div class="stage-viewport" id="viewport" onclick="evaluateMiss(event)">
+        <div class="image-wrapper" id="imageWrapper">
+          <div id="missX" class="miss-indicator">✕</div>
+          
+          <img id="baseImage" class="base-image" src="" alt="After State">
+          <img id="dynamicImage" class="dynamic-target-layer" src="" alt="Before State">
+
+          <!-- 変化領域 (5か所) -->
+          <div id="hitContainer"></div>
+          
+          <div class="pause-mask" id="pauseMask">
+            <div class="pause-label">PAUSE</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="info-textbox" id="guideText">
+          画面の5箇所がゆっくり変化します。<br>変化している部分をタップしてください。
+        </div>
+
+        <div class="result-panel" id="resultPanel">
+          <div>
+            <div class="review-title">バーを左右に動かして見比べてみてください</div>
+            <input type="range" min="0" max="100" value="100" class="timelapse-range" id="timelapseRange" oninput="processTimelapse(this.value)">
+            <div class="range-labels">
+              <span>変化前</span>
+              <span>変化後</span>
+            </div>
+          </div>
+          <button class="action-btn" id="nextStageBtn" onclick="advanceStage()" disabled>検証後に終了できます</button>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_ID = '000000';
+    let currentId = DEFAULT_ID;
+
+    // 5箇所の変化ターゲット定義 (%指定)
+    // 実運用時は画像に合わせて数値を変更できます
+    const targetAreas = [
+      { id: 0, top: 10, left: 10, width: 25, height: 25 },
+      { id: 1, top: 10, left: 65, width: 25, height: 25 },
+      { id: 2, top: 40, left: 38, width: 24, height: 24 },
+      { id: 3, top: 68, left: 12, width: 25, height: 25 },
+      { id: 4, top: 68, left: 63, width: 25, height: 25 }
+    ];
+
+    let foundTargets = new Set();
+    let activeState = false;
+    let isPaused = false;
+    let hasInteractedWithSlider = false;
+    let isAnnounced = false;
+    let startTime = null;
+    let pausedTimeElapsed = 0;
+    let progressTimer = null;
+    let countdownTimer = null;
+    let countdownSeconds = 10;
+    const animationDuration = 20000; // 20秒かけて変化
+
+    // 拡張子判定処理 (.png, .jpg, .webp)
+    function findExistingPair(id) {
+      const exts = ['.png', '.jpg', '.jpeg', '.webp'];
+      return new Promise((resolve) => {
+        let index = 0;
+        function tryNext() {
+          if (index >= exts.length) {
+            resolve({
+              before: `photo/${DEFAULT_ID}_a.png`,
+              after: `photo/${DEFAULT_ID}_b.png`
+            });
+            return;
+          }
+          const before = `photo/${id}_a${exts[index]}`;
+          const after = `photo/${id}_b${exts[index]}`;
+          const img = new Image();
+          img.src = before;
+          img.onload = () => resolve({ before, after });
+          img.onerror = () => {
+            index++;
+            tryNext();
+          };
+        }
+        tryNext();
+      });
+    }
+
+    async function loadDynamicImages() {
+      const hashParam = window.location.hash.replace('#', '').trim();
+      currentId = hashParam || DEFAULT_ID;
+
+      const pair = await findExistingPair(currentId);
+      document.getElementById('baseImage').src = pair.after;
+      document.getElementById('dynamicImage').src = pair.before;
+    }
+
+    function startGame() {
+      document.getElementById('startOverlay').classList.remove('show');
+      document.getElementById('pauseBtn').style.display = 'block';
+      initializeStage();
+    }
+
+    function initializeStage() {
+      foundTargets.clear();
+      activeState = false;
+      isPaused = false;
+      hasInteractedWithSlider = false;
+      isAnnounced = false;
+      countdownSeconds = 10;
+      pausedTimeElapsed = 0;
+
+      const nextBtn = document.getElementById('nextStageBtn');
+      nextBtn.disabled = true;
+      nextBtn.innerText = "検証後に終了できます";
+
+      const pauseBtn = document.getElementById('pauseBtn');
+      pauseBtn.innerText = "一時停止";
+      pauseBtn.style.display = "block";
+      document.getElementById('pauseMask').style.display = 'none';
+
+      updateStageIndicator();
+
+      document.getElementById('resultPanel').style.display = 'none';
+      document.getElementById('guideText').style.display = 'block';
+      document.getElementById('guideText').innerHTML = "画面の5箇所がゆっくり変化します。<br>変化している部分をタップしてください。";
+
+      // ターゲット領域の生成
+      const container = document.getElementById('hitContainer');
+      container.innerHTML = '';
+      targetAreas.forEach(area => {
+        const box = document.createElement('div');
+        box.className = 'hit-detector-box';
+        box.style.top = area.top + '%';
+        box.style.left = area.left + '%';
+        box.style.width = area.width + '%';
+        box.style.height = area.height + '%';
+        box.onclick = (e) => evaluateHit(e, area.id);
+        container.appendChild(box);
+      });
+
+      applyVisualState(0);
+
+      startTime = performance.now();
+      if (progressTimer) clearInterval(progressTimer);
+      if (countdownTimer) clearInterval(countdownTimer);
+      progressTimer = setInterval(updateFlux, 50);
+    }
+
+    function updateStageIndicator() {
+      const remaining = 5 - foundTargets.size;
+      document.getElementById('currentStageLabel').innerText = `残りの変化：${remaining} / 5`;
+    }
+
+    function togglePause(event) {
+      event.stopPropagation();
+      if (activeState) return;
+
+      const pauseBtn = document.getElementById('pauseBtn');
+      const pauseMask = document.getElementById('pauseMask');
+
+      if (!isPaused) {
+        isPaused = true;
+        pauseBtn.innerText = "再開";
+        pauseMask.style.display = 'flex';
+
+        if (!isAnnounced) {
+          clearInterval(progressTimer);
+          pausedTimeElapsed += (performance.now() - startTime);
+        } else {
+          clearInterval(countdownTimer);
+        }
+      } else {
+        isPaused = false;
+        pauseBtn.innerText = "一時停止";
+        pauseMask.style.display = 'none';
+
+        if (!isAnnounced) {
+          startTime = performance.now() - pausedTimeElapsed;
+          progressTimer = setInterval(updateFlux, 50);
+        } else {
+          startCountdown();
+        }
+      }
+    }
+
+    function updateFlux() {
+      if (activeState || isPaused) return;
+      const elapsed = (performance.now() - startTime);
+      let ratio = elapsed / animationDuration;
+
+      if (ratio >= 1) {
+        ratio = 1;
+        clearInterval(progressTimer);
+
+        if (!isAnnounced) {
+          isAnnounced = true;
+          startCountdown();
+        }
+      }
+      applyVisualState(ratio);
+    }
+
+    function startCountdown() {
+      if (isPaused) return;
+      const guideText = document.getElementById('guideText');
+      guideText.innerHTML = `すべての変化が完了しました。<br>残り時間：${countdownSeconds}秒`;
+
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        if (activeState || isPaused) {
+          clearInterval(countdownTimer);
+          return;
+        }
+        countdownSeconds--;
+        if (countdownSeconds <= 0) {
+          clearInterval(countdownTimer);
+          triggerTimeoutPenalty();
+        } else {
+          guideText.innerHTML = `すべての変化が完了しました。<br>残り時間：${countdownSeconds}秒`;
+        }
+      }, 1000);
+    }
+
+    function triggerTimeoutPenalty() {
+      endGame();
+      const mainShaker = document.getElementById('mainShaker');
+      const gameCard = document.getElementById('gameCard');
+      mainShaker.classList.add('miss-shake');
+      gameCard.classList.add('miss-flash');
+
+      setTimeout(() => {
+        mainShaker.classList.remove('miss-shake');
+        gameCard.classList.remove('miss-flash');
+      }, 400);
+    }
+
+    function applyVisualState(ratio) {
+      const dynamicImg = document.getElementById('dynamicImage');
+      if (dynamicImg) dynamicImg.style.opacity = (1 - ratio);
+    }
+
+    function evaluateHit(event, targetId) {
+      event.stopPropagation();
+      if (activeState || isPaused || foundTargets.has(targetId)) return;
+
+      foundTargets.add(targetId);
+      updateStageIndicator();
+
+      // 正解の「〇」を表示
+      const wrapper = document.getElementById('imageWrapper');
+      const rect = wrapper.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      const hitO = document.createElement('div');
+      hitO.className = 'hit-indicator show';
+      hitO.innerText = '〇';
+      hitO.style.left = `${x}px`;
+      hitO.style.top = `${y}px`;
+      wrapper.appendChild(hitO);
+
+      // 5箇所全て見つけた場合
+      if (foundTargets.size === 5) {
+        endGame();
+      }
+    }
+
+    function evaluateMiss(event) {
+      if (activeState || isPaused) return;
+
+      const wrapper = document.getElementById('imageWrapper');
+      const rect = wrapper.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      const missX = document.getElementById('missX');
+      missX.style.left = `${x}px`;
+      missX.style.top = `${y}px`;
+      missX.classList.remove('animate');
+      void missX.offsetWidth;
+      missX.classList.add('animate');
+
+      const mainShaker = document.getElementById('mainShaker');
+      const gameCard = document.getElementById('gameCard');
+
+      mainShaker.classList.remove('miss-shake');
+      gameCard.classList.remove('miss-flash');
+      void mainShaker.offsetWidth;
+      mainShaker.classList.add('miss-shake');
+      gameCard.classList.add('miss-flash');
+
+      setTimeout(() => {
+        mainShaker.classList.remove('miss-shake');
+        gameCard.classList.remove('miss-flash');
+      }, 400);
+    }
+
+    function endGame() {
+      activeState = true;
+      document.getElementById('pauseBtn').style.display = 'none';
+      clearInterval(progressTimer);
+      if (countdownTimer) clearInterval(countdownTimer);
+
+      applyVisualState(1);
+
+      document.getElementById('guideText').style.display = 'none';
+      document.getElementById('resultPanel').style.display = 'flex';
+      document.getElementById('timelapseRange').value = 100;
+    }
+
+    function processTimelapse(value) {
+      const ratio = value / 100;
+      applyVisualState(ratio);
+
+      if (!hasInteractedWithSlider) {
+        hasInteractedWithSlider = true;
+        const nextBtn = document.getElementById('nextStageBtn');
+        nextBtn.disabled = false;
+        nextBtn.innerText = "もう一度遊ぶ";
+      }
+    }
+
+    function advanceStage() {
+      if (!hasInteractedWithSlider) return;
+      location.reload();
+    }
+
+    window.addEventListener('hashchange', async () => {
+      await loadDynamicImages();
+      initializeStage();
+    });
+
+    window.onload = async () => {
+      await loadDynamicImages();
+      document.getElementById('startOverlay').classList.add('show');
+    };
+  </script>
+</body>
+</html>

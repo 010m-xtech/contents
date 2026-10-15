@@ -2,25 +2,25 @@
   "000000": [
     {
       "title": "スライドパズル",
-      "thumbnail": "thumbnail/default_puzzle.webp",
-      "url": "../slidingpuzzle/"
+      "thumbnail": "thumbnail/slidingpuzzle.webp",
+      "url": "https://010m-xtech.github.io/contents/slidingpuzzle/"
     },
     {
       "title": "ルーレット",
-      "thumbnail": "thumbnail/default_roulette.webp",
-      "url": "../roulette/"
+      "thumbnail": "thumbnail/roulette.webp",
+      "url": "https://010m-xtech.github.io/contents/slidingpuzzle/"
     }
   ],
   "073810": [
     {
-      "title": "特別スライドパズル",
-      "thumbnail": "thumbnail/073810_puzzle.webp",
-      "url": "../slidingpuzzle/"
+      "title": "スライドパズル",
+      "thumbnail": "thumbnail/slidingpuzzle.webp",
+      "url": "https://010m-xtech.github.io/contents/slidingpuzzle/"
     },
     {
-      "title": "特別ルーレット",
-      "thumbnail": "thumbnail/073810_roulette.webp",
-      "url": "../roulette/"
+      "title": "ルーレット",
+      "thumbnail": "thumbnail/roulette.webp",
+      "url": "https://010m-xtech.github.io/contents/slidingpuzzle/"
     }
   ]
 }

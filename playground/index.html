@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オリジナルゲームポータル</title>
+
+  <style>
+    /* ベーススタイル（高級感・清潔感のあるモダンデザイン） */
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --primary-color: #1e293b;
+      --accent-color: #2563eb;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-top: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      letter-spacing: 0.05em;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
+
+    /* ゲーム一覧（トップ画面）スタイル */
+    .game-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* 2列並び */
+      gap: 12px;
+    }
+
+    .game-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+    }
+
+    .game-thumbnail {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 572 / 1024;
+      object-fit: cover;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>お待ちの時間！笑顔のきっかけに！</h1>
+      <p>お食事までのひとときを、手軽なミニゲームとともに</p>
+    </header>
+
+    <!-- トップ画面（ゲーム一覧） -->
+    <section id="top-section">
+      <div id="game-grid" class="game-grid">
+        <!-- JavaScriptでJSONからカードを動的に生成します -->
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ★GASのウェブアプリURLを貼り付けてください★
+    const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
+
+    let storeCd = "000000";
+    let deviceId = localStorage.getItem('device_id') || 'unknown';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      getStoreCdFromUrl();
+      loadGameConfig();
+      logAccess("遊び場ページ表示");
+    });
+
+    // URLハッシュから店舗CDを取得
+    function getStoreCdFromUrl() {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash && hash.length === 6) {
+        storeCd = hash;
+      }
+    }
+
+    // config.jsonを読み込み、カードを動的生成
+    async function loadGameConfig() {
+      const grid = document.getElementById('game-grid');
+      try {
+        const response = await fetch('config.json');
+        const configData = await response.json();
+
+        // 該当する店舗CDの設定を取得（なければデフォルト 000000）
+        const games = configData[storeCd] || configData["000000"];
+
+        grid.innerHTML = '';
+        games.forEach(game => {
+          const card = document.createElement('a');
+          card.className = 'game-card';
+          card.dataset.title = game.title;
+          // 遷移先にハッシュ（店舗CD）を確実に引き継ぐ
+          const targetUrl = `${game.url}#${storeCd}`;
+          card.href = targetUrl;
+
+          card.innerHTML = `
+            <img class="game-thumbnail" src="${game.thumbnail}" alt="${game.title}" onerror="this.src='thumbnail/default_game1.webp'">
+          `;
+
+          // クリック時にGASへアクセスログを送信してから遷移
+          card.addEventListener('click', (e) => {
+            logAccess(`ゲーム選択: ${game.title}`);
+          });
+
+          grid.appendChild(card);
+        });
+
+      } catch (error) {
+        console.error("設定ファイルの読み込みに失敗しました:", error);
+        grid.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>コンテンツの読み込みに失敗しました。</p>";
+      }
+    }
+
+    // GASへアクセスログ（閲覧・選択）を送信
+    function logAccess(actionName) {
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'access_log',
+          store_cd: storeCd,
+          device_id: deviceId,
+          action: actionName
+        })
+      }).catch(err => console.warn("ログ送信失敗:", err));
+    }
+  </script>
+</body>
+</html>

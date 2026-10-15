@@ -1,0 +1,26 @@
+{
+  "000000": [
+    {
+      "title": "スライドパズル",
+      "thumbnail": "thumbnail/default_puzzle.webp",
+      "url": "../slidingpuzzle/"
+    },
+    {
+      "title": "ルーレット",
+      "thumbnail": "thumbnail/default_roulette.webp",
+      "url": "../roulette/"
+    }
+  ],
+  "073810": [
+    {
+      "title": "特別スライドパズル",
+      "thumbnail": "thumbnail/073810_puzzle.webp",
+      "url": "../slidingpuzzle/"
+    },
+    {
+      "title": "特別ルーレット",
+      "thumbnail": "thumbnail/073810_roulette.webp",
+      "url": "../roulette/"
+    }
+  ]
+}

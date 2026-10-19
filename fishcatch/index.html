@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>お魚キャッチ</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Mochiy+Pop+One&display=swap');
+    
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    body {
+      background-color: #fce4ec;
+      font-family: 'Mochiy Pop One', 'Nunito', sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      touch-action: none;
+    }
+
+    #game-outer-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      max-width: 540px; 
+      max-height: 1168px;
+      aspect-ratio: 1125 / 2436;
+      background: linear-gradient(to bottom, #ffebee 0%, #fce4ec 50%, #fff9c4 100%);
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    }
+
+    #canvas-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    #canvas-container canvas {
+      display: block;
+    }
+
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 40px 80px 40px;
+      z-index: 10;
+      background: linear-gradient(to bottom, #ffebee 0%, #fce4ec 50%, #fff9c4 100%);
+    }
+
+    .bg-deco {
+      position: absolute;
+      font-size: 32px;
+      opacity: 0.25;
+      animation: floatAnim 4s infinite ease-in-out alternate;
+      pointer-events: none;
+    }
+    @keyframes floatAnim {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-20px) rotate(15deg); }
+    }
+
+    .header-area {
+      text-align: center;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .main-title {
+      font-size: 44px;
+      color: #ff6eb4;
+      line-height: 1.3;
+      text-shadow: 
+        3px 3px 0 #fff, 
+        -3px -3px 0 #fff, 
+        3px -3px 0 #fff, 
+        -3px 3px 0 #fff, 
+        0 6px 12px rgba(255,110,180,0.4);
+      margin-bottom: 10px;
+      animation: titleBounce 2s infinite ease-in-out alternate;
+    }
+
+    @keyframes titleBounce {
+      0% { transform: scale(0.98) translateY(0); }
+      100% { transform: scale(1.02) translateY(-10px); }
+    }
+
+    .highscore-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #fff2f6, #fffde6);
+      border: 3px solid #ffb6d5;
+      border-radius: 50px;
+      padding: 6px 20px;
+      font-size: 16px;
+      color: #ff52a2;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(255, 110, 180, 0.15);
+      margin-top: 5px;
+    }
+
+    .char-area {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .char-img {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      animation: characterFloat 3s infinite ease-in-out alternate;
+    }
+
+    .char-fallback {
+      font-size: 120px;
+      animation: characterFloat 3s infinite ease-in-out alternate;
+    }
+
+    @keyframes characterFloat {
+      0% { transform: translateY(0) rotate(-3deg); }
+      100% { transform: translateY(-15px) rotate(3deg); }
+    }
+
+    .bottom-area {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .description-box {
+      background: rgba(255, 255, 255, 0.85);
+      border: 3px dashed #ffb6d5;
+      border-radius: 24px;
+      padding: 20px;
+      font-size: 18px;
+      color: #444;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+      font-weight: bold;
+    }
+
+    .pastel-btn {
+      width: 100%;
+      max-width: 280px;
+      padding: 18px 0;
+      font-size: 28px;
+      font-family: 'Mochiy Pop One', sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #ffb6d5, #81d4fa);
+      border: 4px solid #fff;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(255, 182, 213, 0.6);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .pastel-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(255, 182, 213, 0.8);
+    }
+
+    .pastel-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 8px rgba(255, 182, 213, 0.6);
+    }
+
+    .result-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      gap: 15px;
+      width: 100%;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      padding: 30px 20px;
+      align-items: flex-start;
+    }
+    
+    .hud-box {
+      background: rgba(255, 255, 255, 0.9);
+      border: 3px solid #ffb6d5;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 22px;
+      color: #ff6eb4;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .hud-time {
+      font-size: 24px;
+      border-color: #81d4fa;
+      color: #0288d1;
+    }
+    
+    .hud-time.danger {
+      border-color: #ff8a80;
+      color: #ff5252;
+      animation: pulse 0.5s infinite alternate;
+    }
+    
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.1); }
+    }
+
+    #loading-overlay {
+      background: linear-gradient(to bottom, #ffebee 0%, #fce4ec 50%, #fff9c4 100%);
+    }
+    #loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #fff;
+      border-top: 6px solid #ffb6d5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-outer-container">
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer" style="display:none;">
+      <div class="hud-top">
+        <div class="hud-box">
+          <span style="font-size:24px; line-height:1;">🐟</span>
+          <span id="score-display">0</span>
+        </div>
+        <div class="hud-box hud-time" id="time-box">
+          <span style="font-size:24px; line-height:1;">⏱️</span>
+          <span id="time-display">30</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading-overlay" class="screen-overlay">
+      <div></div>
+      <div class="result-center">
+        <div id="loading-spinner"></div>
+        <h2 class="main-title" style="font-size: 32px;">Loading...</h2>
+      </div>
+      <div></div>
+    </div>
+
+    <div id="start-overlay" class="screen-overlay" style="display:none;">
+      <div class="bg-deco" style="top: 15%; left: 10%; animation-delay: 0s;">🐟</div>
+      <div class="bg-deco" style="top: 25%; right: 12%; animation-delay: 0.5s;">🦐</div>
+      <div class="bg-deco" style="top: 55%; left: 15%; animation-delay: 1s;">🐙</div>
+      <div class="bg-deco" style="top: 65%; right: 10%; animation-delay: 1.5s;">🐟</div>
+
+      <div class="header-area">
+        <h1 class="main-title">お魚キャッチ</h1>
+        <div class="highscore-badge" id="title-highscore">👑 最高記録: 0匹</div>
+      </div>
+
+      <div class="char-area">
+        <img src="image/000000_1.png" alt="キャラ" class="char-img" id="title-char-img" onerror="this.style.display='none'; document.getElementById('title-fallback').style.display='block';">
+        <div id="title-fallback" class="char-fallback" style="display: none;">🐱</div>
+      </div>
+
+      <div class="bottom-area">
+        <div class="description-box">
+          飛んでくるお魚を<br>キャッチしよう！<br>何匹とれるかな？
+        </div>
+        <button id="start-btn" class="pastel-btn">スタート</button>
+      </div>
+    </div>
+
+    <div id="result-overlay" class="screen-overlay" style="display:none;">
+      <div class="header-area">
+        <h1 class="main-title">タイムアップ！</h1>
+      </div>
+      
+      <div class="result-center">
+        <div id="new-record-text" style="font-size: 24px; color: #ff52a2; font-weight: bold; display: none; text-shadow: 2px 2px 0 #fff;">🎉 新記録達成！ 🎉</div>
+        
+        <div class="description-box" id="result-score" style="font-size: 26px; padding: 25px 40px; margin-bottom: 0; width: 100%; max-width: 320px;">
+          結果: 0 匹！
+        </div>
+        
+        <div class="highscore-badge" id="result-highscore" style="font-size: 18px; padding: 8px 24px;">👑 さいこう記録: 0匹</div>
+      </div>
+
+      <div class="bottom-area">
+        <button id="retry-btn" class="pastel-btn">もう1回遊ぶ</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js"></script>
+  
+  <script>
+    // ★GASのウェブアプリURLを貼り付けてください★
+    const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
+
+    let storeCd = "000000";
+    let deviceId = localStorage.getItem('device_id') || 'unknown';
+
+    function getStoreCdFromUrl() {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash && hash.length === 6) {
+        storeCd = hash;
+      }
+    }
+    getStoreCdFromUrl();
+
+    function logAccess(actionName) {
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'access_log',
+          store_cd: storeCd,
+          device_id: deviceId,
+          action: actionName
+        })
+      }).catch(err => console.warn("ログ送信失敗:", err));
+    }
+
+    // --- 店舗別画像のパス判定 ---
+    const defaultPlayerPath = 'image/000000_1.png';
+    const defaultThrowerPath = 'image/000000_2.png';
+    
+    let currentPlayerPath = storeCd !== "000000" ? `image/${storeCd}_1.png` : defaultPlayerPath;
+    let currentThrowerPath = storeCd !== "000000" ? `image/${storeCd}_2.png` : defaultThrowerPath;
+
+    // タイトル画面の画像設定
+    document.getElementById('title-char-img').src = currentPlayerPath;
+
+    function displayHighScore() {
+      let savedHighScore = localStorage.getItem('catch_highscore') || 0;
+      document.getElementById('title-highscore').innerText = `👑 最高記録: ${savedHighScore}匹`;
+      document.getElementById('result-highscore').innerText = `👑 最高記録: ${savedHighScore}匹`;
+    }
+
+    function showTitleScreen() {
+      const loading = document.getElementById('loading-overlay');
+      if (loading && loading.style.display !== 'none') {
+        loading.style.display = 'none';
+        document.getElementById('start-overlay').style.display = 'flex';
+        displayHighScore();
+      }
+    }
+
+    setTimeout(showTitleScreen, 1000);
+
+    // --- 音声生成システム ---
+    class SynthAudio {
+      constructor() { this.ctx = null; }
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      }
+      play(freq, endFreq, duration, type = 'square', vol = 0.2) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      }
+      playThrow() { this.init(); this.play(300, 700, 0.12, 'sine', 0.08); }
+      playCatch() {
+        this.init();
+        [523, 659, 784, 988].forEach((f, i) => {
+          setTimeout(() => this.play(f, f, 0.08, 'triangle', 0.12), i * 35);
+        });
+      }
+      playMiss() { this.init(); this.play(120, 60, 0.2, 'sawtooth', 0.15); }
+      playFinish() {
+        this.init();
+        [523, 659, 784, 1046].forEach((f, i) => {
+          setTimeout(() => this.play(f, f, 0.2, 'square', 0.15), i * 100);
+        });
+      }
+    }
+    const audio = new SynthAudio();
+
+    // --- 定数・変数定義 ---
+    const VIRTUAL_WIDTH = 390;
+    const VIRTUAL_HEIGHT = 844;
+    const TOTAL_TIME = 30;
+    
+    let gameState = 'TITLE'; 
+    let score = 0;
+    let gameTime = TOTAL_TIME;
+    let lastSecondTime = 0;
+    let lastSpawnTime = 0;
+    
+    let phaseText = "";
+    let phaseTextTimer = 0;
+    
+    let player = { x: 195, y: 710, targetX: 195 };
+    let thrower = { x: 320, y: 350 };
+    let fishes = [];
+    let particles = [];
+    let assets = {};
+    
+    const fishKeys = ['fugu', 'ika', 'kani', 'sakana', 'sakanamini', 'tako'];
+    let triggerResize = null;
+
+    // --- p5.js スケッチ ---
+    const sketch = (p) => {
+      let scale = 1, offsetX = 0, offsetY = 0;
+
+      p.preload = () => {
+        // プレイヤー画像のロード（失敗時はデフォルト）
+        assets['player'] = p.loadImage(currentPlayerPath, null, () => {
+          assets['player'] = p.loadImage(defaultPlayerPath, null, () => assets['player'] = null);
+        });
+
+        // 投げるキャラ画像のロード（失敗時はデフォルト）
+        assets['thrower'] = p.loadImage(currentThrowerPath, null, () => {
+          assets['thrower'] = p.loadImage(defaultThrowerPath, null, () => assets['thrower'] = null);
+        });
+
+        // 各種魚画像のロード
+        fishKeys.forEach(k => {
+          assets[k] = p.loadImage(`image/${k}.png`, null, () => assets[k] = null);
+        });
+      };
+
+      p.setup = () => {
+        const container = document.getElementById('game-outer-container');
+        const canvas = p.createCanvas(container.clientWidth || p.windowWidth, container.clientHeight || p.windowHeight);
+        canvas.parent('canvas-container');
+        p.imageMode(p.CENTER);
+        
+        calculateScale();
+        
+        triggerResize = () => {
+          p.resizeCanvas(container.clientWidth || p.windowWidth, container.clientHeight || p.windowHeight);
+          calculateScale();
+        };
+
+        showTitleScreen();
+      };
+
+      function calculateScale() {
+        const container = document.getElementById('game-outer-container');
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        
+        const scaleX = rect.width / VIRTUAL_WIDTH;
+        const scaleY = rect.height / VIRTUAL_HEIGHT;
+        scale = Math.min(scaleX, scaleY);
+        offsetX = (p.width - VIRTUAL_WIDTH * scale) / 2;
+        offsetY = (p.height - VIRTUAL_HEIGHT * scale) / 2;
+      }
+
+      function toVirtualX(x) { return (x - offsetX) / scale; }
+
+      p.windowResized = () => {
+        const container = document.getElementById('game-outer-container');
+        p.resizeCanvas(container.clientWidth || p.windowWidth, container.clientHeight || p.windowHeight);
+        calculateScale();
+      };
+
+      p.draw = () => {
+        p.background(252, 228, 236); 
+        
+        if (gameState !== 'PLAYING' && gameState !== 'FINISHED') return;
+
+        p.push();
+        p.translate(offsetX, offsetY);
+        p.scale(scale);
+        
+        drawGameScene(p);
+        updateLogic(p);
+        
+        p.pop();
+      };
+
+      function drawGameScene(p) {
+        // グラデーション背景
+        p.noStroke();
+        for (let i = 0; i < VIRTUAL_HEIGHT; i++) {
+          let inter = p.map(i, 0, VIRTUAL_HEIGHT, 0, 1);
+          let c;
+          if (inter < 0.5) {
+            c = p.lerpColor(p.color('#ffebee'), p.color('#fce4ec'), inter * 2);
+          } else {
+            c = p.lerpColor(p.color('#fce4ec'), p.color('#fff9c4'), (inter - 0.5) * 2);
+          }
+          p.stroke(c);
+          p.line(0, i, VIRTUAL_WIDTH, i);
+        }
+        
+        // 地面
+        p.noStroke();
+        p.fill(255, 248, 220, 160); 
+        p.rect(0, VIRTUAL_HEIGHT * 0.75, VIRTUAL_WIDTH, VIRTUAL_HEIGHT * 0.25);
+
+        // 投げるキャラ描画 (000000_2)
+        p.push();
+        p.translate(thrower.x, thrower.y);
+        if (assets['thrower']) {
+          p.image(assets['thrower'], 0, 0, 90, 126); // 比率維持して縮小表示
+        } else {
+          p.textAlign(p.CENTER, p.CENTER);
+          p.textSize(60);
+          p.text('🐧', 0, 0);
+        }
+        p.pop();
+
+        // 落下物影
+        fishes.forEach(f => {
+          let groundY = player.y + 40;
+          let shadowSize = p.map(groundY - f.y, 0, VIRTUAL_HEIGHT, 40, 10);
+          if (shadowSize > 0) {
+            p.fill(0, 0, 0, 30);
+            p.noStroke();
+            p.ellipse(f.x, groundY, shadowSize, shadowSize * 0.4);
+          }
+        });
+
+        // プレイヤーキャラ描画 (000000_1)
+        p.push();
+        p.translate(player.x, player.y);
+        if (assets['player']) {
+          p.image(assets['player'], 0, 0, 110, 143); // 比率維持して縮小表示
+        } else {
+          p.textAlign(p.CENTER, p.CENTER);
+          p.textSize(80); 
+          p.text('🐱', 0, 0);
+        }
+        p.pop();
+
+        // 魚（落下物）描画
+        fishes.forEach(f => {
+          p.push();
+          p.translate(f.x, f.y);
+          p.rotate(f.rotation);
+          
+          let fishImg = assets[f.type];
+          if (fishImg) {
+            // 画像タイプに合わせて小さく綺麗に表示 (幅45px程度に縮小)
+            p.image(fishImg, 0, 0, 48, 48 * (fishImg.height / fishImg.width));
+          } else {
+            p.fill(0); 
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(35);
+            p.text('🐟', 0, 0);
+          }
+          p.pop();
+        });
+
+        // パーティクル
+        particles.forEach(pt => {
+          p.push();
+          p.translate(pt.x, pt.y);
+          p.noStroke();
+          p.fill(pt.type === 'star' ? [255, 235, 59, pt.life * 12] : [244, 143, 177, pt.life * 12]);
+          p.ellipse(0, 0, pt.size, pt.size);
+          p.pop();
+        });
+
+        // フェーズメッセージ
+        if (phaseTextTimer > 0) {
+          p.push();
+          p.textAlign(p.CENTER, p.CENTER);
+          p.textSize(36);
+          p.strokeWeight(6);
+          p.stroke(255);
+          p.fill(255, 110, 180);
+          let ty = VIRTUAL_HEIGHT / 2 - (60 - phaseTextTimer) * 1.5;
+          p.text(phaseText, VIRTUAL_WIDTH / 2, ty);
+          p.pop();
+        }
+      }
+
+      function updateLogic(p) {
+        if (gameState !== 'PLAYING') return;
+
+        let currentMillis = p.millis();
+        
+        if (currentMillis - lastSecondTime >= 1000) {
+          lastSecondTime = currentMillis;
+          gameTime--;
+          updateHUD();
+          
+          if (gameTime === 20) {
+            phaseText = "スピードアップ！";
+            phaseTextTimer = 60;
+          } else if (gameTime === 10) {
+            phaseText = "ラストスパート！";
+            phaseTextTimer = 60;
+            document.getElementById('time-box').classList.add('danger');
+          }
+          
+          if (gameTime <= 0) {
+            finishGame();
+          }
+        }
+
+        // プレイヤー移動処理
+        if (p.mouseIsPressed || p.touches.length > 0) {
+          let vx = toVirtualX(p.mouseX);
+          player.targetX = p.constrain(vx, 50, 340);
+        }
+        if (p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(65)) player.targetX -= 12;
+        if (p.keyIsDown(p.RIGHT_ARROW) || p.keyIsDown(68)) player.targetX += 12;
+        player.targetX = p.constrain(player.targetX, 50, 340);
+
+        let dx = player.targetX - player.x;
+        if (p.abs(dx) > 1) {
+          player.x += dx * 0.3;
+        }
+
+        // スポーン間隔の調整
+        let interval = 700;
+        if (gameTime <= 20) interval = 450;
+        if (gameTime <= 10) interval = 280;
+
+        if (currentMillis - lastSpawnTime > interval) {
+          lastSpawnTime = currentMillis;
+          
+          let targetX = p.random(50, 330);
+          let t_frames = p.random(45, 60);
+          let startX = thrower.x - 20;
+          let startY = thrower.y - 10;
+          
+          let vx = (targetX - startX) / t_frames;
+          let vy = (player.y - startY - 0.5 * 0.5 * t_frames * t_frames) / t_frames;
+          
+          // ランダムに魚の種類を選択
+          let randomFishKey = fishKeys[p.floor(p.random(fishKeys.length))];
+
+          fishes.push({
+            x: startX, y: startY, vx: vx, vy: vy,
+            type: randomFishKey,
+            rotation: p.random(p.TWO_PI),
+            rotSpeed: p.random(-0.08, 0.08)
+          });
+          audio.playThrow();
+        }
+
+        // 魚の移動とキャッチ判定
+        for (let i = fishes.length - 1; i >= 0; i--) {
+          let f = fishes[i];
+          f.x += f.vx;
+          f.y += f.vy;
+          f.vy += 0.5; 
+          f.rotation += f.rotSpeed;
+
+          // キャッチ成功判定（プレイヤーとの距離）
+          if (p.abs(f.x - player.x) < 65 && f.y > player.y - 70 && f.y < player.y + 20) {
+            score++;
+            updateHUD();
+            spawnParticles(p, f.x, f.y, 'star');
+            audio.playCatch();
+            fishes.splice(i, 1);
+          } 
+          // 落下（取り逃し）
+          else if (f.y > player.y + 35) {
+            spawnParticles(p, f.x, player.y + 40, 'dust');
+            audio.playMiss();
+            fishes.splice(i, 1);
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          let pt = particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.life--;
+          if (pt.life <= 0) particles.splice(i, 1);
+        }
+        
+        if (phaseTextTimer > 0) phaseTextTimer--;
+      }
+
+      function spawnParticles(p, x, y, type) {
+        for (let i = 0; i < 6; i++) {
+          particles.push({
+            x: x, y: y,
+            vx: p.random(-3, 3),
+            vy: p.random(-5, -1),
+            life: p.random(15, 25),
+            type: type,
+            size: p.random(6, 12)
+          });
+        }
+      }
+    };
+
+    const myP5 = new p5(sketch);
+
+    function updateHUD() {
+      document.getElementById('score-display').innerText = score;
+      document.getElementById('time-display').innerText = gameTime;
+    }
+
+    function resetGame() {
+      score = 0;
+      gameTime = TOTAL_TIME;
+      fishes = [];
+      particles = [];
+      player.x = 195;
+      player.targetX = 195;
+      phaseTextTimer = 0;
+      document.getElementById('time-box').classList.remove('danger');
+      document.getElementById('new-record-text').style.display = 'none';
+      updateHUD();
+    }
+
+    function startGame() {
+      audio.init(); 
+      resetGame();
+      
+      logAccess("ゲーム開始: お魚キャッチ");
+
+      document.getElementById('start-overlay').style.display = 'none';
+      document.getElementById('result-overlay').style.display = 'none';
+      document.getElementById('ui-layer').style.display = 'flex';
+      
+      if (triggerResize) {
+        triggerResize();
+      }
+      
+      gameState = 'PLAYING';
+      lastSecondTime = myP5.millis();
+      lastSpawnTime = myP5.millis();
+    }
+
+    function finishGame() {
+      gameState = 'FINISHED';
+      audio.playFinish();
+      
+      logAccess(`ゲーム終了: お魚キャッチ (${score}匹)`);
+
+      let currentHighScore = Number(localStorage.getItem('catch_highscore') || 0);
+      let isNewRecord = false;
+      
+      if (score > currentHighScore) {
+        localStorage.setItem('catch_highscore', score);
+        isNewRecord = true;
+      }
+
+      setTimeout(() => {
+        gameState = 'RESULT';
+        document.getElementById('ui-layer').style.display = 'none';
+        document.getElementById('result-score').innerText = `結果: ${score} 匹！`;
+        
+        if (isNewRecord) {
+          document.getElementById('new-record-text').style.display = 'block';
+        }
+        
+        displayHighScore();
+        document.getElementById('result-overlay').style.display = 'flex';
+      }, 1500);
+    }
+
+    document.getElementById('start-btn').addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      startGame();
+    });
+
+    document.getElementById('retry-btn').addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      startGame();
+    });
+  </script>
+</body>
+</html>

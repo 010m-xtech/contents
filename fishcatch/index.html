@@ -16,7 +16,7 @@
     }
     
     body {
-      background-color: #fce4ec;
+      background-color: #e0f7fa; /* 淡い水色に変更 */
       font-family: 'Mochiy Pop One', 'Nunito', sans-serif;
       overflow: hidden;
       display: flex;
@@ -60,12 +60,17 @@
       justify-content: space-between;
       padding: 60px 30px 80px 30px;
       z-index: 10;
-      background: linear-gradient(to bottom, #ffebee 0%, #fce4ec 50%, #fff9c4 100%);
+      background: linear-gradient(to bottom, #e0f7fa 0%, #b2ebf2 50%, #e0f7fa 100%); /* 淡い水色のグラデーション */
     }
 
-    /* トップ画面のみ背景画像 top.webp を指定 */
+    /* トップ画面の背景設定 */
     #start-overlay {
       background: url('image/top.webp') center center / cover no-repeat !important;
+    }
+
+    /* リザルト画面の背景設定 (end.webp) */
+    #result-overlay {
+      background: url('image/end.webp') center center / cover no-repeat !important;
     }
 
     /* ヘッダー・タイトルエリア */
@@ -75,9 +80,10 @@
       margin-top: 10px;
     }
 
+    /* タイトルテキスト (ふわふわアニメーションを削除) */
     .main-title {
       font-size: 42px;
-      color: #ff2a8d; /* より濃く目立つビビットピンク */
+      color: #ff2a8d;
       line-height: 1.3;
       text-shadow: 
         4px 4px 0 #fff, 
@@ -86,12 +92,6 @@
         -4px 4px 0 #fff, 
         0 8px 15px rgba(0,0,0,0.3);
       margin-bottom: 10px;
-      animation: titleBounce 2s infinite ease-in-out alternate;
-    }
-
-    @keyframes titleBounce {
-      0% { transform: scale(0.98) translateY(0); }
-      100% { transform: scale(1.02) translateY(-10px); }
     }
 
     /* ハイスコア表示用バッジ */
@@ -108,11 +108,11 @@
       margin-top: 5px;
     }
 
-    /* キャラクター配置エリア（中央のまるちゃん配置確認用スペース） */
+    /* キャラクター配置エリア */
     .char-area {
       position: relative;
       width: 100%;
-      flex-grow: 1; /* 中央の広いスペースを透過領域として保持 */
+      flex-grow: 1;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -137,7 +137,7 @@
       font-weight: bold;
     }
 
-    /* はっきりした色味のVividボタン */
+    /* ビビットなボタン */
     .pastel-btn {
       width: 100%;
       max-width: 290px;
@@ -145,7 +145,6 @@
       font-size: 28px;
       font-family: 'Mochiy Pop One', sans-serif;
       color: #ffffff;
-      /* くっきり鮮やかなグラデーション（ピンク×オレンジ×ゴールド） */
       background: linear-gradient(135deg, #ff1493 0%, #ff5252 50%, #ff9100 100%);
       border: 4px solid #ffffff;
       border-radius: 50px;
@@ -226,7 +225,7 @@
     }
 
     #loading-overlay {
-      background: linear-gradient(to bottom, #ffebee 0%, #fce4ec 50%, #fff9c4 100%);
+      background: linear-gradient(to bottom, #e0f7fa 0%, #b2ebf2 50%, #e0f7fa 100%);
     }
     #loading-spinner {
       width: 60px;
@@ -270,14 +269,13 @@
       <div></div>
     </div>
 
-    <!-- ① トップ画面（背景に top.webp を全面表示） -->
+    <!-- ① トップ画面（背景: top.webp） -->
     <div id="start-overlay" class="screen-overlay" style="display:none;">
       <div class="header-area">
         <h1 class="main-title">お魚キャッチ</h1>
         <div class="highscore-badge" id="title-highscore">👑 最高記録: 0匹</div>
       </div>
 
-      <!-- 中央のまるちゃんを描画で見せるための空エリア -->
       <div class="char-area"></div>
 
       <div class="bottom-area">
@@ -288,7 +286,7 @@
       </div>
     </div>
 
-    <!-- ② リザルト画面 -->
+    <!-- ② リザルト画面（背景: end.webp） -->
     <div id="result-overlay" class="screen-overlay" style="display:none;">
       <div class="header-area">
         <h1 class="main-title">タイムアップ！</h1>

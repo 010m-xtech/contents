@@ -32,38 +32,46 @@
   }
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-  /* 下部ジャンプボタン */
+  /* 下部ジャンプボタンエリア */
   #jump-button-area {
     position: absolute;
-    bottom: 16px;
+    bottom: 70px;
     left: 0;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10;
-    pointer-events: auto;
+    pointer-events: none;
   }
+
+  /* 丸型ジャンプボタン */
   .jump-btn {
-    width: 82%;
-    max-width: 380px;
-    padding: 14px 0;
+    pointer-events: auto;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
     background: linear-gradient(135deg, #ff4081 0%, #ff1744 100%);
     color: #ffffff;
-    border: 3px solid #ffffff;
-    border-radius: 40px;
+    border: 3.5px solid #ffffff;
     font-family: "Mochiy Pop One", sans-serif;
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 900;
-    letter-spacing: 0.1em;
-    box-shadow: 0 6px 16px rgba(255, 64, 129, 0.4), 0 4px 0 #b30047;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 20px rgba(255, 23, 68, 0.45), 0 5px 0 #99002b;
     cursor: pointer;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-    transition: transform 0.08s, box-shadow 0.08s;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.35);
+    transition: transform 0.06s, box-shadow 0.06s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
   .jump-btn:active {
-    transform: translateY(3px);
-    box-shadow: 0 2px 6px rgba(255, 64, 129, 0.4), 0 1px 0 #b30047;
+    transform: translateY(4px);
+    box-shadow: 0 3px 10px rgba(255, 23, 68, 0.35), 0 1px 0 #99002b;
   }
   .hidden { display: none !important; }
 </style>
@@ -72,7 +80,10 @@
 <div id="stage">
   <canvas id="game"></canvas>
   <div id="jump-button-area" class="hidden">
-    <button class="jump-btn" id="btn-jump">👆 JUMP！</button>
+    <button class="jump-btn" id="btn-jump">
+      <span style="font-size: 18px; margin-bottom: 2px;">👆</span>
+      <span>JUMP</span>
+    </button>
   </div>
 </div>
 <script>
@@ -120,7 +131,7 @@ function resize() {
   canvas.width = Math.floor(W * dpr);
   canvas.height = Math.floor(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  groundY = Math.floor(H * 0.72); // ボタンエリアを確保するため地面をわずかに引き上げ
+  groundY = Math.floor(H * 0.72);
 }
 let resizeScheduled = false;
 function scheduleResize() {
@@ -148,7 +159,6 @@ playerImg.onerror = () => {
 };
 playerImg.src = currentPlayerPath;
 
-// ダイヤ画像（6種）
 const diaKeys = ['dia_r', 'dia_y', 'dia_pr', 'dia_g', 'dia_b', 'dia_p'];
 const diaImgs = diaKeys.map(key => {
   const img = new Image();
@@ -156,12 +166,11 @@ const diaImgs = diaKeys.map(key => {
   return { key, img };
 });
 
-// モンスター定義（モンスター2と4は tall: true でスケール拡大）
 const monsterDefs = [
   { name: 'monster_1.png', w: 321, h: 281, tall: false },
-  { name: 'monster_2.png', w: 231, h: 378, tall: true  }, // 背高モンスター
+  { name: 'monster_2.png', w: 231, h: 378, tall: true  },
   { name: 'monster_3.png', w: 338, h: 352, tall: false },
-  { name: 'monster_4.png', w: 263, h: 450, tall: true  }, // 背高モンスター
+  { name: 'monster_4.png', w: 263, h: 450, tall: true  },
   { name: 'monster_5.png', w: 322, h: 350, tall: false },
   { name: 'monster_6.png', w: 377, h: 293, tall: false }
 ];
@@ -224,7 +233,7 @@ const ball = { x: 0, y: 0, vy: 0, jumpsLeft: 2, onGround: true, squash: 0 };
 let speed = BASE_SPEED;
 let distance = 0;
 let gemsScore = 0;
-let score = 0; // 距離(m)
+let score = 0;
 let best = 0;
 try { best = parseInt(localStorage.getItem("hc_best_m") || "0", 10) || 0; } catch (e) {}
 
@@ -301,15 +310,13 @@ function press() {
   }
 }
 
-// 画面全体のタップ & ボタンタップの双方に対応
 window.addEventListener("pointerdown", (e) => {
-  // ボタン以外のタップでも動作
   e.preventDefault();
   press();
 }, { passive: false });
 
 jumpBtn.addEventListener("pointerdown", (e) => {
-  e.stopPropagation(); // 重複防止
+  e.stopPropagation();
   e.preventDefault();
   press();
 });
@@ -328,7 +335,6 @@ function spawnObstacleGroup() {
   const mIdx = Math.floor(Math.random() * monsterImgs.length);
   const def = monsterImgs[mIdx];
   
-  // 背高モンスター（2と4）は高さを大きく設定
   const heightMultiplier = def.tall ? 1.9 : 1.5;
   const renderH = (54 + Math.random() * 10) * heightMultiplier;
   const renderW = renderH * def.aspect;
@@ -341,7 +347,6 @@ function spawnObstacleGroup() {
     hopPhase: Math.random() * 6.28
   });
 
-  // ダイヤ出現（ランダム色）
   if (Math.random() < 0.85) {
     const gx = x + renderW + 110 + Math.random() * 50;
     const n = 3 + Math.floor(Math.random() * 3);
@@ -398,7 +403,7 @@ function gameOver() {
   shake = 12;
   sndHit();
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
-  jumpBtnArea.classList.add("hidden"); // リザルト画面ではボタンを隠す
+  jumpBtnArea.classList.add("hidden");
 
   let maxCount = -1;
   bestDiaKey = 'dia_r';
@@ -460,8 +465,9 @@ function update(dt) {
 
   speed = Math.min(MAX_SPEED, speed + 4 * dt);
   distance += speed * dt;
-  // ★メートル表記（走行距離 + ダイヤボーナス）
-  score = Math.floor(distance / 40) + gemsScore;
+  
+  // ★距離の加算ペースを約1.75倍ゆったりに調整（旧: /40 → 新: /70）
+  score = Math.floor(distance / 70) + gemsScore;
 
   const wasAirborne = !ball.onGround;
   ball.vy += GRAVITY * dt;
@@ -511,7 +517,8 @@ function update(dt) {
       diaCounts[key]++;
 
       gems.splice(i, 1);
-      gemsScore += 5; // ダイヤ獲得で +5m ボーナス！
+      // ★距離の増加テンポに合わせてダイヤボーナスも調整（+5m → +3m）
+      gemsScore += 3;
       sndGem();
       spawnBurst(g.x, g.y, 8, "#ffe57f");
     }
@@ -654,7 +661,6 @@ function drawResultScreen() {
   const hasMenu = storeMenus && storeMenus[bestDiaKey];
 
   if (hasMenu) {
-    // パターンA: メニューあり店舗
     drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
 
     const diaBoxY = H * 0.13;
@@ -722,7 +728,6 @@ function drawResultScreen() {
     }
 
   } else {
-    // パターンB: メニューなし店舗（★メートル表記）
     drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
 
     drawCenteredText("逃げ切った距離", W / 2, H * 0.25, 18, "700", "#cccccc");

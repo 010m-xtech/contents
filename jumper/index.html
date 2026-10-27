@@ -223,7 +223,7 @@ const sndHit  = createSfxPool("assets/hit.mp3", 2, 0.7);
 const STATE = { READY: 0, PLAY: 1, OVER: 2 };
 let state = STATE.READY;
 
-const BALL_R = 24;          // 判定用基準半径
+const BALL_R = 24;
 const GRAVITY = 1600;
 const JUMP_V = -680;
 const BASE_SPEED = 220;
@@ -403,8 +403,10 @@ function gameOver() {
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
   jumpBtnArea.classList.add("hidden");
 
-  let maxCount = -1;
-  bestDiaKey = 'dia_r';
+  // ダイヤが0個の場合でも確実に有効なキーを初期セット
+  let maxCount = 0;
+  bestDiaKey = diaKeys[Math.floor(Math.random() * diaKeys.length)];
+
   diaKeys.forEach(k => {
     if (diaCounts[k] > maxCount) {
       maxCount = diaCounts[k];
@@ -574,18 +576,14 @@ function drawCaveBackground() {
   }
 }
 
-// ★元画像の縦横比を完全に保ち、潰れ変形を排して描画
 function drawBall() {
   ctx.save();
   ctx.translate(ball.x, ball.y);
 
   if (playerImgLoaded && playerImg.naturalWidth > 0) {
-    // 基準の高さ（約84px）を設定し、元画像のアスペクト比を掛けて幅を算出
     const targetH = BALL_R * 3.5;
     const aspect = playerImg.naturalWidth / playerImg.naturalHeight;
     const targetW = targetH * aspect;
-
-    // 足元をしっかり地面ラインに合わせて描画（中心より少し上へオフセット）
     ctx.drawImage(playerImg, -targetW / 2, -targetH + BALL_R, targetW, targetH);
   } else {
     ctx.fillStyle = "#ff6eb4";
@@ -615,7 +613,7 @@ function drawGem(g) {
   const y = g.y + Math.sin(g.phase) * 4;
   const item = diaImgs[g.diaIdx];
   const w = 38;
-  const h = w * (152 / 200); // 200x152の比率維持
+  const h = w * (152 / 200);
 
   ctx.save();
   ctx.translate(g.x, y);
@@ -653,8 +651,15 @@ function drawResultScreen() {
   ctx.fillStyle = "rgba(15, 12, 27, 0.93)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
+  // 当該店舗のメニュー設定が存在するかチェック
   const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
-  const hasMenu = storeMenus && storeMenus[bestDiaKey];
+  
+  // 該当する色があればそのメニュー、無ければその店舗にある最初のメニューを採用
+  let rec = null;
+  if (storeMenus) {
+    rec = storeMenus[bestDiaKey] || Object.values(storeMenus)[0];
+  }
+  const hasMenu = rec !== null && rec !== undefined;
 
   if (hasMenu) {
     drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
@@ -679,7 +684,6 @@ function drawResultScreen() {
       drawCenteredText(`${diaCounts[key]}`, cx, cy + 22, 14, "700", "#ffffff");
     });
 
-    const rec = storeMenus[bestDiaKey];
     const cardY = H * 0.27;
     const cardW = W * 0.88;
     const cardH = H * 0.54;

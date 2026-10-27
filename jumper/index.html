@@ -503,4 +503,306 @@ function drawCaveBackground() {
   ctx.fillStyle = groundGrad;
   ctx.fillRect(-20, groundY + 4, W + 40, H - groundY);
 
-  ctx.strokeStyle
+  ctx.strokeStyle = "#472e5e";
+  ctx.lineWidth = 2;
+  const tickGap = 70;
+  const off = -(distance % tickGap);
+  for (let x = off; x < W + tickGap; x += tickGap) {
+    ctx.beginPath();
+    ctx.moveTo(x, groundY + 12);
+    ctx.lineTo(x + 20, groundY + 12);
+    ctx.stroke();
+  }
+}
+
+function drawBall() {
+  const sq = ball.squash;
+  ctx.save();
+  ctx.translate(ball.x, ball.y + sq * BALL_R * 0.5);
+  ctx.scale(1 + sq * 0.5, 1 - sq * 0.5);
+
+  if (playerImgLoaded) {
+    const size = BALL_R * 4.2; 
+    ctx.drawImage(playerImg, -size / 2, -size / 2, size, size);
+  } else {
+    ctx.fillStyle = "#ff6eb4";
+    ctx.beginPath();
+    ctx.arc(0, 0, BALL_R * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMonster(o) {
+  const def = monsterImgs[o.mIdx];
+  const bounceY = Math.abs(Math.sin(o.hopPhase)) * 6;
+  const y = groundY - o.h - bounceY;
+
+  ctx.save();
+  if (def.img && def.img.complete && def.img.naturalWidth !== 0) {
+    ctx.drawImage(def.img, o.x, y, o.w, o.h);
+  } else {
+    ctx.fillStyle = "#e91e63";
+    ctx.fillRect(o.x, y, o.w, o.h);
+  }
+  ctx.restore();
+}
+
+function drawGem(g) {
+  const y = g.y + Math.sin(g.phase) * 4;
+  const item = diaImgs[g.diaIdx];
+  const w = 38;
+  const h = w * (152 / 200);
+
+  ctx.save();
+  ctx.translate(g.x, y);
+
+  if (item && item.img && item.img.complete && item.img.naturalWidth !== 0) {
+    ctx.drawImage(item.img, -w / 2, -h / 2, w, h);
+  } else {
+    ctx.fillStyle = "#00e5ff";
+    ctx.beginPath();
+    ctx.moveTo(0, -g.r);
+    ctx.lineTo(g.r, 0);
+    ctx.lineTo(0, g.r);
+    ctx.lineTo(-g.r, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawCenteredText(text, x, y, size, weight, color, strokeColor) {
+  ctx.font = (weight || "700") + " " + size + "px 'Mochiy Pop One', 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 4;
+    ctx.strokeText(text, x, y);
+  }
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
+
+// ----------------------------- リザルト画面（店舗メニュー有無による自動切り替え） -----------------------------
+function drawResultScreen() {
+  ctx.fillStyle = "rgba(15, 12, 27, 0.93)";
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+
+  // 当該店舗のメニュー設定が存在するかチェック
+  const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
+  const hasMenu = storeMenus && storeMenus[bestDiaKey];
+
+  if (hasMenu) {
+    // ==========================================
+    // パターンA: メニュー登録がある店舗の表示
+    // ==========================================
+    drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
+
+    // ダイヤ集計バー
+    const diaBoxY = H * 0.13;
+    const diaBoxW = W * 0.9;
+    const diaBoxX = (W - diaBoxW) / 2;
+    ctx.fillStyle = "rgba(42, 27, 56, 0.85)";
+    ctx.strokeStyle = "#ff6eb4";
+    ctx.lineWidth = 2;
+    ctx.fillRect(diaBoxX, diaBoxY, diaBoxW, 56);
+    ctx.strokeRect(diaBoxX, diaBoxY, diaBoxW, 56);
+
+    const colW = diaBoxW / 6;
+    diaKeys.forEach((key, idx) => {
+      const cx = diaBoxX + colW * idx + colW / 2;
+      const cy = diaBoxY + 20;
+      const item = diaImgs[idx];
+      if (item.img.complete) {
+        ctx.drawImage(item.img, cx - 13, cy - 10, 26, 20);
+      }
+      drawCenteredText(`${diaCounts[key]}`, cx, cy + 22, 14, "700", "#ffffff");
+    });
+
+    // おすすめメニューカード
+    const rec = storeMenus[bestDiaKey];
+    const cardY = H * 0.27;
+    const cardW = W * 0.88;
+    const cardH = H * 0.54;
+    const cardX = (W - cardW) / 2;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#ffe57f";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#ff4081";
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, 36, [16, 16, 0, 0]);
+    ctx.fill();
+    drawCenteredText(`💎 ${rec.colorName || "おすすめ"} のあなたへ！`, W / 2, cardY + 18, 14, "900", "#ffffff");
+
+    const imgY = cardY + 46;
+    const imgSize = Math.min(cardW * 0.72, cardH * 0.42);
+    const imgX = (W - imgSize) / 2;
+    const menuImgObj = loadedMenuImgs[rec.image];
+
+    if (menuImgObj && menuImgObj.complete && menuImgObj.naturalWidth !== 0) {
+      ctx.drawImage(menuImgObj, imgX, imgY, imgSize, imgSize);
+    } else {
+      ctx.fillStyle = "#f5f5f5";
+      ctx.fillRect(imgX, imgY, imgSize, imgSize);
+      drawCenteredText("🍴", W / 2, imgY + imgSize / 2, 44, "700", "#999");
+    }
+
+    drawCenteredText(rec.name, W / 2, imgY + imgSize + 22, 18, "900", "#1a162b");
+
+    ctx.font = "600 13px 'Mochiy Pop One', sans-serif";
+    ctx.fillStyle = "#666666";
+    ctx.textAlign = "center";
+    wrapText(ctx, rec.desc || "", W / 2, imgY + imgSize + 50, cardW - 32, 18);
+
+    if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
+      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.88, 22, "900", "#ffe57f", "#0f0c1b");
+    }
+
+  } else {
+    // ==========================================
+    // パターンB: メニューなし店舗の表示（ダイヤ集計＋スコア発表）
+    // ==========================================
+    drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
+
+    // スコア発表
+    drawCenteredText("スコア", W / 2, H * 0.25, 18, "700", "#cccccc");
+    drawCenteredText(`${score} 点`, W / 2, H * 0.33, 56, "900", "#ffe57f", "#0f0c1b");
+    
+    const isBest = score >= best && score > 0;
+    drawCenteredText(isBest ? "🎉 新記録達成！" : `ベスト記録: ${best} 点`, W / 2, H * 0.40, 18, "700", isBest ? "#ff4081" : "#b388ff");
+
+    // ダイヤ集計カード（大きく見やすく表示）
+    const cardY = H * 0.46;
+    const cardW = W * 0.88;
+    const cardH = H * 0.26;
+    const cardX = (W - cardW) / 2;
+
+    ctx.fillStyle = "rgba(42, 27, 56, 0.9)";
+    ctx.strokeStyle = "#ffe57f";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    drawCenteredText("💎 あつめたダイヤ 💎", W / 2, cardY + 28, 16, "900", "#ffe57f");
+
+    // 2行 × 3列 でダイヤと個数を配置
+    const rowCount = 2;
+    const colCount = 3;
+    const cellW = cardW / colCount;
+    const cellH = (cardH - 45) / rowCount;
+
+    diaKeys.forEach((key, idx) => {
+      const col = idx % colCount;
+      const row = Math.floor(idx / colCount);
+      const cx = cardX + col * cellW + cellW / 2;
+      const cy = cardY + 45 + row * cellH + cellH / 2;
+
+      const item = diaImgs[idx];
+      if (item.img.complete) {
+        ctx.drawImage(item.img, cx - 38, cy - 13, 32, 24);
+      }
+      ctx.font = "900 18px 'Mochiy Pop One', sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`× ${diaCounts[key]}`, cx + 2, cy);
+    });
+
+    if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
+      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.82, 24, "900", "#ffe57f", "#0f0c1b");
+    }
+  }
+}
+
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  const chars = text.split('');
+  let line = '';
+  let curY = y;
+  for (let n = 0; n < chars.length; n++) {
+    const testLine = line + chars[n];
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      context.fillText(line, x, curY);
+      line = chars[n];
+      curY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, curY);
+}
+
+function draw() {
+  ctx.save();
+  if (shake > 0) {
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  }
+
+  drawCaveBackground();
+
+  for (const g of gems) drawGem(g);
+  for (const o of obstacles) drawMonster(o);
+
+  for (const p of particles) {
+    const a = 1 - p.life / p.maxLife;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    ctx.globalAlpha = 1;
+  }
+
+  if (state !== STATE.OVER || overTime < 0.05) drawBall();
+
+  // ---------------- UI ----------------
+  if (state === STATE.PLAY) {
+    drawCenteredText(`${score} 点`, W / 2, H * 0.12, 48, "900", "#ffeb3b", "#0f0c1b");
+  }
+
+  if (state === STATE.READY) {
+    drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.22, Math.min(26, W * 0.072), "900", "#ff4081", "#ffffff");
+    drawCenteredText("モンスターをよけてダイヤを集めよう！", W / 2, H * 0.32, Math.min(15, W * 0.038), "700", "#e0e0e0");
+    drawCenteredText("どこまで遠くへ逃げ切れるかな？", W / 2, H * 0.37, Math.min(16, W * 0.04), "900", "#ffe57f");
+    
+    if (Math.floor(performance.now() / 600) % 2 === 0) {
+      drawCenteredText("タップでスタート", W / 2, H * 0.48, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");
+    }
+    if (best > 0) {
+      drawCenteredText("ベスト記録: " + best, W / 2, H * 0.56, 18, "700", "#b388ff");
+    }
+  }
+
+  if (state === STATE.OVER) {
+    drawResultScreen();
+  }
+
+  ctx.restore();
+}
+
+// ----------------------------- ループ -----------------------------
+let lastT = performance.now();
+function frame(now) {
+  let dt = (now - lastT) / 1000;
+  lastT = now;
+  if (dt > 1 / 30) dt = 1 / 30;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) lastT = performance.now();
+});
+</script>
+</body>
+</html>

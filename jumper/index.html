@@ -223,13 +223,13 @@ const sndHit  = createSfxPool("assets/hit.mp3", 2, 0.7);
 const STATE = { READY: 0, PLAY: 1, OVER: 2 };
 let state = STATE.READY;
 
-const BALL_R = 22;
+const BALL_R = 24;          // 判定用基準半径
 const GRAVITY = 1600;
 const JUMP_V = -680;
 const BASE_SPEED = 220;
 const MAX_SPEED = 480;
 
-const ball = { x: 0, y: 0, vy: 0, jumpsLeft: 2, onGround: true, squash: 0 };
+const ball = { x: 0, y: 0, vy: 0, jumpsLeft: 2, onGround: true };
 let speed = BASE_SPEED;
 let distance = 0;
 let gemsScore = 0;
@@ -268,7 +268,6 @@ function resetGame() {
   ball.vy = 0;
   ball.jumpsLeft = 2;
   ball.onGround = true;
-  ball.squash = 0;
   speed = BASE_SPEED;
   distance = 0;
   gemsScore = 0;
@@ -304,7 +303,6 @@ function press() {
     ball.vy = ball.jumpsLeft === 2 ? JUMP_V : JUMP_V * 0.88;
     ball.jumpsLeft--;
     ball.onGround = false;
-    ball.squash = -0.25;
     sndJump();
     spawnDust(ball.x, groundY, 4, -1);
   }
@@ -465,8 +463,6 @@ function update(dt) {
 
   speed = Math.min(MAX_SPEED, speed + 4 * dt);
   distance += speed * dt;
-  
-  // ★距離の加算ペースを約1.75倍ゆったりに調整（旧: /40 → 新: /70）
   score = Math.floor(distance / 70) + gemsScore;
 
   const wasAirborne = !ball.onGround;
@@ -478,13 +474,11 @@ function update(dt) {
     ball.onGround = true;
     ball.jumpsLeft = 2;
     if (wasAirborne) {
-      ball.squash = 0.25;
       spawnDust(ball.x, groundY, 5, -1);
     }
   } else {
     ball.onGround = false;
   }
-  ball.squash += (0 - ball.squash) * Math.min(1, dt * 12);
 
   distToNextSpawn -= speed * dt;
   if (distToNextSpawn <= 0) spawnObstacleGroup();
@@ -517,7 +511,6 @@ function update(dt) {
       diaCounts[key]++;
 
       gems.splice(i, 1);
-      // ★距離の増加テンポに合わせてダイヤボーナスも調整（+5m → +3m）
       gemsScore += 3;
       sndGem();
       spawnBurst(g.x, g.y, 8, "#ffe57f");
@@ -534,7 +527,6 @@ function drawCaveBackground() {
   ctx.fillStyle = grad;
   ctx.fillRect(-20, -20, W + 40, groundY + 20);
 
-  // 鍾乳石
   ctx.fillStyle = "#161129";
   const stCount = 8;
   const stW = W / stCount;
@@ -582,19 +574,23 @@ function drawCaveBackground() {
   }
 }
 
+// ★元画像の縦横比を完全に保ち、潰れ変形を排して描画
 function drawBall() {
-  const sq = ball.squash;
   ctx.save();
-  ctx.translate(ball.x, ball.y + sq * BALL_R * 0.5);
-  ctx.scale(1 + sq * 0.5, 1 - sq * 0.5);
+  ctx.translate(ball.x, ball.y);
 
-  if (playerImgLoaded) {
-    const size = BALL_R * 4.2; 
-    ctx.drawImage(playerImg, -size / 2, -size / 2, size, size);
+  if (playerImgLoaded && playerImg.naturalWidth > 0) {
+    // 基準の高さ（約84px）を設定し、元画像のアスペクト比を掛けて幅を算出
+    const targetH = BALL_R * 3.5;
+    const aspect = playerImg.naturalWidth / playerImg.naturalHeight;
+    const targetW = targetH * aspect;
+
+    // 足元をしっかり地面ラインに合わせて描画（中心より少し上へオフセット）
+    ctx.drawImage(playerImg, -targetW / 2, -targetH + BALL_R, targetW, targetH);
   } else {
     ctx.fillStyle = "#ff6eb4";
     ctx.beginPath();
-    ctx.arc(0, 0, BALL_R * 1.8, 0, Math.PI * 2);
+    ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -619,7 +615,7 @@ function drawGem(g) {
   const y = g.y + Math.sin(g.phase) * 4;
   const item = diaImgs[g.diaIdx];
   const w = 38;
-  const h = w * (152 / 200);
+  const h = w * (152 / 200); // 200x152の比率維持
 
   ctx.save();
   ctx.translate(g.x, y);

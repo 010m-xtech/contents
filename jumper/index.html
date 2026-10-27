@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ホップ・ステップ・キャッチ！</title>
+<title>ホップ・ステップ・キャッチ！ - 洞窟脱出大作戦</title>
 <style>
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
     overflow: hidden;
-    background: #1b1b1b;
+    background: #0f0c1b;
     touch-action: none;
     overscroll-behavior: none;
     -webkit-user-select: none;
@@ -26,7 +26,7 @@
     height: 100dvh;
     max-width: 520px;
     margin: 0 auto;
-    background: #ffffff;
+    background: #1a162b;
     overflow: hidden;
     touch-action: none;
   }
@@ -40,22 +40,17 @@
 <script>
 "use strict";
 
-// ★GASのウェブアプリURLを貼り付けてください★
 const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
 
-// --- 店舗CD & デバイスIDの取得 ---
 let storeCd = "000000";
 let deviceId = localStorage.getItem('device_id') || 'unknown';
 
 function getStoreCdFromUrl() {
   const hash = window.location.hash.replace('#', '').trim();
-  if (hash && hash.length === 6) {
-    storeCd = hash;
-  }
+  if (hash && hash.length === 6) storeCd = hash;
 }
 getStoreCdFromUrl();
 
-// GASアクセスログ送信
 function logAccess(actionName) {
   fetch(GAS_URL, {
     method: 'POST',
@@ -98,7 +93,6 @@ window.addEventListener("orientationchange", scheduleResize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", scheduleResize);
 resize();
 
-// ジェスチャー制限
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
@@ -126,13 +120,28 @@ playerImg.onerror = () => {
 };
 playerImg.src = currentPlayerPath;
 
-// ダイヤモンド画像 (1〜6)
-const diamondImgs = [];
-for (let i = 1; i <= 6; i++) {
+// ダイヤ画像 (6色 / 200x152)
+const diaFiles = ['dia_r.png', 'dia_y.png', 'dia_pr.png', 'dia_g.png', 'dia_b.png', 'dia_p.png'];
+const diaImgs = diaFiles.map(name => {
   const img = new Image();
-  img.src = `image/diamond${i}.webp`;
-  diamondImgs.push(img);
-}
+  img.src = `image/${name}`;
+  return img;
+});
+
+// モンスター画像 (6種 / 各種サイズ比率保持)
+const monsterDefs = [
+  { name: 'monster_1.png', w: 321, h: 281 },
+  { name: 'monster_2.png', w: 231, h: 378 },
+  { name: 'monster_3.png', w: 338, h: 352 },
+  { name: 'monster_4.png', w: 263, h: 450 },
+  { name: 'monster_5.png', w: 322, h: 350 },
+  { name: 'monster_6.png', w: 377, h: 293 }
+];
+const monsterImgs = monsterDefs.map(def => {
+  const img = new Image();
+  img.src = `image/${def.name}`;
+  return { img, aspect: def.w / def.h, rawW: def.w, rawH: def.h };
+});
 
 // ----------------------------- サウンド ---------------------------
 function createSfxPool(src, size, vol) {
@@ -159,12 +168,12 @@ const sndHit  = createSfxPool("assets/hit.mp3", 2, 0.7);
 const STATE = { READY: 0, PLAY: 1, EVENT: 2, OVER: 3, CLEAR: 4 };
 let state = STATE.READY;
 
-const GOAL_SCORE = 200;     // ゴール目標スコア
-const BALL_R = 22;          
-const GRAVITY = 1600;       
-const JUMP_V = -680;        
-const BASE_SPEED = 210;     
-const MAX_SPEED = 450;      
+const GOAL_SCORE = 200;
+const BALL_R = 22;
+const GRAVITY = 1600;
+const JUMP_V = -680;
+const BASE_SPEED = 210;
+const MAX_SPEED = 430;
 
 const ball = { x: 0, y: 0, vy: 0, jumpsLeft: 2, onGround: true, squash: 0 };
 let speed = BASE_SPEED;
@@ -177,28 +186,29 @@ try { best = parseInt(localStorage.getItem("hc_best") || "0", 10) || 0; } catch 
 let obstacles = [];
 let gems = [];
 let particles = [];
-let clouds = [];
+let caveGems = [];
 let distToNextSpawn = 0;
 let overTime = 0;
 let shake = 0;
 
-// 坂道イベント用変数
-let eventProgress = 0;      // 連打進捗 (0 〜 100)
-let eventTriggered = false; // イベント既発生フラグ
-let slopeAngle = 0;         // 地面の傾斜角
+let eventProgress = 0;
+let eventTriggered = false;
+let slopeAngle = 0;
 
-function initClouds() {
-  clouds = [];
-  for (let i = 0; i < 8; i++) {
-    clouds.push({
+// 洞窟背景用のキラキラ鉱石
+function initCaveGems() {
+  caveGems = [];
+  for (let i = 0; i < 16; i++) {
+    caveGems.push({
       x: Math.random() * W,
-      y: Math.random() * groundY * 0.7 + 20,
-      r: 12 + Math.random() * 25,
-      s: 0.1 + Math.random() * 0.15
+      y: Math.random() * (groundY - 60) + 40,
+      r: 2 + Math.random() * 3,
+      color: ['#00e5ff', '#ff4081', '#ffe57f', '#b388ff', '#69f0ae'][Math.floor(Math.random() * 5)],
+      twinkle: Math.random() * 6.28
     });
   }
 }
-initClouds();
+initCaveGems();
 
 function resetGame() {
   ball.x = Math.max(90, W * 0.24);
@@ -226,33 +236,30 @@ resetGame();
 function press() {
   if (state === STATE.READY) {
     state = STATE.PLAY;
-    logAccess("ゲーム開始: ホップ・ステップ・キャッチ！");
+    logAccess("ゲーム開始: 洞窟脱出大作戦");
     return;
   }
   if (state === STATE.OVER || state === STATE.CLEAR) {
     if (overTime > 0.6) {
       resetGame();
       state = STATE.PLAY;
-      logAccess("リトライ: ホップ・ステップ・キャッチ！");
+      logAccess("リトライ: 洞窟脱出大作戦");
     }
     return;
   }
   
-  // 坂道イベント中のタップ処理（連打）
   if (state === STATE.EVENT) {
-    eventProgress += 8; // 連打で進行度アップ
+    eventProgress += 8;
     sndJump();
     spawnDust(ball.x, ball.y + BALL_R, 3, -1);
     if (eventProgress >= 100) {
-      // イベントクリア
       state = STATE.PLAY;
-      gemsScore += 20; // 坂道走破ボーナス
-      spawnBurst(W / 2, H / 2, 25, "#ff2a8d");
+      gemsScore += 20;
+      spawnBurst(W / 2, H / 2, 35, "#ffe57f");
     }
     return;
   }
 
-  // プレイ中（2段ジャンプ可）
   if (ball.jumpsLeft > 0) {
     ball.vy = ball.jumpsLeft === 2 ? JUMP_V : JUMP_V * 0.88;
     ball.jumpsLeft--;
@@ -273,33 +280,37 @@ window.addEventListener("keydown", (e) => {
 
 // --------------------------- スポーン ---------------------------
 function spawnObstacleGroup() {
-  // イベント中やゴール間近は障害物を生成しない
   if (state === STATE.EVENT || score > GOAL_SCORE - 15) return;
 
-  const t = Math.random();
   const x = W + 80;
+  const mIdx = Math.floor(Math.random() * monsterImgs.length);
+  const def = monsterImgs[mIdx];
   
-  if (t < 0.60) {
-    const n = Math.random() < 0.7 ? 1 : 2; 
-    const sw = 28;
-    obstacles.push({ x: x, w: sw * n, h: 32, kind: "spike", n: n });
-  } else {
-    const h = 38 + Math.random() * 20;
-    obstacles.push({ x: x, w: 32, h: h, kind: "block" });
-  }
+  // モンスターの高さ設定（跳び越えやすいよう 50〜65px 前後にスケール）
+  const renderH = 54 + Math.random() * 12;
+  const renderW = renderH * def.aspect;
 
-  if (Math.random() < 0.70) {
-    const gx = x + 160 + Math.random() * 80;
+  obstacles.push({
+    x: x,
+    w: renderW,
+    h: renderH,
+    mIdx: mIdx,
+    hopPhase: Math.random() * 6.28
+  });
+
+  // ダイヤ出現（アーチ配置）
+  if (Math.random() < 0.75) {
+    const gx = x + renderW + 120 + Math.random() * 60;
     const n = 3 + Math.floor(Math.random() * 2);
-    const imgIdx = Math.floor(Math.random() * 6);
+    const diaIdx = Math.floor(Math.random() * diaImgs.length);
     for (let i = 0; i < n; i++) {
-      const px = gx + i * 40;
-      const py = groundY - 70 - Math.sin((i / (n - 1)) * Math.PI) * 70;
-      gems.push({ x: px, y: py, r: 14, phase: Math.random() * 6.28, imgIdx: imgIdx });
+      const px = gx + i * 42;
+      const py = groundY - 75 - Math.sin((i / (n - 1)) * Math.PI) * 75;
+      gems.push({ x: px, y: py, r: 16, phase: Math.random() * 6.28, diaIdx: diaIdx });
     }
   }
 
-  distToNextSpawn = Math.max(340, speed * (1.1 + Math.random() * 0.5));
+  distToNextSpawn = Math.max(340, speed * (1.15 + Math.random() * 0.5));
 }
 
 function spawnDust(x, y, n, dir) {
@@ -311,7 +322,7 @@ function spawnDust(x, y, n, dir) {
       vy: (dir || -1) * (Math.random() * 50 + 20),
       life: 0, maxLife: 0.4 + Math.random() * 0.25,
       size: 3 + Math.random() * 3,
-      color: "#ffb6d5"
+      color: "#ba68c8"
     });
   }
 }
@@ -331,7 +342,6 @@ function spawnBurst(x, y, n, color) {
   }
 }
 
-// -------------------------- 当たり判定 ---------------------------
 function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
   const nx = Math.max(rx, Math.min(cx, rx + rw));
   const ny = Math.max(ry, Math.min(cy, ry + rh));
@@ -342,11 +352,10 @@ function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
 function gameOver() {
   state = STATE.OVER;
   overTime = 0;
-  shake = 10;
+  shake = 12;
   sndHit();
-  spawnBurst(ball.x, ball.y, 20, "#ff52a2");
-
-  logAccess(`ゲームオーバー: ホップ・ステップ・キャッチ！ (${score}点)`);
+  spawnBurst(ball.x, ball.y, 24, "#ff4081");
+  logAccess(`ゲームオーバー: 洞窟脱出大作戦 (${score}点)`);
 
   if (score > best) {
     best = score;
@@ -357,11 +366,10 @@ function gameOver() {
 function gameClear() {
   state = STATE.CLEAR;
   overTime = 0;
-  shake = 5;
+  shake = 6;
   sndGem();
-  spawnBurst(W / 2, H / 2, 40, "#ff2a8d");
-
-  logAccess(`ゲームクリア: ホップ・ステップ・キャッチ！ (${score}点)`);
+  spawnBurst(W / 2, H / 2, 45, "#ffe57f");
+  logAccess(`ゲームクリア: 洞窟脱出大作戦 (${score}点)`);
 
   if (score > best) {
     best = score;
@@ -372,11 +380,14 @@ function gameClear() {
 // ---------------------------- 更新 ----------------------------
 function update(dt) {
   const bgSpeed = (state === STATE.PLAY || state === STATE.EVENT) ? speed : 30;
-  for (const c of clouds) {
-    c.x -= bgSpeed * c.s * dt;
-    if (c.x < -c.r * 2) {
-      c.x = W + c.r * 2;
-      c.y = Math.random() * groundY * 0.7 + 20;
+
+  // 鉱石のきらめきとスクロール
+  for (const cg of caveGems) {
+    cg.twinkle += dt * 4;
+    cg.x -= bgSpeed * 0.15 * dt;
+    if (cg.x < -10) {
+      cg.x = W + 10;
+      cg.y = Math.random() * (groundY - 60) + 40;
     }
   }
 
@@ -408,11 +419,10 @@ function update(dt) {
     return;
   }
 
-  // 坂道イベント中の更新
   if (state === STATE.EVENT) {
-    eventProgress = Math.max(0, eventProgress - 15 * dt); // 自動で少しずつ下がる
-    slopeAngle = -0.25; // 画面傾斜
-    ball.y = groundY - BALL_R - (eventProgress * 1.2); // 走破進捗に応じて高くなる
+    eventProgress = Math.max(0, eventProgress - 15 * dt);
+    slopeAngle = -0.25;
+    ball.y = groundY - BALL_R - (eventProgress * 1.2);
     ball.squash += (0 - ball.squash) * Math.min(1, dt * 12);
     distance += speed * 0.5 * dt;
     score = Math.floor(distance / 50) + gemsScore;
@@ -421,23 +431,20 @@ function update(dt) {
     slopeAngle = 0;
   }
 
-  // プレイ中スピード制御
   speed = Math.min(MAX_SPEED, speed + 5 * dt);
   distance += speed * dt;
   score = Math.floor(distance / 50) + gemsScore;
 
-  // ゴール判定 (200点到達)
   if (score >= GOAL_SCORE) {
     gameClear();
     return;
   }
 
-  // 坂道イベントトリガー (120点到達で1回だけ発動)
   if (score >= 120 && !eventTriggered) {
     eventTriggered = true;
     state = STATE.EVENT;
     eventProgress = 10;
-    obstacles = []; // イベント発生時に画面上の障害物を消去
+    obstacles = [];
     return;
   }
 
@@ -458,45 +465,104 @@ function update(dt) {
   }
   ball.squash += (0 - ball.squash) * Math.min(1, dt * 12);
 
-  // スポーン制御
   distToNextSpawn -= speed * dt;
   if (distToNextSpawn <= 0) spawnObstacleGroup();
 
-  // 障害物更新
+  // モンスターとの衝突（甘い判定）
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
     o.x -= speed * dt;
+    o.hopPhase += dt * 4;
     if (o.x + o.w < -60) { obstacles.splice(i, 1); continue; }
     
+    // 当たり判定を小さめに（左右-10px、上部-8px）
     const cr = BALL_R - 6;
-    if (o.kind === "spike") {
-      if (circleRectHit(ball.x, ball.y, cr, o.x + 6, groundY - o.h + 12, o.w - 12, o.h - 12)) {
-        gameOver(); return;
-      }
-    } else {
-      if (circleRectHit(ball.x, ball.y, cr, o.x + 4, groundY - o.h + 4, o.w - 8, o.h - 4)) {
-        gameOver(); return;
-      }
+    const hitX = o.x + 8;
+    const hitY = groundY - o.h + 8;
+    const hitW = o.w - 16;
+    const hitH = o.h - 8;
+
+    if (circleRectHit(ball.x, ball.y, cr, hitX, hitY, hitW, hitH)) {
+      gameOver(); return;
     }
   }
 
-  // ダイヤモンド取得判定
+  // ダイヤ取得判定
   for (let i = gems.length - 1; i >= 0; i--) {
     const g = gems[i];
     g.x -= speed * dt;
     g.phase += dt * 3;
     if (g.x < -40) { gems.splice(i, 1); continue; }
     const dx = g.x - ball.x, dy = (g.y + Math.sin(g.phase) * 4) - ball.y;
-    if (dx * dx + dy * dy < (BALL_R + g.r + 6) * (BALL_R + g.r + 6)) {
+    if (dx * dx + dy * dy < (BALL_R + g.r + 8) * (BALL_R + g.r + 8)) {
       gems.splice(i, 1);
       gemsScore += 5;
       sndGem();
-      spawnBurst(g.x, g.y, 8, "#00e5ff");
+      spawnBurst(g.x, g.y, 10, "#ffe57f");
     }
   }
 }
 
 // ----------------------------- 描画 -----------------------------
+function drawCaveBackground() {
+  // 1. 洞窟奥のグラデーション
+  const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+  grad.addColorStop(0, "#120d24");
+  grad.addColorStop(0.5, "#1f183d");
+  grad.addColorStop(1, "#2e1e47");
+  ctx.fillStyle = grad;
+  ctx.fillRect(-20, -20, W + 40, groundY + 20);
+
+  // 2. 洞窟天井の鍾乳石（つらら岩）
+  ctx.fillStyle = "#161129";
+  const stCount = 8;
+  const stW = W / stCount;
+  const offX = -(distance * 0.2 % stW);
+  ctx.beginPath();
+  ctx.moveTo(-20, 0);
+  for (let i = -1; i <= stCount + 1; i++) {
+    const bx = offX + i * stW;
+    const h = ((i % 3) * 18) + 38;
+    ctx.lineTo(bx + stW * 0.5, h);
+    ctx.lineTo(bx + stW, 0);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 3. 壁面のキラキラ鉱石
+  for (const cg of caveGems) {
+    const alpha = 0.4 + Math.sin(cg.twinkle) * 0.35;
+    ctx.fillStyle = cg.color;
+    ctx.globalAlpha = Math.max(0.1, alpha);
+    ctx.beginPath();
+    ctx.arc(cg.x, cg.y, cg.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // 4. 地面（洞窟の岩肌層）
+  ctx.fillStyle = "#ff6eb4";
+  ctx.fillRect(-20, groundY, W + 40, 4);
+
+  const groundGrad = ctx.createLinearGradient(0, groundY, 0, H);
+  groundGrad.addColorStop(0, "#2a1b38");
+  groundGrad.addColorStop(1, "#120a1c");
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(-20, groundY + 4, W + 40, H - groundY);
+
+  // 地面のブロック模様（スクロール）
+  ctx.strokeStyle = "#472e5e";
+  ctx.lineWidth = 2;
+  const tickGap = 70;
+  const off = -(distance % tickGap);
+  for (let x = off; x < W + tickGap; x += tickGap) {
+    ctx.beginPath();
+    ctx.moveTo(x, groundY + 12);
+    ctx.lineTo(x + 20, groundY + 12);
+    ctx.stroke();
+  }
+}
+
 function drawBall() {
   const sq = ball.squash;
   ctx.save();
@@ -504,7 +570,6 @@ function drawBall() {
   ctx.scale(1 + sq * 0.5, 1 - sq * 0.5);
 
   if (playerImgLoaded) {
-    // キャラクター画像を従来の150%サイズ（1.5倍）に拡大描画
     const size = BALL_R * 3.6; 
     ctx.drawImage(playerImg, -size / 2, -size / 2, size, size);
   } else {
@@ -516,43 +581,33 @@ function drawBall() {
   ctx.restore();
 }
 
-function drawObstacle(o) {
-  ctx.fillStyle = "#ff52a2";
-  if (o.kind === "spike") {
-    const sw = o.w / o.n;
-    for (let i = 0; i < o.n; i++) {
-      const sx = o.x + i * sw;
-      ctx.beginPath();
-      ctx.moveTo(sx, groundY);
-      ctx.lineTo(sx + sw / 2, groundY - o.h);
-      ctx.lineTo(sx + sw, groundY);
-      ctx.closePath();
-      ctx.fill();
-    }
+function drawMonster(o) {
+  const def = monsterImgs[o.mIdx];
+  const bounceY = Math.abs(Math.sin(o.hopPhase)) * 6; // ちょこんと跳ねる演出
+  const y = groundY - o.h - bounceY;
+
+  ctx.save();
+  if (def.img && def.img.complete && def.img.naturalWidth !== 0) {
+    ctx.drawImage(def.img, o.x, y, o.w, o.h);
   } else {
-    const r = 6;
-    const x = o.x, y = groundY - o.h, w = o.w, h = o.h;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x, y + h);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-    ctx.fill();
+    // フォールバック
+    ctx.fillStyle = "#e91e63";
+    ctx.fillRect(o.x, y, o.w, o.h);
   }
+  ctx.restore();
 }
 
 function drawGem(g) {
   const y = g.y + Math.sin(g.phase) * 4;
-  const size = g.r * 2.2;
-  const img = diamondImgs[g.imgIdx];
+  const img = diaImgs[g.diaIdx];
+  const w = 36;
+  const h = w * (152 / 200); // 200x152の比率維持
 
   ctx.save();
   ctx.translate(g.x, y);
 
   if (img && img.complete && img.naturalWidth !== 0) {
-    ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
   } else {
     ctx.fillStyle = "#00e5ff";
     ctx.beginPath();
@@ -566,11 +621,16 @@ function drawGem(g) {
   ctx.restore();
 }
 
-function drawCenteredText(text, x, y, size, weight, color) {
-  ctx.fillStyle = color;
+function drawCenteredText(text, x, y, size, weight, color, strokeColor) {
   ctx.font = (weight || "700") + " " + size + "px 'Mochiy Pop One', 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 5;
+    ctx.strokeText(text, x, y);
+  }
+  ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
 
@@ -580,48 +640,17 @@ function draw() {
     ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   }
 
-  // 坂道イベント時の画面全体の傾斜
   if (slopeAngle !== 0) {
     ctx.translate(W / 2, H / 2);
     ctx.rotate(slopeAngle);
     ctx.translate(-W / 2, -H / 2);
   }
 
-  // 背景
-  ctx.fillStyle = "#e0f7fa";
-  ctx.fillRect(-20, -20, W + 40, H + 40);
+  drawCaveBackground();
 
-  // パララックス雲
-  ctx.fillStyle = "#b2ebf2";
-  for (const c of clouds) {
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 地面
-  ctx.fillStyle = "#ff6eb4";
-  ctx.fillRect(-20, groundY, W + 40, 4);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(-20, groundY + 4, W + 40, H - groundY);
-
-  // 地面のライン
-  ctx.strokeStyle = "#ffcee6";
-  ctx.lineWidth = 2;
-  const tickGap = 80;
-  const off = -(distance % tickGap);
-  for (let x = off; x < W + tickGap; x += tickGap) {
-    ctx.beginPath();
-    ctx.moveTo(x, groundY + 14);
-    ctx.lineTo(x + 24, groundY + 14);
-    ctx.stroke();
-  }
-
-  // 宝石・障害物
   for (const g of gems) drawGem(g);
-  for (const o of obstacles) drawObstacle(o);
+  for (const o of obstacles) drawMonster(o);
 
-  // パーティクル
   for (const p of particles) {
     const a = 1 - p.life / p.maxLife;
     ctx.globalAlpha = a;
@@ -630,65 +659,62 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // キャラクター描画
   if (state !== STATE.OVER || overTime < 0.05) drawBall();
 
   // ---------------- UI ----------------
   if (state === STATE.PLAY) {
-    drawCenteredText(`${score} / ${GOAL_SCORE}`, W / 2, H * 0.12, 46, "900", "#ff2a8d");
+    drawCenteredText(`${score} / ${GOAL_SCORE}`, W / 2, H * 0.12, 46, "900", "#ffeb3b", "#0f0c1b");
   }
 
-  // 坂道イベント中UI
   if (state === STATE.EVENT) {
-    drawCenteredText("れんだして さかみちを のぼれ！", W / 2, H * 0.18, Math.min(22, W * 0.055), "900", "#ff2a8d");
+    drawCenteredText("さかみちを れんだして だっしゅつだ！", W / 2, H * 0.18, Math.min(20, W * 0.052), "900", "#ffe57f", "#0f0c1b");
     
-    // 連打進捗ゲージの描画
-    const barW = W * 0.7;
-    const barH = 20;
+    const barW = W * 0.72;
+    const barH = 22;
     const barX = (W - barW) / 2;
     const barY = H * 0.25;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "rgba(18, 13, 36, 0.85)";
     ctx.fillRect(barX, barY, barW, barH);
-    ctx.strokeStyle = "#ff2a8d";
+    ctx.strokeStyle = "#ffe57f";
     ctx.lineWidth = 3;
     ctx.strokeRect(barX, barY, barW, barH);
-    ctx.fillStyle = "#ff2a8d";
+    ctx.fillStyle = "#ff4081";
     ctx.fillRect(barX, barY, barW * (eventProgress / 100), barH);
   }
 
   if (state === STATE.READY) {
-    drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.22, Math.min(28, W * 0.075), "900", "#ff2a8d");
-    drawCenteredText("タップでふわっとジャンプ（2段ジャンプ可）", W / 2, H * 0.32, Math.min(16, W * 0.038), "700", "#555555");
-    drawCenteredText(`めざせ！ ${GOAL_SCORE} てん ゴール！`, W / 2, H * 0.37, Math.min(18, W * 0.042), "900", "#ff2a8d");
+    drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.22, Math.min(26, W * 0.072), "900", "#ff4081", "#ffffff");
+    drawCenteredText("モンスターをよけてダイヤを集めよう！", W / 2, H * 0.32, Math.min(15, W * 0.038), "700", "#e0e0e0");
+    drawCenteredText(`めざせ！ ${GOAL_SCORE} てんで だっしゅつ！`, W / 2, H * 0.37, Math.min(17, W * 0.042), "900", "#ffe57f");
     
     if (Math.floor(performance.now() / 600) % 2 === 0) {
-      drawCenteredText("タップでスタート", W / 2, H * 0.48, Math.min(24, W * 0.055), "900", "#ff2a8d");
+      drawCenteredText("タップでスタート", W / 2, H * 0.48, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");
     }
     if (best > 0) {
-      drawCenteredText("ベスト記録: " + best, W / 2, H * 0.56, 18, "700", "#888888");
+      drawCenteredText("ベスト記録: " + best, W / 2, H * 0.56, 18, "700", "#b388ff");
     }
   }
 
   if (state === STATE.OVER) {
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillStyle = "rgba(15, 12, 27, 0.85)";
     ctx.fillRect(-20, -20, W + 40, H + 40);
-    drawCenteredText("ざんねん！", W / 2, H * 0.28, Math.min(42, W * 0.08), "900", "#ff2a8d");
-    drawCenteredText("スコア", W / 2, H * 0.40, 18, "700", "#666666");
-    drawCenteredText(String(score), W / 2, H * 0.48, 52, "900", "#ff2a8d");
-    drawCenteredText("ベスト記録: " + best, W / 2, H * 0.57, 18, "700", "#888888");
+    drawCenteredText("つかまっちゃった！", W / 2, H * 0.28, Math.min(38, W * 0.08), "900", "#ff4081", "#ffffff");
+    drawCenteredText("スコア", W / 2, H * 0.40, 18, "700", "#e0e0e0");
+    drawCenteredText(String(score), W / 2, H * 0.48, 52, "900", "#ffe57f", "#0f0c1b");
+    drawCenteredText("ベスト記録: " + best, W / 2, H * 0.57, 18, "700", "#b388ff");
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
-      drawCenteredText("タップでリトライ", W / 2, H * 0.68, 22, "900", "#ff2a8d");
+      drawCenteredText("タップでリトライ", W / 2, H * 0.68, 22, "900", "#ff4081", "#ffffff");
     }
   }
 
   if (state === STATE.CLEAR) {
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillStyle = "rgba(15, 12, 27, 0.88)";
     ctx.fillRect(-20, -20, W + 40, H + 40);
-    drawCenteredText("🎉 GOAL!! クリア！ 🎉", W / 2, H * 0.28, Math.min(32, W * 0.075), "900", "#ff2a8d");
-    drawCenteredText("すごい！ゴールまで走りきったよ！", W / 2, H * 0.38, Math.min(16, W * 0.04), "700", "#555555");
-    drawCenteredText(String(score) + " 点", W / 2, H * 0.48, 52, "900", "#ff2a8d");
+    drawCenteredText("🎉 だっしゅつ せいこう！ 🎉", W / 2, H * 0.28, Math.min(28, W * 0.07), "900", "#ffe57f", "#ff4081");
+    drawCenteredText("モンスターからにげきったよ！", W / 2, H * 0.38, Math.min(16, W * 0.04), "700", "#ffffff");
+    drawCenteredText(String(score) + " 点", W / 2, H * 0.48, 52, "900", "#ffe57f", "#0f0c1b");
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
-      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.65, 22, "900", "#ff2a8d");
+      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.65, 22, "900", "#ff4081", "#ffffff");
     }
   }
 

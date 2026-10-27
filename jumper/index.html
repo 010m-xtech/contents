@@ -238,6 +238,7 @@ let best = 0;
 try { best = parseInt(localStorage.getItem("hc_best_m") || "0", 10) || 0; } catch (e) {}
 
 let diaCounts = { dia_r: 0, dia_y: 0, dia_pr: 0, dia_g: 0, dia_b: 0, dia_p: 0 };
+let totalDiaCount = 0;
 let bestDiaKey = 'dia_r';
 
 let obstacles = [];
@@ -276,6 +277,7 @@ function resetGame() {
   gems = [];
   particles = [];
   diaCounts = { dia_r: 0, dia_y: 0, dia_pr: 0, dia_g: 0, dia_b: 0, dia_p: 0 };
+  totalDiaCount = 0;
   distToNextSpawn = W * 0.45;
   shake = 0;
 }
@@ -403,18 +405,20 @@ function gameOver() {
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
   jumpBtnArea.classList.add("hidden");
 
-  // ダイヤが0個の場合でも確実に有効なキーを初期セット
+  // ダイヤ獲得総数と最多ダイヤの判定
+  totalDiaCount = 0;
   let maxCount = 0;
   bestDiaKey = diaKeys[Math.floor(Math.random() * diaKeys.length)];
 
   diaKeys.forEach(k => {
+    totalDiaCount += diaCounts[k];
     if (diaCounts[k] > maxCount) {
       maxCount = diaCounts[k];
       bestDiaKey = k;
     }
   });
 
-  logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}m / 最多ダイヤ: ${bestDiaKey})`);
+  logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}m / 総ダイヤ: ${totalDiaCount})`);
 
   if (score > best) {
     best = score;
@@ -554,7 +558,6 @@ function drawCaveBackground() {
     ctx.globalAlpha = 1;
   }
 
-  // 地面
   ctx.fillStyle = "#ff6eb4";
   ctx.fillRect(-20, groundY, W + 40, 4);
 
@@ -648,13 +651,11 @@ function drawCenteredText(text, x, y, size, weight, color, strokeColor) {
 
 // ----------------------------- リザルト画面 -----------------------------
 function drawResultScreen() {
-  ctx.fillStyle = "rgba(15, 12, 27, 0.93)";
+  ctx.fillStyle = "rgba(15, 12, 27, 0.94)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
-  // 当該店舗のメニュー設定が存在するかチェック
   const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
-  
-  // 該当する色があればそのメニュー、無ければその店舗にある最初のメニューを採用
+
   let rec = null;
   if (storeMenus) {
     rec = storeMenus[bestDiaKey] || Object.values(storeMenus)[0];
@@ -662,72 +663,90 @@ function drawResultScreen() {
   const hasMenu = rec !== null && rec !== undefined;
 
   if (hasMenu) {
-    drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
+    // 1. タイトル
+    drawCenteredText("結果発表！", W / 2, H * 0.055, 26, "900", "#ff4081", "#ffffff");
 
-    const diaBoxY = H * 0.13;
+    // 2. 距離（○m）
+    drawCenteredText(`きろく: ${score} m`, W / 2, H * 0.105, 20, "900", "#ffe57f", "#0f0c1b");
+
+    // 3. ダイヤ集計バー
+    const diaBoxY = H * 0.14;
     const diaBoxW = W * 0.9;
     const diaBoxX = (W - diaBoxW) / 2;
     ctx.fillStyle = "rgba(42, 27, 56, 0.85)";
     ctx.strokeStyle = "#ff6eb4";
     ctx.lineWidth = 2;
-    ctx.fillRect(diaBoxX, diaBoxY, diaBoxW, 56);
-    ctx.strokeRect(diaBoxX, diaBoxY, diaBoxW, 56);
+    ctx.fillRect(diaBoxX, diaBoxY, diaBoxW, 52);
+    ctx.strokeRect(diaBoxX, diaBoxY, diaBoxW, 52);
 
     const colW = diaBoxW / 6;
     diaKeys.forEach((key, idx) => {
       const cx = diaBoxX + colW * idx + colW / 2;
-      const cy = diaBoxY + 20;
+      const cy = diaBoxY + 18;
       const item = diaImgs[idx];
       if (item.img.complete) {
-        ctx.drawImage(item.img, cx - 13, cy - 10, 26, 20);
+        ctx.drawImage(item.img, cx - 12, cy - 9, 24, 18);
       }
-      drawCenteredText(`${diaCounts[key]}`, cx, cy + 22, 14, "700", "#ffffff");
+      drawCenteredText(`${diaCounts[key]}`, cx, cy + 20, 13, "700", "#ffffff");
     });
 
-    const cardY = H * 0.27;
+    // 4. おすすめメニューカード
+    const cardY = H * 0.235;
     const cardW = W * 0.88;
-    const cardH = H * 0.54;
+    const cardH = H * 0.58;
     const cardX = (W - cardW) / 2;
 
+    // 白枠カード土台
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#ffe57f";
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, cardH, 16);
+    ctx.roundRect(cardX, cardY, cardW, cardH, 18);
     ctx.fill();
     ctx.stroke();
 
+    // 帯（高さを54pxに150%拡大）
+    const headerH = 54;
     ctx.fillStyle = "#ff4081";
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, 36, [16, 16, 0, 0]);
+    ctx.roundRect(cardX, cardY, cardW, headerH, [16, 16, 0, 0]);
     ctx.fill();
-    drawCenteredText(`💎 ${rec.colorName || "おすすめ"} のあなたへ！`, W / 2, cardY + 18, 14, "900", "#ffffff");
 
-    const imgY = cardY + 46;
-    const imgSize = Math.min(cardW * 0.72, cardH * 0.42);
+    // 帯の文字（ダイヤ0個判定 & アイコンなし・上下中央配置）
+    let headerText = "";
+    if (totalDiaCount === 0) {
+      headerText = "また挑戦しよう！おすすめは";
+    } else {
+      headerText = `${rec.colorName || "おすすめ"}のあなたへ！`;
+    }
+    drawCenteredText(headerText, W / 2, cardY + headerH / 2, 14, "900", "#ffffff");
+
+    // メニュー画像とメニュー名をカード内の残りスペースの中央に配置
+    const contentAreaTop = cardY + headerH;
+    const contentAreaH = cardH - headerH;
+    const imgSize = Math.min(cardW * 0.72, contentAreaH * 0.62);
     const imgX = (W - imgSize) / 2;
-    const menuImgObj = loadedMenuImgs[rec.image];
+    const imgY = contentAreaTop + (contentAreaH - (imgSize + 40)) / 2;
 
+    const menuImgObj = loadedMenuImgs[rec.image];
     if (menuImgObj && menuImgObj.complete && menuImgObj.naturalWidth !== 0) {
       ctx.drawImage(menuImgObj, imgX, imgY, imgSize, imgSize);
     } else {
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(imgX, imgY, imgSize, imgSize);
-      drawCenteredText("🍴", W / 2, imgY + imgSize / 2, 44, "700", "#999");
+      drawCenteredText("🍴", W / 2, imgY + imgSize / 2, 48, "700", "#999");
     }
 
-    drawCenteredText(rec.name, W / 2, imgY + imgSize + 22, 18, "900", "#1a162b");
+    // メニュー名（画像の下に中央配置）
+    drawCenteredText(rec.name, W / 2, imgY + imgSize + 26, 18, "900", "#1a162b");
 
-    ctx.font = "600 13px 'Mochiy Pop One', sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.textAlign = "center";
-    wrapText(ctx, rec.desc || "", W / 2, imgY + imgSize + 50, cardW - 32, 18);
-
+    // リトライ案内
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
-      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.88, 22, "900", "#ffe57f", "#0f0c1b");
+      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.89, 21, "900", "#ffe57f", "#0f0c1b");
     }
 
   } else {
+    // メニューなし店舗用表示
     drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
 
     drawCenteredText("逃げ切った距離", W / 2, H * 0.25, 18, "700", "#cccccc");
@@ -749,7 +768,7 @@ function drawResultScreen() {
     ctx.fill();
     ctx.stroke();
 
-    drawCenteredText("💎 あつめたダイヤ 💎", W / 2, cardY + 28, 16, "900", "#ffe57f");
+    drawCenteredText("あつめたダイヤ", W / 2, cardY + 28, 16, "900", "#ffe57f");
 
     const rowCount = 2;
     const colCount = 3;
@@ -777,24 +796,6 @@ function drawResultScreen() {
       drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.82, 24, "900", "#ffe57f", "#0f0c1b");
     }
   }
-}
-
-function wrapText(context, text, x, y, maxWidth, lineHeight) {
-  const chars = text.split('');
-  let line = '';
-  let curY = y;
-  for (let n = 0; n < chars.length; n++) {
-    const testLine = line + chars[n];
-    const metrics = context.measureText(testLine);
-    if (metrics.width > maxWidth && n > 0) {
-      context.fillText(line, x, curY);
-      line = chars[n];
-      curY += lineHeight;
-    } else {
-      line = testLine;
-    }
-  }
-  context.fillText(line, x, curY);
 }
 
 function draw() {
@@ -826,7 +827,7 @@ function draw() {
   if (state === STATE.READY) {
     drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.22, Math.min(26, W * 0.072), "900", "#ff4081", "#ffffff");
     drawCenteredText("モンスターをよけてダイヤを集めよう！", W / 2, H * 0.32, Math.min(15, W * 0.038), "700", "#e0e0e0");
-    drawCenteredText("どこまで遠くへ逃げ切れるかな？", W / 2, H * 0.37, Math.min(16, W * 0.04), "900", "#ffe57f");
+    drawCenteredText("集めたダイヤでおすすめメニューがわかるよ！", W / 2, H * 0.37, Math.min(15, W * 0.038), "900", "#ffe57f");
     
     if (Math.floor(performance.now() / 600) % 2 === 0) {
       drawCenteredText("タップでスタート", W / 2, H * 0.48, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");

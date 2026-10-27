@@ -31,11 +31,49 @@
     touch-action: none;
   }
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* 下部ジャンプボタン */
+  #jump-button-area {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    pointer-events: auto;
+  }
+  .jump-btn {
+    width: 82%;
+    max-width: 380px;
+    padding: 14px 0;
+    background: linear-gradient(135deg, #ff4081 0%, #ff1744 100%);
+    color: #ffffff;
+    border: 3px solid #ffffff;
+    border-radius: 40px;
+    font-family: "Mochiy Pop One", sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    box-shadow: 0 6px 16px rgba(255, 64, 129, 0.4), 0 4px 0 #b30047;
+    cursor: pointer;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .jump-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 6px rgba(255, 64, 129, 0.4), 0 1px 0 #b30047;
+  }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div id="stage">
-<canvas id="game"></canvas>
+  <canvas id="game"></canvas>
+  <div id="jump-button-area" class="hidden">
+    <button class="jump-btn" id="btn-jump">👆 JUMP！</button>
+  </div>
 </div>
 <script>
 "use strict";
@@ -68,6 +106,8 @@ function logAccess(actionName) {
 const stage = document.getElementById("stage");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const jumpBtnArea = document.getElementById("jump-button-area");
+const jumpBtn = document.getElementById("btn-jump");
 
 let W = 0, H = 0, dpr = 1;
 let groundY = 0;
@@ -80,7 +120,7 @@ function resize() {
   canvas.width = Math.floor(W * dpr);
   canvas.height = Math.floor(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  groundY = Math.floor(H * 0.76);
+  groundY = Math.floor(H * 0.72); // ボタンエリアを確保するため地面をわずかに引き上げ
 }
 let resizeScheduled = false;
 function scheduleResize() {
@@ -108,7 +148,7 @@ playerImg.onerror = () => {
 };
 playerImg.src = currentPlayerPath;
 
-// ダイヤ定義
+// ダイヤ画像（6種）
 const diaKeys = ['dia_r', 'dia_y', 'dia_pr', 'dia_g', 'dia_b', 'dia_p'];
 const diaImgs = diaKeys.map(key => {
   const img = new Image();
@@ -116,29 +156,27 @@ const diaImgs = diaKeys.map(key => {
   return { key, img };
 });
 
-// モンスター定義
+// モンスター定義（モンスター2と4は tall: true でスケール拡大）
 const monsterDefs = [
-  { name: 'monster_1.png', w: 321, h: 281 },
-  { name: 'monster_2.png', w: 231, h: 378 },
-  { name: 'monster_3.png', w: 338, h: 352 },
-  { name: 'monster_4.png', w: 263, h: 450 },
-  { name: 'monster_5.png', w: 322, h: 350 },
-  { name: 'monster_6.png', w: 377, h: 293 }
+  { name: 'monster_1.png', w: 321, h: 281, tall: false },
+  { name: 'monster_2.png', w: 231, h: 378, tall: true  }, // 背高モンスター
+  { name: 'monster_3.png', w: 338, h: 352, tall: false },
+  { name: 'monster_4.png', w: 263, h: 450, tall: true  }, // 背高モンスター
+  { name: 'monster_5.png', w: 322, h: 350, tall: false },
+  { name: 'monster_6.png', w: 377, h: 293, tall: false }
 ];
 const monsterImgs = monsterDefs.map(def => {
   const img = new Image();
   img.src = `image/${def.name}`;
-  return { img, aspect: def.w / def.h };
+  return { img, aspect: def.w / def.h, tall: def.tall };
 });
 
-// メニューJSON読み込み（該当店舗の登録がある場合のみ保持）
 let menuData = null;
 const loadedMenuImgs = {};
 fetch('menu.json')
   .then(res => res.json())
   .then(data => {
     menuData = data;
-    // 当該店舗のメニューのみプリロード
     if (menuData && menuData[storeCd]) {
       Object.values(menuData[storeCd]).forEach(m => {
         if (m.image) {
@@ -186,9 +224,9 @@ const ball = { x: 0, y: 0, vy: 0, jumpsLeft: 2, onGround: true, squash: 0 };
 let speed = BASE_SPEED;
 let distance = 0;
 let gemsScore = 0;
-let score = 0;
+let score = 0; // 距離(m)
 let best = 0;
-try { best = parseInt(localStorage.getItem("hc_best") || "0", 10) || 0; } catch (e) {}
+try { best = parseInt(localStorage.getItem("hc_best_m") || "0", 10) || 0; } catch (e) {}
 
 let diaCounts = { dia_r: 0, dia_y: 0, dia_pr: 0, dia_g: 0, dia_b: 0, dia_p: 0 };
 let bestDiaKey = 'dia_r';
@@ -239,6 +277,7 @@ resetGame();
 function press() {
   if (state === STATE.READY) {
     state = STATE.PLAY;
+    jumpBtnArea.classList.remove("hidden");
     logAccess("ゲーム開始: 洞窟脱出大作戦");
     return;
   }
@@ -246,6 +285,7 @@ function press() {
     if (overTime > 0.6) {
       resetGame();
       state = STATE.PLAY;
+      jumpBtnArea.classList.remove("hidden");
       logAccess("リトライ: 洞窟脱出大作戦");
     }
     return;
@@ -260,7 +300,20 @@ function press() {
     spawnDust(ball.x, groundY, 4, -1);
   }
 }
-window.addEventListener("pointerdown", (e) => { e.preventDefault(); press(); }, { passive: false });
+
+// 画面全体のタップ & ボタンタップの双方に対応
+window.addEventListener("pointerdown", (e) => {
+  // ボタン以外のタップでも動作
+  e.preventDefault();
+  press();
+}, { passive: false });
+
+jumpBtn.addEventListener("pointerdown", (e) => {
+  e.stopPropagation(); // 重複防止
+  e.preventDefault();
+  press();
+});
+
 window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
@@ -275,7 +328,9 @@ function spawnObstacleGroup() {
   const mIdx = Math.floor(Math.random() * monsterImgs.length);
   const def = monsterImgs[mIdx];
   
-  const renderH = (54 + Math.random() * 12) * 1.5;
+  // 背高モンスター（2と4）は高さを大きく設定
+  const heightMultiplier = def.tall ? 1.9 : 1.5;
+  const renderH = (54 + Math.random() * 10) * heightMultiplier;
   const renderW = renderH * def.aspect;
 
   obstacles.push({
@@ -286,6 +341,7 @@ function spawnObstacleGroup() {
     hopPhase: Math.random() * 6.28
   });
 
+  // ダイヤ出現（ランダム色）
   if (Math.random() < 0.85) {
     const gx = x + renderW + 110 + Math.random() * 50;
     const n = 3 + Math.floor(Math.random() * 3);
@@ -342,6 +398,7 @@ function gameOver() {
   shake = 12;
   sndHit();
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
+  jumpBtnArea.classList.add("hidden"); // リザルト画面ではボタンを隠す
 
   let maxCount = -1;
   bestDiaKey = 'dia_r';
@@ -352,11 +409,11 @@ function gameOver() {
     }
   });
 
-  logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}点 / 最多ダイヤ: ${bestDiaKey})`);
+  logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}m / 最多ダイヤ: ${bestDiaKey})`);
 
   if (score > best) {
     best = score;
-    try { localStorage.setItem("hc_best", String(best)); } catch (e) {}
+    try { localStorage.setItem("hc_best_m", String(best)); } catch (e) {}
   }
 }
 
@@ -403,7 +460,8 @@ function update(dt) {
 
   speed = Math.min(MAX_SPEED, speed + 4 * dt);
   distance += speed * dt;
-  score = Math.floor(distance / 50) + gemsScore;
+  // ★メートル表記（走行距離 + ダイヤボーナス）
+  score = Math.floor(distance / 40) + gemsScore;
 
   const wasAirborne = !ball.onGround;
   ball.vy += GRAVITY * dt;
@@ -453,7 +511,7 @@ function update(dt) {
       diaCounts[key]++;
 
       gems.splice(i, 1);
-      gemsScore += 5;
+      gemsScore += 5; // ダイヤ獲得で +5m ボーナス！
       sndGem();
       spawnBurst(g.x, g.y, 8, "#ffe57f");
     }
@@ -469,6 +527,7 @@ function drawCaveBackground() {
   ctx.fillStyle = grad;
   ctx.fillRect(-20, -20, W + 40, groundY + 20);
 
+  // 鍾乳石
   ctx.fillStyle = "#161129";
   const stCount = 8;
   const stW = W / stCount;
@@ -494,6 +553,7 @@ function drawCaveBackground() {
     ctx.globalAlpha = 1;
   }
 
+  // 地面
   ctx.fillStyle = "#ff6eb4";
   ctx.fillRect(-20, groundY, W + 40, 4);
 
@@ -585,22 +645,18 @@ function drawCenteredText(text, x, y, size, weight, color, strokeColor) {
   ctx.fillText(text, x, y);
 }
 
-// ----------------------------- リザルト画面（店舗メニュー有無による自動切り替え） -----------------------------
+// ----------------------------- リザルト画面 -----------------------------
 function drawResultScreen() {
   ctx.fillStyle = "rgba(15, 12, 27, 0.93)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
-  // 当該店舗のメニュー設定が存在するかチェック
   const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
   const hasMenu = storeMenus && storeMenus[bestDiaKey];
 
   if (hasMenu) {
-    // ==========================================
-    // パターンA: メニュー登録がある店舗の表示
-    // ==========================================
+    // パターンA: メニューあり店舗
     drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
 
-    // ダイヤ集計バー
     const diaBoxY = H * 0.13;
     const diaBoxW = W * 0.9;
     const diaBoxX = (W - diaBoxW) / 2;
@@ -621,7 +677,6 @@ function drawResultScreen() {
       drawCenteredText(`${diaCounts[key]}`, cx, cy + 22, 14, "700", "#ffffff");
     });
 
-    // おすすめメニューカード
     const rec = storeMenus[bestDiaKey];
     const cardY = H * 0.27;
     const cardW = W * 0.88;
@@ -667,19 +722,15 @@ function drawResultScreen() {
     }
 
   } else {
-    // ==========================================
-    // パターンB: メニューなし店舗の表示（ダイヤ集計＋スコア発表）
-    // ==========================================
+    // パターンB: メニューなし店舗（★メートル表記）
     drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
 
-    // スコア発表
-    drawCenteredText("スコア", W / 2, H * 0.25, 18, "700", "#cccccc");
-    drawCenteredText(`${score} 点`, W / 2, H * 0.33, 56, "900", "#ffe57f", "#0f0c1b");
+    drawCenteredText("逃げ切った距離", W / 2, H * 0.25, 18, "700", "#cccccc");
+    drawCenteredText(`${score} m`, W / 2, H * 0.33, 56, "900", "#ffe57f", "#0f0c1b");
     
     const isBest = score >= best && score > 0;
-    drawCenteredText(isBest ? "🎉 新記録達成！" : `ベスト記録: ${best} 点`, W / 2, H * 0.40, 18, "700", isBest ? "#ff4081" : "#b388ff");
+    drawCenteredText(isBest ? "🎉 新記録達成！" : `ベスト記録: ${best} m`, W / 2, H * 0.40, 18, "700", isBest ? "#ff4081" : "#b388ff");
 
-    // ダイヤ集計カード（大きく見やすく表示）
     const cardY = H * 0.46;
     const cardW = W * 0.88;
     const cardH = H * 0.26;
@@ -695,7 +746,6 @@ function drawResultScreen() {
 
     drawCenteredText("💎 あつめたダイヤ 💎", W / 2, cardY + 28, 16, "900", "#ffe57f");
 
-    // 2行 × 3列 でダイヤと個数を配置
     const rowCount = 2;
     const colCount = 3;
     const cellW = cardW / colCount;
@@ -765,7 +815,7 @@ function draw() {
 
   // ---------------- UI ----------------
   if (state === STATE.PLAY) {
-    drawCenteredText(`${score} 点`, W / 2, H * 0.12, 48, "900", "#ffeb3b", "#0f0c1b");
+    drawCenteredText(`${score} m`, W / 2, H * 0.12, 48, "900", "#ffeb3b", "#0f0c1b");
   }
 
   if (state === STATE.READY) {
@@ -777,7 +827,7 @@ function draw() {
       drawCenteredText("タップでスタート", W / 2, H * 0.48, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");
     }
     if (best > 0) {
-      drawCenteredText("ベスト記録: " + best, W / 2, H * 0.56, 18, "700", "#b388ff");
+      drawCenteredText("ベスト記録: " + best + " m", W / 2, H * 0.56, 18, "700", "#b388ff");
     }
   }
 

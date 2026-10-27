@@ -3,37 +3,37 @@
     "dia_r": {
       "colorName": "情熱のレッドダイヤ",
       "name": "特製 旨辛スタミナ焼き",
-      "image": "image/menu_meat.png",
+      "image": "image/01.webp",
       "desc": "赤をたくさん集めたあなたへ！食欲そそるピリ辛メニューはいかが？"
     },
     "dia_y": {
       "colorName": "元気のイエローダイヤ",
       "name": "たっぷりチーズのオムライス",
-      "image": "image/menu_curry.png",
+      "image": "image/03.webp",
       "desc": "黄色が集まった元気なあなたに！とろ〜り濃厚な定番人気メニュー！"
     },
     "dia_pr": {
       "colorName": "魅惑のパープルダイヤ",
       "name": "贅沢グレープパフェ",
-      "image": "image/menu_parfait.png",
+      "image": "image/05.webp",
       "desc": "紫を集めたリッチなあなたに！食後のデザートにぴったりの逸品です。"
     },
     "dia_g": {
       "colorName": "爽やかグリーンダイヤ",
       "name": "フレッシュ高原サラダ",
-      "image": "image/menu_salad.png",
+      "image": "image/08.webp",
       "desc": "緑が一番多かったヘルシーなあなた！シャキシャキお野菜でリフレッシュ！"
     },
     "dia_b": {
       "colorName": "クールなブルーダイヤ",
       "name": "ブルーハワイフロート",
-      "image": "image/menu_drink.png",
+      "image": "image/09.webp",
       "desc": "青を集めた爽やかなあなたへ！見た目も涼やかな特製ドリンク！"
     },
     "dia_p": {
       "colorName": "幸運のピンクダイヤ",
       "name": "いちごのふわふわパンケーキ",
-      "image": "image/menu_sweet.png",
+      "image": "image/10.webp",
       "desc": "ピンクが揃ったラッキーなあなた！甘いご褒美スイーツで至福のひとときを！"
     }
   },

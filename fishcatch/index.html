@@ -514,7 +514,11 @@
         p.push();
         p.translate(player.x, player.y);
         if (assets['player']) {
-          p.image(assets['player'], 0, 0, 110, 143); 
+          const pImg = assets['player'];
+          const targetWidth = 110;
+          // 元画像の縦横比を維持して高さを自動計算
+          const targetHeight = targetWidth * (pImg.height / pImg.width);
+          p.image(pImg, 0, 0, targetWidth, targetHeight); 
         } else {
           p.textAlign(p.CENTER, p.CENTER);
           p.textSize(80); 

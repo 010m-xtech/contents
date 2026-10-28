@@ -96,7 +96,9 @@ let deviceId = localStorage.getItem('device_id') || 'unknown';
 
 function getStoreCdFromUrl() {
   const hash = window.location.hash.replace('#', '').trim();
-  if (hash && hash.length === 6) storeCd = hash;
+  if (hash) {
+    storeCd = hash;
+  }
 }
 getStoreCdFromUrl();
 
@@ -145,7 +147,6 @@ if (window.visualViewport) window.visualViewport.addEventListener("resize", sche
 resize();
 
 // ----------------------------- 画像 & メニューJSON読み込み ---------------------------
-// タイトルロゴ画像
 const logoImg = new Image();
 let logoImgLoaded = false;
 logoImg.onload = () => { logoImgLoaded = true; };
@@ -186,23 +187,30 @@ const monsterImgs = monsterDefs.map(def => {
   return { img, aspect: def.w / def.h, tall: def.tall };
 });
 
+// menu.jsonの確実な読み込み処理
 let menuData = null;
 const loadedMenuImgs = {};
+
+function preloadMenuImage(path) {
+  if (!path || loadedMenuImgs[path]) return;
+  const mi = new Image();
+  mi.src = path;
+  loadedMenuImgs[path] = mi;
+}
+
 fetch('menu.json')
   .then(res => res.json())
   .then(data => {
     menuData = data;
-    if (menuData && menuData[storeCd]) {
-      Object.values(menuData[storeCd]).forEach(m => {
-        if (m.image) {
-          const mi = new Image();
-          mi.src = m.image;
-          loadedMenuImgs[m.image] = mi;
-        }
+    console.log("menu.json 読み込み成功:", menuData);
+    // 全登録メニュー画像を事前ロード
+    Object.keys(menuData).forEach(s => {
+      Object.values(menuData[s]).forEach(m => {
+        if (m && m.image) preloadMenuImage(m.image);
       });
-    }
+    });
   })
-  .catch(err => console.warn("menu.json の読み込みをスキップしました:", err));
+  .catch(err => console.warn("menu.json 読み込みエラー:", err));
 
 // ----------------------------- サウンド ---------------------------
 function createSfxPool(src, size, vol) {
@@ -563,7 +571,6 @@ function drawCaveBackground() {
     ctx.globalAlpha = 1;
   }
 
-  // 地面
   ctx.fillStyle = "#ff6eb4";
   ctx.fillRect(-20, groundY, W + 40, 4);
 
@@ -660,15 +667,19 @@ function drawResultScreen() {
   ctx.fillStyle = "rgba(15, 12, 27, 0.94)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
-  const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
+  // 店舗メニューの判定（店舗CD該当データ、または何らかの登録店舗データがあるか）
+  let storeMenus = null;
+  if (menuData) {
+    storeMenus = menuData[storeCd] || menuData["000000"] || (Object.keys(menuData).length > 0 ? Object.values(menuData)[0] : null);
+  }
 
   let rec = null;
   if (storeMenus) {
     rec = storeMenus[bestDiaKey] || Object.values(storeMenus)[0];
   }
-  const hasMenu = rec !== null && rec !== undefined;
 
-  if (hasMenu) {
+  // おすすめメニューが存在する場合
+  if (rec) {
     drawCenteredText("結果発表！", W / 2, H * 0.055, 26, "900", "#ff4081", "#ffffff");
     drawCenteredText(`きろく: ${score} m`, W / 2, H * 0.105, 20, "900", "#ffe57f", "#0f0c1b");
 
@@ -725,6 +736,9 @@ function drawResultScreen() {
     const imgX = (W - imgSize) / 2;
     const imgY = contentAreaTop + (contentAreaH - (imgSize + 40)) / 2;
 
+    if (rec.image) {
+      preloadMenuImage(rec.image);
+    }
     const menuImgObj = loadedMenuImgs[rec.image];
     if (menuImgObj && menuImgObj.complete && menuImgObj.naturalWidth !== 0) {
       ctx.drawImage(menuImgObj, imgX, imgY, imgSize, imgSize);
@@ -734,13 +748,14 @@ function drawResultScreen() {
       drawCenteredText("🍴", W / 2, imgY + imgSize / 2, 48, "700", "#999");
     }
 
-    drawCenteredText(rec.name, W / 2, imgY + imgSize + 26, 18, "900", "#1a162b");
+    drawCenteredText(rec.name || "おすすめメニュー", W / 2, imgY + imgSize + 26, 18, "900", "#1a162b");
 
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
       drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.89, 21, "900", "#ffe57f", "#0f0c1b");
     }
 
   } else {
+    // メニュー未登録時（フォールバック）
     drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
 
     drawCenteredText("逃げ切った距離", W / 2, H * 0.25, 18, "700", "#cccccc");
@@ -813,17 +828,14 @@ function draw() {
 
   if (state !== STATE.OVER || overTime < 0.05) drawBall();
 
-  // ---------------- UI ----------------
   if (state === STATE.PLAY) {
     drawCenteredText(`${score} m`, W / 2, H * 0.12, 48, "900", "#ffeb3b", "#0f0c1b");
   }
 
-  // ★スタート待機画面（ロゴ配置 & ルール説明更新）
   if (state === STATE.READY) {
     let contentBottom = H * 0.28;
 
     if (logoImgLoaded && logoImg.naturalWidth > 0) {
-      // ロゴ画像描画（画面幅の約80%でアスペクト比維持）
       const logoMaxW = W * 0.82;
       const logoMaxH = H * 0.24;
       const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
@@ -840,16 +852,13 @@ function draw() {
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
       contentBottom = logoY + logoH;
     } else {
-      // ロゴ画像未読込時のフォールバックテキスト
       drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.18, Math.min(26, W * 0.072), "900", "#ff4081", "#ffffff");
       contentBottom = H * 0.22;
     }
 
-    // 操作説明 & ルール（おすすめメニュー案内は削除）
     drawCenteredText("タップでジャンプ！ 連打で高くジャンプ！", W / 2, contentBottom + H * 0.055, Math.min(15, W * 0.038), "900", "#ffe57f", "#0f0c1b");
     drawCenteredText("モンスターをよけてダイヤを集めよう！", W / 2, contentBottom + H * 0.105, Math.min(14, W * 0.036), "700", "#e0e0e0");
 
-    // スタート点滅案内
     if (Math.floor(performance.now() / 600) % 2 === 0) {
       drawCenteredText("タップでスタート", W / 2, contentBottom + H * 0.20, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");
     }
@@ -865,7 +874,6 @@ function draw() {
   ctx.restore();
 }
 
-// ----------------------------- ループ -----------------------------
 let lastT = performance.now();
 function frame(now) {
   let dt = (now - lastT) / 1000;

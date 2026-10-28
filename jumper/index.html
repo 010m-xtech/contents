@@ -145,7 +145,6 @@ if (window.visualViewport) window.visualViewport.addEventListener("resize", sche
 resize();
 
 // ----------------------------- 画像 & メニューJSON読み込み ---------------------------
-// タイトルロゴ画像
 const logoImg = new Image();
 let logoImgLoaded = false;
 logoImg.onload = () => { logoImgLoaded = true; };
@@ -245,7 +244,7 @@ try { best = parseInt(localStorage.getItem("hc_best_m") || "0", 10) || 0; } catc
 
 let diaCounts = { dia_r: 0, dia_y: 0, dia_pr: 0, dia_g: 0, dia_b: 0, dia_p: 0 };
 let totalDiaCount = 0;
-let bestDiaKey = 'dia_r';
+let chosenMenu = null; // ゲームオーバー時に1度だけ確定させるメニュー
 
 let obstacles = [];
 let gems = [];
@@ -253,7 +252,6 @@ let particles = [];
 let caveGems = [];
 let distToNextSpawn = 0;
 let overTime = 0;
-let shake = 0;
 
 function initCaveGems() {
   caveGems = [];
@@ -284,8 +282,8 @@ function resetGame() {
   particles = [];
   diaCounts = { dia_r: 0, dia_y: 0, dia_pr: 0, dia_g: 0, dia_b: 0, dia_p: 0 };
   totalDiaCount = 0;
+  chosenMenu = null;
   distToNextSpawn = W * 0.45;
-  shake = 0;
 }
 resetGame();
 
@@ -406,22 +404,40 @@ function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
 function gameOver() {
   state = STATE.OVER;
   overTime = 0;
-  shake = 12;
   sndHit();
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
   jumpBtnArea.classList.add("hidden");
 
+  // ダイヤ集計
   totalDiaCount = 0;
   let maxCount = 0;
-  bestDiaKey = diaKeys[Math.floor(Math.random() * diaKeys.length)];
+  let candidateKeys = [];
 
   diaKeys.forEach(k => {
     totalDiaCount += diaCounts[k];
     if (diaCounts[k] > maxCount) {
       maxCount = diaCounts[k];
-      bestDiaKey = k;
+      candidateKeys = [k];
+    } else if (diaCounts[k] === maxCount && maxCount > 0) {
+      candidateKeys.push(k);
     }
   });
+
+  // 店舗メニューの取得
+  const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
+  chosenMenu = null;
+
+  if (storeMenus) {
+    const menuList = Object.values(storeMenus);
+    if (totalDiaCount === 0 || candidateKeys.length === 0) {
+      // ダイヤ0個のとき：全メニューからランダムに1品選んで固定
+      chosenMenu = menuList[Math.floor(Math.random() * menuList.length)];
+    } else {
+      // 獲得ダイヤがあるとき：最多ダイヤのいずれかを1つ選んで固定
+      const pickedKey = candidateKeys[Math.floor(Math.random() * candidateKeys.length)];
+      chosenMenu = storeMenus[pickedKey] || menuList[0];
+    }
+  }
 
   logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}m / 総ダイヤ: ${totalDiaCount})`);
 
@@ -453,8 +469,6 @@ function update(dt) {
     p.y += p.vy * dt;
     if (p.y > groundY - 2) { p.y = groundY - 2; p.vy *= -0.4; }
   }
-
-  if (shake > 0) shake = Math.max(0, shake - dt * 30);
 
   if (state === STATE.OVER) {
     overTime += dt;
@@ -660,15 +674,9 @@ function drawResultScreen() {
   ctx.fillStyle = "rgba(15, 12, 27, 0.94)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
-  const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
+  if (chosenMenu) {
+    const rec = chosenMenu;
 
-  let rec = null;
-  if (storeMenus) {
-    rec = storeMenus[bestDiaKey] || Object.values(storeMenus)[0];
-  }
-  const hasMenu = rec !== null && rec !== undefined;
-
-  if (hasMenu) {
     drawCenteredText("結果発表！", W / 2, H * 0.055, 26, "900", "#ff4081", "#ffffff");
     drawCenteredText(`きろく: ${score} m`, W / 2, H * 0.105, 20, "900", "#ffe57f", "#0f0c1b");
 
@@ -794,10 +802,6 @@ function drawResultScreen() {
 
 function draw() {
   ctx.save();
-  if (shake > 0) {
-    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  }
-
   drawCaveBackground();
 
   for (const g of gems) drawGem(g);
@@ -818,12 +822,10 @@ function draw() {
     drawCenteredText(`${score} m`, W / 2, H * 0.12, 48, "900", "#ffeb3b", "#0f0c1b");
   }
 
-  // ★スタート待機画面（ロゴ配置 & ルール説明更新）
   if (state === STATE.READY) {
     let contentBottom = H * 0.28;
 
     if (logoImgLoaded && logoImg.naturalWidth > 0) {
-      // ロゴ画像描画（画面幅の約80%でアスペクト比維持）
       const logoMaxW = W * 0.82;
       const logoMaxH = H * 0.24;
       const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
@@ -840,16 +842,13 @@ function draw() {
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
       contentBottom = logoY + logoH;
     } else {
-      // ロゴ画像未読込時のフォールバックテキスト
       drawCenteredText("ホップ・ステップ・キャッチ！", W / 2, H * 0.18, Math.min(26, W * 0.072), "900", "#ff4081", "#ffffff");
       contentBottom = H * 0.22;
     }
 
-    // 操作説明 & ルール（おすすめメニュー案内は削除）
     drawCenteredText("タップでジャンプ！ 連打で高くジャンプ！", W / 2, contentBottom + H * 0.055, Math.min(15, W * 0.038), "900", "#ffe57f", "#0f0c1b");
     drawCenteredText("モンスターをよけてダイヤを集めよう！", W / 2, contentBottom + H * 0.105, Math.min(14, W * 0.036), "700", "#e0e0e0");
 
-    // スタート点滅案内
     if (Math.floor(performance.now() / 600) % 2 === 0) {
       drawCenteredText("タップでスタート", W / 2, contentBottom + H * 0.20, Math.min(24, W * 0.055), "900", "#ff4081", "#ffffff");
     }

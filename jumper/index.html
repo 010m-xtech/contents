@@ -91,16 +91,18 @@
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
 
+// --- 店舗CD & デバイスIDの取得 ---
 let storeCd = "000000";
 let deviceId = localStorage.getItem('device_id') || 'unknown';
 
-function getStoreCdFromUrl() {
+function updateStoreCd() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash) {
     storeCd = hash;
   }
 }
-getStoreCdFromUrl();
+updateStoreCd();
+window.addEventListener("hashchange", updateStoreCd);
 
 function logAccess(actionName) {
   fetch(GAS_URL, {
@@ -146,15 +148,16 @@ window.addEventListener("orientationchange", scheduleResize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", scheduleResize);
 resize();
 
-// ----------------------------- 画像 & メニューJSON読み込み ---------------------------
+// ----------------------------- 画像 & メニューJSON動的取得 ---------------------------
+// タイトルロゴ
 const logoImg = new Image();
 let logoImgLoaded = false;
 logoImg.onload = () => { logoImgLoaded = true; };
 logoImg.src = 'image/logo.webp';
 
+// プレイヤー画像（店舗CDに応じた切り替え）
 const defaultPlayerPath = 'image/000000.png';
 let currentPlayerPath = storeCd !== "000000" ? `image/${storeCd}.png` : defaultPlayerPath;
-
 const playerImg = new Image();
 let playerImgLoaded = false;
 playerImg.onload = () => { playerImgLoaded = true; };
@@ -166,6 +169,7 @@ playerImg.onerror = () => {
 };
 playerImg.src = currentPlayerPath;
 
+// ダイヤ画像（6色）
 const diaKeys = ['dia_r', 'dia_y', 'dia_pr', 'dia_g', 'dia_b', 'dia_p'];
 const diaImgs = diaKeys.map(key => {
   const img = new Image();
@@ -173,6 +177,7 @@ const diaImgs = diaKeys.map(key => {
   return { key, img };
 });
 
+// モンスター定義
 const monsterDefs = [
   { name: 'monster_1.png', w: 321, h: 281, tall: false },
   { name: 'monster_2.png', w: 231, h: 378, tall: true  },
@@ -187,30 +192,41 @@ const monsterImgs = monsterDefs.map(def => {
   return { img, aspect: def.w / def.h, tall: def.tall };
 });
 
-// menu.jsonの確実な読み込み処理
+// menu.json の動的取得（キャッシュ回避付き）
 let menuData = null;
-const loadedMenuImgs = {};
+const menuImageCache = {};
 
-function preloadMenuImage(path) {
-  if (!path || loadedMenuImgs[path]) return;
-  const mi = new Image();
-  mi.src = path;
-  loadedMenuImgs[path] = mi;
+function getMenuImage(src) {
+  if (!src) return null;
+  if (!menuImageCache[src]) {
+    const img = new Image();
+    img.src = src;
+    menuImageCache[src] = img;
+  }
+  return menuImageCache[src];
 }
 
-fetch('menu.json')
-  .then(res => res.json())
-  .then(data => {
-    menuData = data;
-    console.log("menu.json 読み込み成功:", menuData);
-    // 全登録メニュー画像を事前ロード
-    Object.keys(menuData).forEach(s => {
-      Object.values(menuData[s]).forEach(m => {
-        if (m && m.image) preloadMenuImage(m.image);
-      });
+function loadMenuJson() {
+  fetch('menu.json?_t=' + Date.now())
+    .then(res => {
+      if (!res.ok) throw new Error("menu.json not found");
+      return res.json();
+    })
+    .then(data => {
+      menuData = data;
+      // 該当店舗のメニュー画像を事前読み込み
+      updateStoreCd();
+      if (menuData && menuData[storeCd]) {
+        Object.values(menuData[storeCd]).forEach(item => {
+          if (item && item.image) getMenuImage(item.image);
+        });
+      }
+    })
+    .catch(err => {
+      menuData = null;
     });
-  })
-  .catch(err => console.warn("menu.json 読み込みエラー:", err));
+}
+loadMenuJson();
 
 // ----------------------------- サウンド ---------------------------
 function createSfxPool(src, size, vol) {
@@ -278,6 +294,7 @@ function initCaveGems() {
 initCaveGems();
 
 function resetGame() {
+  updateStoreCd();
   ball.x = Math.max(90, W * 0.24);
   ball.y = groundY - BALL_R;
   ball.vy = 0;
@@ -419,13 +436,15 @@ function gameOver() {
   spawnBurst(ball.x, ball.y, 25, "#ff4081");
   jumpBtnArea.classList.add("hidden");
 
+  updateStoreCd();
+
   totalDiaCount = 0;
-  let maxCount = 0;
+  let maxCount = -1;
   bestDiaKey = diaKeys[Math.floor(Math.random() * diaKeys.length)];
 
   diaKeys.forEach(k => {
     totalDiaCount += diaCounts[k];
-    if (diaCounts[k] > maxCount) {
+    if (diaCounts[k] > maxCount && diaCounts[k] > 0) {
       maxCount = diaCounts[k];
       bestDiaKey = k;
     }
@@ -571,6 +590,7 @@ function drawCaveBackground() {
     ctx.globalAlpha = 1;
   }
 
+  // 地面
   ctx.fillStyle = "#ff6eb4";
   ctx.fillRect(-20, groundY, W + 40, 4);
 
@@ -667,22 +687,33 @@ function drawResultScreen() {
   ctx.fillStyle = "rgba(15, 12, 27, 0.94)";
   ctx.fillRect(-20, -20, W + 40, H + 40);
 
-  // 店舗メニューの判定（店舗CD該当データ、または何らかの登録店舗データがあるか）
-  let storeMenus = null;
-  if (menuData) {
-    storeMenus = menuData[storeCd] || menuData["000000"] || (Object.keys(menuData).length > 0 ? Object.values(menuData)[0] : null);
-  }
+  updateStoreCd();
+
+  // 現在の店舗コード（storeCd）に登録されたメニューを取得
+  const storeMenus = (menuData && menuData[storeCd]) ? menuData[storeCd] : null;
 
   let rec = null;
   if (storeMenus) {
-    rec = storeMenus[bestDiaKey] || Object.values(storeMenus)[0];
+    if (totalDiaCount > 0 && storeMenus[bestDiaKey]) {
+      // ダイヤ獲得がある場合：最多ダイヤに対応するメニュー
+      rec = storeMenus[bestDiaKey];
+    } else {
+      // ダイヤ0個の場合：店舗メニューからランダム選択
+      const menuList = Object.values(storeMenus);
+      if (menuList.length > 0) {
+        rec = menuList[Math.floor(Math.random() * menuList.length)];
+      }
+    }
   }
 
-  // おすすめメニューが存在する場合
   if (rec) {
+    // -------------------------------------------------------------
+    // パターンA: 該当店舗のメニューがある場合
+    // -------------------------------------------------------------
     drawCenteredText("結果発表！", W / 2, H * 0.055, 26, "900", "#ff4081", "#ffffff");
     drawCenteredText(`きろく: ${score} m`, W / 2, H * 0.105, 20, "900", "#ffe57f", "#0f0c1b");
 
+    // ダイヤ集計バー
     const diaBoxY = H * 0.14;
     const diaBoxW = W * 0.9;
     const diaBoxX = (W - diaBoxW) / 2;
@@ -703,6 +734,7 @@ function drawResultScreen() {
       drawCenteredText(`${diaCounts[key]}`, cx, cy + 20, 13, "700", "#ffffff");
     });
 
+    // おすすめメニューカード
     const cardY = H * 0.235;
     const cardW = W * 0.88;
     const cardH = H * 0.58;
@@ -716,6 +748,7 @@ function drawResultScreen() {
     ctx.fill();
     ctx.stroke();
 
+    // 帯（54px）
     const headerH = 54;
     ctx.fillStyle = "#ff4081";
     ctx.beginPath();
@@ -730,16 +763,14 @@ function drawResultScreen() {
     }
     drawCenteredText(headerText, W / 2, cardY + headerH / 2, 14, "900", "#ffffff");
 
+    // メニュー画像とメニュー名を上下中央に均等配置
     const contentAreaTop = cardY + headerH;
     const contentAreaH = cardH - headerH;
     const imgSize = Math.min(cardW * 0.72, contentAreaH * 0.62);
     const imgX = (W - imgSize) / 2;
-    const imgY = contentAreaTop + (contentAreaH - (imgSize + 40)) / 2;
+    const imgY = contentAreaTop + (contentAreaH - (imgSize + 36)) / 2;
 
-    if (rec.image) {
-      preloadMenuImage(rec.image);
-    }
-    const menuImgObj = loadedMenuImgs[rec.image];
+    const menuImgObj = getMenuImage(rec.image);
     if (menuImgObj && menuImgObj.complete && menuImgObj.naturalWidth !== 0) {
       ctx.drawImage(menuImgObj, imgX, imgY, imgSize, imgSize);
     } else {
@@ -748,25 +779,26 @@ function drawResultScreen() {
       drawCenteredText("🍴", W / 2, imgY + imgSize / 2, 48, "700", "#999");
     }
 
-    drawCenteredText(rec.name || "おすすめメニュー", W / 2, imgY + imgSize + 26, 18, "900", "#1a162b");
+    drawCenteredText(rec.name || "おすすめメニュー", W / 2, imgY + imgSize + 24, 18, "900", "#1a162b");
 
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
       drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.89, 21, "900", "#ffe57f", "#0f0c1b");
     }
 
   } else {
-    // メニュー未登録時（フォールバック）
-    drawCenteredText("ゲーム終了！", W / 2, H * 0.15, 36, "900", "#ff4081", "#ffffff");
+    // -------------------------------------------------------------
+    // パターンB: 当該店舗コードがmenu.jsonに登録されていない場合
+    // -------------------------------------------------------------
+    drawCenteredText("結果発表！", W / 2, H * 0.08, 30, "900", "#ff4081", "#ffffff");
+    drawCenteredText(`きろく: ${score} m`, W / 2, H * 0.16, 26, "900", "#ffe57f", "#0f0c1b");
 
-    drawCenteredText("逃げ切った距離", W / 2, H * 0.25, 18, "700", "#cccccc");
-    drawCenteredText(`${score} m`, W / 2, H * 0.33, 56, "900", "#ffe57f", "#0f0c1b");
-    
     const isBest = score >= best && score > 0;
-    drawCenteredText(isBest ? "🎉 新記録達成！" : `ベスト記録: ${best} m`, W / 2, H * 0.40, 18, "700", isBest ? "#ff4081" : "#b388ff");
+    drawCenteredText(isBest ? "🎉 新記録達成！" : `ベスト記録: ${best} m`, W / 2, H * 0.23, 18, "700", isBest ? "#ff4081" : "#b388ff");
 
-    const cardY = H * 0.46;
+    // ダイヤ集計カード
+    const cardY = H * 0.32;
     const cardW = W * 0.88;
-    const cardH = H * 0.26;
+    const cardH = H * 0.44;
     const cardX = (W - cardW) / 2;
 
     ctx.fillStyle = "rgba(42, 27, 56, 0.9)";
@@ -777,18 +809,18 @@ function drawResultScreen() {
     ctx.fill();
     ctx.stroke();
 
-    drawCenteredText("あつめたダイヤ", W / 2, cardY + 28, 16, "900", "#ffe57f");
+    drawCenteredText("あつめたダイヤ", W / 2, cardY + 32, 18, "900", "#ffe57f");
 
     const rowCount = 2;
     const colCount = 3;
     const cellW = cardW / colCount;
-    const cellH = (cardH - 45) / rowCount;
+    const cellH = (cardH - 55) / rowCount;
 
     diaKeys.forEach((key, idx) => {
       const col = idx % colCount;
       const row = Math.floor(idx / colCount);
       const cx = cardX + col * cellW + cellW / 2;
-      const cy = cardY + 45 + row * cellH + cellH / 2;
+      const cy = cardY + 55 + row * cellH + cellH / 2;
 
       const item = diaImgs[idx];
       if (item.img.complete) {
@@ -802,7 +834,7 @@ function drawResultScreen() {
     });
 
     if (overTime > 0.6 && Math.floor(performance.now() / 600) % 2 === 0) {
-      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.82, 24, "900", "#ffe57f", "#0f0c1b");
+      drawCenteredText("タップでもう一度あそぶ", W / 2, H * 0.86, 24, "900", "#ffe57f", "#0f0c1b");
     }
   }
 }

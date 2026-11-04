@@ -51,12 +51,12 @@
       border-color: #ebdcb9;
     }
 
-    /* パズルの外枠（360px固定） */
+    /* パズルの外枠（背景を黒にして隙間をくっきり表示） */
     #puzzle-container {
       position: relative;
       width: 360px;
       height: 360px;
-      background: #2b1d11;
+      background: #000;
       border: 4px solid #82604a;
       border-radius: 8px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
@@ -69,7 +69,7 @@
     .piece {
       width: 100%;
       height: 100%;
-      background-size: 352px 352px; /* 枠の内寸に画像をフィットさせる */
+      background-size: 352px 352px;
       background-repeat: no-repeat;
       cursor: pointer;
       border-radius: 4px;
@@ -80,10 +80,12 @@
       transform: scale(0.95);
     }
 
+    /* 空きマス（黒地＋深い陰影で穴だと一目で分かるように設定） */
     .empty {
-      background: #2b1d11 !important;
+      background: #000000 !important;
       cursor: default;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.95);
+      border: 1px dashed rgba(255, 255, 255, 0.15); /* 穴の輪郭をうっすら強調 */
     }
 
     /* 下部コントロールエリア */
@@ -249,12 +251,10 @@
     const overlay = document.getElementById('clear-overlay');
     const timerDisplay = document.getElementById('timer-display');
 
-    // 空きマスは常に右下（総ピース数 - 1）
     function getEmptyValue() {
       return (gridSize * gridSize) - 1;
     }
 
-    // 拡張子(.png, .jpg, .jpeg, .webp)を順に試して photo/ フォルダ内から探す
     function findExistingImage(id) {
       const extensions = ['.png', '.jpg', '.jpeg', '.webp'];
       
@@ -281,7 +281,6 @@
       });
     }
 
-    // ハッシュ（#）からの画像読み込み処理
     async function loadDynamicImage() {
       const hashParam = window.location.hash.replace('#', '').trim();
       
@@ -300,7 +299,6 @@
       }
     }
 
-    // CSSのルールを動的に変更して背景画像を差し替える
     function applyImageToStyle(url) {
       try {
         const styleSheet = document.styleSheets[0];
@@ -346,7 +344,6 @@
       board.forEach((pieceValue, currentPos) => {
         const cell = document.createElement('div');
         
-        // クリア時は空きマスにも右下の絵を表示して完全な絵にする
         if (pieceValue === emptyValue && !isGameWon) {
           cell.className = 'piece empty';
         } else {
@@ -444,7 +441,7 @@
       if (isWin) {
         isGameWon = true;
         stopTimer();
-        renderBoard(); // 欠けていた右下のピースを埋めて完全な絵を描画
+        renderBoard();
         setTimeout(() => {
           overlay.classList.add('show');
         }, 500);

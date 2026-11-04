@@ -51,7 +51,7 @@
       border-color: #ebdcb9;
     }
 
-    /* パズルの外枠（背景を黒にして隙間をくっきり表示） */
+    /* パズルの外枠（背景は黒） */
     #puzzle-container {
       position: relative;
       width: 360px;
@@ -80,12 +80,16 @@
       transform: scale(0.95);
     }
 
-    /* 空きマス（黒地＋深い陰影で穴だと一目で分かるように設定） */
-    .empty {
-      background: #000000 !important;
+    /* 空きマス（背景画像を完全になくし、黒単色に設定） */
+    .piece.empty {
+      background-image: none !important;
+      background-color: #000000 !important;
       cursor: default;
       box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.95);
-      border: 1px dashed rgba(255, 255, 255, 0.15); /* 穴の輪郭をうっすら強調 */
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+    .piece.empty:active {
+      transform: none;
     }
 
     /* 下部コントロールエリア */
@@ -302,7 +306,8 @@
     function applyImageToStyle(url) {
       try {
         const styleSheet = document.styleSheets[0];
-        styleSheet.insertRule(`.piece { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
+        // .empty 以外の .piece にのみ画像が適用されるセレクタに変更
+        styleSheet.insertRule(`.piece:not(.empty) { background-image: url('${url}') !important; }`, styleSheet.cssRules.length);
       } catch (e) {
         console.warn("スタイルの適用失敗:", e);
       }
@@ -344,8 +349,10 @@
       board.forEach((pieceValue, currentPos) => {
         const cell = document.createElement('div');
         
+        // クリア前は空きマスに画像を表示せず黒抜きにする
         if (pieceValue === emptyValue && !isGameWon) {
           cell.className = 'piece empty';
+          cell.style.backgroundImage = 'none';
         } else {
           cell.className = 'piece';
           
@@ -354,6 +361,7 @@
           const bgX = -correctCol * piecePixelSize;
           const bgY = -correctRow * piecePixelSize;
           
+          cell.style.backgroundImage = `url('${currentImageUrl}')`;
           cell.style.backgroundPosition = `${bgX}px ${bgY}px`;
           
           if (!isGameWon) {
@@ -441,7 +449,7 @@
       if (isWin) {
         isGameWon = true;
         stopTimer();
-        renderBoard();
+        renderBoard(); // クリア時は最後の1ピースも画像付きで埋めて完成図を表示
         setTimeout(() => {
           overlay.classList.add('show');
         }, 500);

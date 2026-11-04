@@ -304,7 +304,6 @@
     
     const game = (p) => {
       let scale = 1, offsetX = 0, offsetY = 0;
-      // 【位置最適化】サイズ拡張に合わせ、中央のハートと被らない絶妙な外側の位置（85 と 305）に設定
       let leftChar = { x: -100, y: VIRTUAL_HEIGHT/2 + 100, targetX: 85, bounce: 0 };
       let rightChar = { x: VIRTUAL_WIDTH + 100, y: VIRTUAL_HEIGHT/2 + 100, targetX: 305, bounce: 0 };
       let heartObj = { x: VIRTUAL_WIDTH/2, y: VIRTUAL_HEIGHT/2 - 50, scale: 0 };
@@ -314,15 +313,24 @@
       let beatInterval = 1000;
       let scoreScale = 0;
 
+      // エラー時に止まらない安全なロード関数
+      const safeLoad = (path) => {
+        return p.loadImage(
+          path,
+          () => {}, // 成功時
+          (err) => console.error(`画像の読み込みに失敗しました: ${path}`, err) // 失敗しても処理を継続
+        );
+      };
+
       p.preload = () => {
-        // 画像読み込みを100%確実なストレート指定に変更（余計なエラーの原因を全カット）
-        assets.bg = p.loadImage('background.png');
-        assets.playerLeft = p.loadImage('player_left.png');
-        assets.playerRight = p.loadImage('player_right.png');
-        assets.heartIdle = p.loadImage('heart_idle.png');
-        assets.heartBeat = p.loadImage('heart_beat.png');
-        assets.cloud = p.loadImage('cloud.png');
-        assets.star = p.loadImage('star.png');
+        // image/ フォルダ配下を参照するように指定
+        assets.bg = safeLoad('image/background.png');
+        assets.playerLeft = safeLoad('image/player_left.png');
+        assets.playerRight = safeLoad('image/player_right.png');
+        assets.heartIdle = safeLoad('image/heart_idle.png');
+        assets.heartBeat = safeLoad('image/heart_beat.png');
+        assets.cloud = safeLoad('image/cloud.png');
+        assets.star = safeLoad('image/star.png');
       };
 
       p.setup = () => {
@@ -432,7 +440,6 @@
           const duration = 5000;
           const progress = Math.min(stateTimer / duration, 1);
           
-          // Heart beat logic
           if (stateTimer > nextBeatTime) {
             audio.playBeat(100 + progress * 50);
             beatInterval = p.map(progress, 0, 1, 1000, 200);
@@ -444,7 +451,6 @@
           leftChar.x = 85;
           rightChar.x = 305;
 
-          // Screen shake at the end
           if (progress > 0.8) {
             shakeX = p.random(-5, 5);
             shakeY = p.random(-5, 5);
@@ -465,27 +471,24 @@
           heartObj.scale = p.lerp(heartObj.scale, 1.4, 0.05);
           scoreScale = p.lerp(scoreScale, 1, 0.1);
           
-          // Bounce physics for chars
           leftChar.bounce *= 0.8;
           rightChar.bounce *= 0.8;
 
-          // Show UI after delay
           if (stateTimer > 1500 && document.getElementById('result-overlay').style.display === 'none') {
             showResultUI();
           }
         }
 
-        // 【演出変更】揺らす処理の前にキャラクターを描画（男の子と女の子は絶対に震えなくなります）
+        // キャラクター描画
         if (gameState !== 'INPUT') {
-          drawSprite(assets.playerLeft, leftChar.x, leftChar.y + leftChar.bounce, 120); // サイズ20%アップ(120)
-          drawSprite(assets.playerRight, rightChar.x, rightChar.y + rightChar.bounce, 120); // サイズ20%アップ(120)
+          drawSprite(assets.playerLeft, leftChar.x, leftChar.y + leftChar.bounce, 120);
+          drawSprite(assets.playerRight, rightChar.x, rightChar.y + rightChar.bounce, 120);
         }
 
-        // ここから揺らすゾーン開始（これ以降に描画されるハートだけが震えます）
+        // ハートの揺れ
         p.push();
         p.translate(shakeX, shakeY);
 
-        // Draw Heart
         if (heartObj.scale > 0) {
           const hImg = (gameState === 'DOKIDOKI' && heartObj.scale > 1.1) ? assets.heartBeat : assets.heartIdle;
           p.push();
@@ -495,9 +498,9 @@
           p.pop();
         }
         
-        p.pop(); // 【修復】揺らす範囲をここで正常に終了（重複バグを完全削除）
+        p.pop();
 
-        // Draw Particles
+        // パーティクル描画
         for (let i = particles.length - 1; i >= 0; i--) {
           let pt = particles[i];
           pt.x += pt.vx;
@@ -519,7 +522,7 @@
           if (pt.y > VIRTUAL_HEIGHT + 50) particles.splice(i, 1);
         }
 
-        // Draw Score
+        // スコア表示
         if (gameState === 'RESULT') {
           p.push();
           p.translate(VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 - 60);
@@ -558,7 +561,6 @@
         }
       }
 
-      // Expose to global for UI handlers
       window.startGameFlow = () => {
         audio.playPop();
         let n1 = document.getElementById('name1').value.trim() || t('ui.name1');
@@ -575,11 +577,8 @@
 
       window.resetGameFlow = () => {
         audio.playPop();
-        
-        // 入力フォームの文字を自動でクリアする処理
         document.getElementById('name1').value = '';
         document.getElementById('name2').value = '';
-        
         document.getElementById('result-overlay').style.display = 'none';
         document.getElementById('input-overlay').style.display = 'flex';
         gameState = 'INPUT';
@@ -589,7 +588,6 @@
     };
 
     function calculateAffinity(name1, name2) {
-      // 【日替わり均等仕様】今日の日付（年・月・日）を取得して名前と合体
       const today = new Date();
       const dateStr = today.getFullYear().toString() + (today.getMonth() + 1).toString() + today.getDate().toString();
       const str = name1 + name2 + dateStr;
@@ -598,10 +596,7 @@
       for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
-      
-      // 偏りを完全に解消し、60点〜100点の間で数字が綺麗にばらけるロジック
-      const finalScore = Math.abs(hash % 41) + 60; 
-      return finalScore;
+      return Math.abs(hash % 41) + 60; 
     }
 
     function showResultUI() {
@@ -634,6 +629,16 @@
     document.getElementById('retry-btn').addEventListener('pointerdown', () => {
       if (window.resetGameFlow) window.resetGameFlow();
     });
+
+    // ネットワーク障害や画像未配置でも5秒でLoadingを解除する安全策
+    setTimeout(() => {
+      const loading = document.getElementById('loading-screen');
+      if (loading && loading.style.display !== 'none') {
+        loading.style.display = 'none';
+        document.getElementById('input-overlay').style.display = 'flex';
+        gameState = 'INPUT';
+      }
+    }, 5000);
 
     new p5(game);
   </script>

@@ -238,15 +238,21 @@
   <script>
     let gridSize = 3;
     let board = [];
-    const DEFAULT_IMAGE = 'photo/000000.png'; // photo/ フォルダ内のデフォルト画像
+    const DEFAULT_IMAGE = 'photo/000000.png';
     let currentImageUrl = DEFAULT_IMAGE;
     
     let startTime = 0;
     let timerInterval = null;
+    let isGameWon = false;
     
     const container = document.getElementById('puzzle-container');
     const overlay = document.getElementById('clear-overlay');
     const timerDisplay = document.getElementById('timer-display');
+
+    // 空きマスは常に右下（総ピース数 - 1）
+    function getEmptyValue() {
+      return (gridSize * gridSize) - 1;
+    }
 
     // 拡張子(.png, .jpg, .jpeg, .webp)を順に試して photo/ フォルダ内から探す
     function findExistingImage(id) {
@@ -257,7 +263,7 @@
 
         function tryNext() {
           if (index >= extensions.length) {
-            resolve(DEFAULT_IMAGE); // なければ photo/000000.png
+            resolve(DEFAULT_IMAGE);
             return;
           }
 
@@ -305,6 +311,7 @@
     }
 
     function initPuzzle() {
+      isGameWon = false;
       overlay.classList.remove('show');
       syncSampleImage();
       
@@ -333,14 +340,14 @@
 
     function renderBoard() {
       container.innerHTML = '';
-      const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
+      const emptyValue = getEmptyValue();
       const piecePixelSize = 352 / gridSize;
       
       board.forEach((pieceValue, currentPos) => {
         const cell = document.createElement('div');
         
-        if (pieceValue === emptyValue) {
+        // クリア時は空きマスにも右下の絵を表示して完全な絵にする
+        if (pieceValue === emptyValue && !isGameWon) {
           cell.className = 'piece empty';
         } else {
           cell.className = 'piece';
@@ -351,7 +358,10 @@
           const bgY = -correctRow * piecePixelSize;
           
           cell.style.backgroundPosition = `${bgX}px ${bgY}px`;
-          cell.onclick = () => movePiece(currentPos);
+          
+          if (!isGameWon) {
+            cell.onclick = () => movePiece(currentPos);
+          }
         }
         
         container.appendChild(cell);
@@ -359,8 +369,9 @@
     }
 
     function movePiece(currentPos) {
-      const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
+      if (isGameWon) return;
+
+      const emptyValue = getEmptyValue();
       const emptyPos = board.indexOf(emptyValue);
       
       const isNeighbor = 
@@ -401,9 +412,10 @@
     }
 
     function shuffleBoard() {
+      isGameWon = false;
       overlay.classList.remove('show');
       const totalPieces = gridSize * gridSize;
-      const emptyValue = totalPieces - 1;
+      const emptyValue = getEmptyValue();
       
       board = [];
       for(let i = 0; i < totalPieces; i++) board.push(i);
@@ -430,10 +442,12 @@
     function checkWin() {
       const isWin = board.every((val, idx) => val === idx);
       if (isWin) {
+        isGameWon = true;
         stopTimer();
+        renderBoard(); // 欠けていた右下のピースを埋めて完全な絵を描画
         setTimeout(() => {
           overlay.classList.add('show');
-        }, 200);
+        }, 500);
       }
     }
 
@@ -442,7 +456,6 @@
     document.getElementById('shuffle-btn').onclick = shuffleBoard;
     document.getElementById('retry-btn').onclick = initPuzzle;
 
-    // 起動時処理
     loadDynamicImage();
   </script>
 </body>

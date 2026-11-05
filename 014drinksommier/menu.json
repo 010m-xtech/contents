@@ -1,0 +1,127 @@
+{
+  "settings": {
+    "pageTitle": "Night Sommelier",
+    "imageFolder": "image/",
+    "backgroundVideos": ["haikei.mp4", "haikei2.mp4"],
+    "openingText": "今日のお客様に\nちょうどいい一杯を。",
+    "topTitle": "今日のあなたに合う1杯を",
+    "topSubTitle": "- My Sommelier -",
+    "gasUrl": "https://script.google.com/macros/s/AKfycbxOHrvgUYlPKeemzFOfhxggXXssC3L9Od0RbuhtxIPM-mLXVvpVKJJsFf8FlmOOA4Zj7Q/exec"
+  },
+
+  "drinks": [
+    { "id": "wine",  "name": "ワイン",     "img": "wine.jpg" },
+    { "id": "sake",  "name": "日本酒",     "img": "nihonsyu.jpg" },
+    { "id": "craft", "name": "クラフト酒", "img": "craft.jpg" }
+  ],
+
+  "questions": [
+    {
+      "text": "あなたの性別をお聞かせください",
+      "sendAs": "q1Gender",
+      "options": [
+        { "text": "男性", "img": "seibetuotoko.jpg" },
+        { "text": "女性", "img": "seibetuonna.jpg" }
+      ]
+    },
+    {
+      "text": "あなたの年齢をお聞かせください",
+      "sendAs": "q2Age",
+      "options": [
+        { "text": "35歳未満", "imgText": "UNDER35" },
+        { "text": "35歳以上", "imgText": "OVER35" }
+      ]
+    },
+    {
+      "text": "今日の気分は？",
+      "options": [
+        { "text": "スカッと弾けて今日をリセットしたい！", "img": "okiru.jpg",  "points": { "type1": 1, "type2": 1 } },
+        { "text": "静かにほっこり今日を癒やしたい…",     "img": "yasumu.jpg", "points": { "type3": 1, "type4": 2 } }
+      ]
+    },
+    {
+      "text": "お酒に合わせたい食事は？",
+      "options": [
+        { "text": "ガッツリなお肉や揚げ物",   "img": "2-2.jpg", "points": { "type4": 2, "type3": 1 } },
+        { "text": "ヘルシーなお刺身や野菜", "img": "2-1.jpg", "points": { "type1": 2, "type2": 1 } }
+      ]
+    },
+    {
+      "text": "ふと嗅ぎたい惹かれる香りは？",
+      "options": [
+        { "text": "みずみずしい柑橘やフルーティーな香り",   "img": "3-1.jpg", "points": { "type2": 2, "type1": 1 } },
+        { "text": "スパイシーな香辛料やハーブ・木の香り", "img": "3-2.jpg", "points": { "type4": 2, "type3": 1 } }
+      ]
+    },
+    {
+      "text": "今の口が一番求めているのは？",
+      "options": [
+        { "text": "やさしい甘みフルーティーな甘酸っぱさ", "img": "4-1.jpg", "points": { "type2": 2, "type3": 2 } },
+        { "text": "キリッとした苦みドライで控えめな甘さ", "img": "4-2.jpg", "points": { "type1": 2, "type4": 1 } }
+      ]
+    },
+    {
+      "text": "喉を通るときの好みは？",
+      "options": [
+        { "text": "キリッと締まる爽快なキレ",         "img": "awa.jpg",      "points": { "type1": 2, "type2": 1 } },
+        { "text": "すーっと通るなめらかな口当たり", "img": "nameraka.jpg", "points": { "type3": 2, "type4": 1 } }
+      ]
+    },
+    {
+      "text": "今日のお酒選びのテーマは？",
+      "options": [
+        { "text": "失敗したくない！王道定番派",     "img": "ousama.jpg", "points": { "type3": 2, "type1": 1 } },
+        { "text": "新しい発見がほしい！個性的派", "img": "bouken.jpg", "points": { "type2": 2, "type4": 1 } }
+      ]
+    }
+  ],
+
+  "types": [
+    {
+      "id": "type1",
+      "titleRuby": "サラサラ",
+      "titleRomaji": "Sara Sara",
+      "shortDescription": "1日の疲れをさらっと洗い流す爽快な一杯。",
+      "chart": { "すっきり": 5, "フルーティー": 2.5, "しっかり": 1.5 }
+    },
+    {
+      "id": "type2",
+      "titleRuby": "ウルウル",
+      "titleRomaji": "Uru Uru",
+      "shortDescription": "ひと口でうるっと心潤う、華やかな一杯。",
+      "chart": { "すっきり": 3, "フルーティー": 5, "しっかり": 2 }
+    },
+    {
+      "id": "type3",
+      "titleRuby": "トロトロ",
+      "titleRomaji": "Toro Toro",
+      "shortDescription": "口の中でとろっとほどけ、日常の緊張を癒やす一杯。",
+      "chart": { "すっきり": 2.5, "フルーティー": 2.5, "しっかり": 3.5 }
+    },
+    {
+      "id": "type4",
+      "titleRuby": "ウトウト",
+      "titleRomaji": "Uto Uto",
+      "shortDescription": "深い味わいにうとうと夢見心地になる、大人の贅沢な一杯。",
+      "chart": { "すっきり": 1.5, "フルーティー": 2, "しっかり": 5 }
+    }
+  ],
+
+  "menu": [
+    { "type": "type1", "drink": "wine",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type1", "drink": "sake",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type1", "drink": "craft", "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+
+    { "type": "type2", "drink": "wine",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type2", "drink": "sake",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type2", "drink": "craft", "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+
+    { "type": "type3", "drink": "wine",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type3", "drink": "sake",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type3", "drink": "craft", "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+
+    { "type": "type4", "drink": "wine",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type4", "drink": "sake",  "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" },
+    { "type": "type4", "drink": "craft", "name": "仮のテキスト", "origin": "仮のテキスト", "howTo": "仮のテキスト", "img": "" }
+  ]
+}

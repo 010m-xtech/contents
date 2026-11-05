@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Night Sommelier</title>
+    <!--
+      ===================================================================
+       このファイルは「仕組み（見た目と動き）」だけです。
+       メニュー名・画像・質問・タイプ・おすすめ商品はすべて menu.json で変更します。
+       画像は image/ フォルダに入れて、menu.json にファイル名を書くだけで入れ替わります。
+       ※ 詳しくは README.md を参照
+      ===================================================================
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        .font-cursive { font-family: 'Dancing Script', cursive; }
+        .fade-enter-active { transition: opacity 1.5s ease; }
+        .fade-leave-active { transition: opacity 0.8s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+
+<body class="m-0 p-0 w-screen h-screen overflow-hidden bg-slate-950 relative">
+
+    <!-- 背景動画（menu.json の settings.backgroundVideos からランダム） -->
+    <video id="bgVideo" autoplay loop muted playsinline
+           style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.75;pointer-events:none;">
+    </video>
+
+    <div id="app" v-cloak class="relative z-10 w-full h-full overflow-y-auto flex flex-col items-center justify-center p-2 pb-6 sm:p-4 text-slate-100 font-serif">
+
+        <!-- 読み込みエラー（menu.json が見つからない・書き方が間違っている） -->
+        <div v-if="loadError" class="max-w-md p-6 bg-red-950/90 border border-red-400 rounded-2xl text-sm leading-relaxed">
+            <p class="font-bold text-red-300 mb-2">menu.json を読み込めませんでした</p>
+            <p class="whitespace-pre-line text-red-100">{{ loadError }}</p>
+        </div>
+
+        <transition v-else-if="data" name="fade" mode="out-in">
+            <!-- 0. オープニング -->
+            <div v-if="step === 'opening'" key="opening" class="flex flex-col items-center justify-center text-center px-6 min-h-[60vh] my-auto">
+                <p class="text-2xl sm:text-3xl md:text-4xl text-white font-serif tracking-widest leading-relaxed drop-shadow-lg opacity-90 whitespace-pre-line">{{ settings.openingText }}</p>
+            </div>
+
+            <!-- 1. トップ（お酒の種類を選ぶ） -->
+            <div v-else-if="step === 'start'" key="start" class="w-full max-w-lg mt-4 sm:mt-6 p-5 sm:p-8 bg-slate-900/80 backdrop-blur-md border border-white/20 rounded-2xl flex flex-col items-center text-center shadow-2xl">
+                <h1 class="text-xl sm:text-3xl text-white font-bold mb-1 tracking-widest drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">{{ settings.topTitle }}</h1>
+                <p class="text-sm sm:text-base text-lime-400/90 mb-6 tracking-widest drop-shadow-sm uppercase font-bold">{{ settings.topSubTitle }}</p>
+
+                <p class="text-sm sm:text-base text-slate-100 mb-8 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                    <span class="text-lime-400 font-bold text-lg">{{ questions.length }}つ</span>の簡単な質問に答えるだけで、<br>あなたにぴったりのお酒をタイプ別にご提案。
+                </p>
+
+                <div class="grid gap-3 sm:gap-3.5 w-full mb-8" :style="{ gridTemplateColumns: `repeat(${Math.min(drinks.length, 3)}, minmax(0, 1fr))` }">
+                    <div v-for="drink in drinks" :key="drink.id"
+                         @click="selectedDrink = drink.id"
+                         class="group cursor-pointer border-2 rounded-xl p-2 sm:p-3 flex flex-col items-center transition-all duration-300 transform hover:-translate-y-1"
+                         :class="selectedDrink === drink.id ? 'border-lime-400 bg-slate-900/80 shadow-[0_0_25px_rgba(163,230,53,0.6)] scale-105' : 'border-white/30 bg-black/40'">
+                        <div class="w-full h-20 sm:h-24 flex items-center justify-center bg-white rounded-lg mb-2 sm:mb-3 overflow-hidden relative border-2 transition-all duration-300"
+                             :class="selectedDrink === drink.id ? 'border-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.5)]' : 'border-slate-300'">
+                            <span class="text-slate-400 text-[10px] sm:text-xs absolute">図</span>
+                            <img v-if="drink.img" :key="drink.img" :src="img(drink.img)" :alt="drink.name" class="w-full h-full object-contain relative z-10 rounded" @error="e => retryImg(e, drink.img)">
+                        </div>
+                        <span class="text-[11px] sm:text-sm font-bold tracking-wide drop-shadow-md" :class="selectedDrink === drink.id ? 'text-lime-400' : 'text-slate-100'">{{ drink.name }}</span>
+                    </div>
+                </div>
+
+                <button @click="startQuiz" :disabled="!selectedDrink"
+                        class="w-full py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-xl tracking-wider transition-all duration-300"
+                        :class="selectedDrink ? 'bg-gradient-to-r from-lime-500 to-emerald-500 hover:from-lime-400 hover:to-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(163,230,53,0.5)] active:scale-95' : 'bg-slate-800/80 text-slate-400 cursor-not-allowed border border-white/10'">
+                    Click
+                </button>
+            </div>
+
+            <!-- 2. 質問 -->
+            <div v-else-if="step === 'quiz'" key="quiz" class="w-full max-w-[340px] sm:max-w-[380px] my-auto py-2 mx-auto flex flex-col justify-center min-h-[85vh]">
+                <h2 class="text-lg sm:text-xl font-bold mb-4 text-center leading-snug tracking-wide text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] px-1">
+                    Q{{ qIndex + 1 }}. {{ currentQuestion.text }}
+                </h2>
+                <div class="space-y-4">
+                    <div v-for="(option, idx) in currentQuestion.options" :key="idx"
+                         @click="answer(idx)"
+                         class="bg-slate-900/80 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border border-slate-600/50">
+                        <!-- 画像の代わりに文字を出す（imgText があるとき） -->
+                        <div v-if="option.imgText" class="w-full h-44 sm:h-52 flex items-center justify-center bg-white overflow-hidden relative p-1.5">
+                            <span class="text-lime-500 font-extrabold text-3xl tracking-widest drop-shadow-sm">{{ option.imgText }}</span>
+                        </div>
+                        <div v-else class="w-full h-44 sm:h-52 flex items-center justify-center bg-white overflow-hidden relative p-1.5">
+                            <span class="text-slate-400 text-xs font-sans absolute">ILLUSTRATION</span>
+                            <img v-if="option.img" :key="option.img" :src="img(option.img)" class="w-full h-full object-contain relative z-10 scale-150" alt="" @error="e => retryImg(e, option.img)">
+                        </div>
+                        <div class="p-3 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-center text-center min-h-[3rem]">
+                            <div class="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-snug">
+                                <span class="text-lime-400 font-extrabold mr-1.5 text-base sm:text-lg">{{ String.fromCharCode(65 + idx) }}.</span>{{ option.text }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.5 注いでいる演出 -->
+            <div v-else-if="step === 'pouring'" key="pouring" class="w-full max-w-lg mt-6 p-6 flex flex-col items-center text-center min-h-[60vh] justify-center">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-2 tracking-wider drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">Please wait...</h2>
+                <p class="text-sm text-lime-400 font-bold mb-10 animate-pulse tracking-wide drop-shadow-md">今日のあなたの一杯を注いでいます...</p>
+                <div class="w-20 h-20 rounded-full border-4 border-slate-700 border-t-lime-400 animate-spin shadow-[0_0_20px_rgba(163,230,53,0.3)]"></div>
+            </div>
+
+            <!-- 3. 結果 -->
+            <div v-else-if="step === 'result' && result" key="result" class="w-full h-full max-w-[98%] sm:max-w-lg my-1 p-3 sm:p-5 bg-slate-900/80 backdrop-blur-md border border-white/20 rounded-2xl flex flex-col items-center text-center shadow-2xl justify-between">
+                <div class="w-full flex flex-col items-center justify-center shrink-0">
+                    <div class="flex items-end justify-center mb-1 flex-wrap w-full mt-1">
+                        <span class="text-[11px] sm:text-base text-slate-200 tracking-widest font-serif font-bold pb-0.5 sm:pb-1.5 mr-1 sm:mr-2">あなたは</span>
+                        <ruby class="font-cursive text-3xl sm:text-4xl text-lime-400 font-bold tracking-widest drop-shadow-md mr-1 sm:mr-2">
+                            {{ result.titleRomaji }}
+                            <rt class="text-[9px] sm:text-xs font-sans tracking-widest text-lime-300 opacity-90">{{ result.titleRuby }}</rt>
+                        </ruby>
+                        <span class="text-[11px] sm:text-base text-slate-200 tracking-widest font-serif font-bold pb-0.5 sm:pb-1.5">タイプ</span>
+                    </div>
+                    <p class="text-[10px] sm:text-sm text-lime-300/80 mb-2 sm:mb-4 font-bold tracking-wide text-center px-2">{{ result.shortDescription }}</p>
+                </div>
+
+                <div class="w-full flex-grow flex items-center justify-center relative min-h-[150px] mb-2">
+                    <div class="w-full h-full max-w-[240px] max-h-[240px] relative">
+                        <canvas id="radarChart" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+
+                <div class="w-full flex gap-2 sm:gap-4 flex-grow min-h-[180px]">
+                    <!-- 商品写真（menu.json の menu[].img） -->
+                    <div class="w-1/2 bg-slate-800/50 rounded-xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden">
+                        <span class="text-slate-500 text-xs sm:text-base font-bold font-sans tracking-wide px-2 text-center absolute">DRINK<br>PHOTO</span>
+                        <img v-if="product.img" :key="product.img" :src="img(product.img)" :alt="product.name" class="w-full h-full object-cover relative z-10" @error="e => retryImg(e, product.img)">
+                    </div>
+
+                    <!-- 商品情報（menu.json の menu[]） -->
+                    <div class="w-1/2 flex flex-col justify-between gap-2 sm:gap-3">
+                        <div class="flex-grow flex flex-col justify-start text-left bg-slate-800/80 rounded-xl border border-slate-700 p-2.5 sm:p-3 overflow-y-auto">
+                            <h3 class="text-[11px] sm:text-sm font-bold text-lime-400 mb-0.5 tracking-wide">【商品名】</h3>
+                            <p class="text-[10px] sm:text-xs text-slate-200 mb-2 leading-snug whitespace-pre-line">{{ product.name }}</p>
+
+                            <h3 class="text-[11px] sm:text-sm font-bold text-lime-400 mb-0.5 tracking-wide">【産地】</h3>
+                            <p class="text-[10px] sm:text-xs text-slate-200 mb-2 leading-snug whitespace-pre-line">{{ product.origin }}</p>
+
+                            <h3 class="text-[11px] sm:text-sm font-bold text-lime-400 mb-0.5 tracking-wide">【おすすめの飲み方/合うメニュー等】</h3>
+                            <p class="text-[10px] sm:text-xs text-slate-200 leading-snug whitespace-pre-line">{{ product.howTo }}</p>
+                        </div>
+                        <button @click="reset" class="w-full py-2.5 sm:py-3.5 bg-lime-500 hover:bg-lime-400 text-slate-950 rounded-xl font-bold text-sm sm:text-base tracking-widest transition-all shadow-[0_0_15px_rgba(132,204,22,0.4)] shrink-0">
+                            One more
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+    </div>
+
+    <script>
+    // =====================================================================
+    //  ここから下は「仕組み」です。通常は触らなくてOK（変更は menu.json で）
+    // =====================================================================
+    const { createApp, ref, computed, watch, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const data = ref(null);
+            const loadError = ref('');
+            const step = ref('opening');
+            const selectedDrink = ref('');
+            const qIndex = ref(0);
+            const answers = ref([]);   // 選んだ選択肢の番号（0=A, 1=B, ...）
+            let sent = false;
+            let chart = null;
+
+            const settings  = computed(() => data.value?.settings || {});
+            const drinks    = computed(() => data.value?.drinks || []);
+            const questions = computed(() => data.value?.questions || []);
+            const currentQuestion = computed(() => questions.value[qIndex.value]);
+
+            // 画像パス = image/ + ファイル名（http から始まるURLはそのまま）
+            const img = (file) => /^(https?:)?\/\//.test(file) ? file : (settings.value.imageFolder || '') + file;
+            const hideImg = (e) => { e.target.style.display = 'none'; };
+
+            // 画像・動画が見つからないときは、別の場所・拡張子も順番に探す
+            //   1. image/ファイル名   2. ファイル名（index.html と同じ場所）
+            //   3. 拡張子違い（.webp ⇔ .jpg / .png）も同じように探す
+            const candidates = (file) => {
+                if (/^(https?:)?\/\//.test(file)) return [file];
+                const folder = settings.value.imageFolder || '';
+                const base = file.replace(/\.[^.]+$/, '');
+                const ext = (file.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+                const exts = ext === '.mp4' ? ['.mp4'] : [ext, '.webp', '.jpg', '.jpeg', '.png'];
+                const names = [...new Set(exts.map(x => base + x))];
+                return [...new Set([...names.map(n => folder + n), ...names])];
+            };
+            const retryImg = (e, file) => {
+                const el = e.target;
+                const list = candidates(file);
+                const next = Number(el.dataset.try || 0) + 1;
+                if (next < list.length) { el.dataset.try = next; el.src = list[next]; }
+                else { el.style.display = 'none'; console.warn('画像が見つかりません:', file, list); }
+            };
+            const scrollTop = () => document.getElementById('app')?.scrollTo({ top: 0 });
+
+            // ---- menu.json 読み込み ----
+            fetch('menu.json', { cache: 'no-store' })
+                .then(r => { if (!r.ok) throw new Error('ファイルが見つかりません (HTTP ' + r.status + ')'); return r.text(); })
+                .then(text => {
+                    try { data.value = JSON.parse(text); }
+                    catch (e) { throw new Error('JSONの書き方に誤りがあります。\n（カンマの付け忘れ・付けすぎ、" の閉じ忘れが多いです）\n\n' + e.message); }
+                    const s = data.value.settings || {};
+                    if (s.pageTitle) document.title = s.pageTitle;
+                    const videos = s.backgroundVideos || [];
+                    if (videos.length) {
+                        const v = document.getElementById('bgVideo');
+                        const list = candidates(videos[Math.floor(Math.random() * videos.length)]);
+                        let i = 0;
+                        v.addEventListener('error', () => { if (++i < list.length) v.src = list[i]; else console.warn('動画が見つかりません:', list); });
+                        v.src = list[0];
+                    }
+                    setTimeout(() => { if (step.value === 'opening') step.value = 'start'; }, 3000);
+                })
+                .catch(e => {
+                    loadError.value = e.message + (location.protocol === 'file:'
+                        ? '\n\n※ ファイルを直接ダブルクリックで開くと読み込めません。GitHub Pages などのWeb上で開いてください。' : '');
+                });
+
+            // ---- 診断：選んだ選択肢の points を合計し、一番高いタイプ（同点なら types の先頭側） ----
+            const result = computed(() => {
+                if (!data.value || answers.value.length < questions.value.length) return null;
+                const types = data.value.types;
+                const scores = Object.fromEntries(types.map(t => [t.id, 0]));
+                answers.value.forEach((optIdx, i) => {
+                    const pts = questions.value[i].options[optIdx].points || {};
+                    for (const [id, p] of Object.entries(pts)) if (id in scores) scores[id] += p;
+                });
+                let best = types[0];
+                for (const t of types) if (scores[t.id] > scores[best.id]) best = t;
+                return best;
+            });
+
+            // 結果タイプ × 選んだお酒 に合う商品（menu.json の menu から探す）
+            const product = computed(() => {
+                if (!result.value) return {};
+                return (data.value.menu || []).find(m => m.type === result.value.id && m.drink === selectedDrink.value) || {};
+            });
+
+            // ---- レーダーチャート ----
+            const renderChart = async () => {
+                await nextTick();
+                const el = document.getElementById('radarChart');
+                if (!el) return setTimeout(renderChart, 100);
+                if (chart) chart.destroy();
+                const c = result.value.chart || {};
+                const line = 'rgba(255,255,255,0.8)', grid = 'rgba(255,255,255,0.15)';
+                chart = new Chart(el.getContext('2d'), {
+                    type: 'radar',
+                    data: {
+                        labels: Object.keys(c),
+                        datasets: [{
+                            data: Object.values(c).map(v => Math.min(Math.max(v, 1.5), 5)),
+                            backgroundColor: 'rgba(255,255,255,0.3)', borderColor: line, borderWidth: 2,
+                            pointBackgroundColor: '#fff', pointBorderColor: line, pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        layout: { padding: { top: 15, bottom: 15, left: 25, right: 25 } },
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                        scales: { r: {
+                            min: 0, max: 5,
+                            angleLines: { color: grid }, grid: { color: grid, circular: false },
+                            pointLabels: { color: '#fff', font: { size: 11, family: 'serif', weight: 'bold' }, padding: 6 },
+                            ticks: { display: false, stepSize: 1 }
+                        } }
+                    }
+                });
+            };
+            watch(step, s => { if (s === 'result') setTimeout(renderChart, 800); });
+
+            // ---- Googleスプレッドシート送信 ----
+            const send = () => {
+                const url = settings.value.gasUrl;
+                if (!url || sent) return;
+                sent = true;
+                const payload = {
+                    userAgent: navigator.userAgent,
+                    selectedDrink: drinks.value.find(d => d.id === selectedDrink.value)?.name || '不明',
+                    resultType: result.value?.id || 'unknown'
+                };
+                // sendAs を書いた質問は、その名前で回答（選択肢の文字）を送る
+                questions.value.forEach((q, i) => { if (q.sendAs) payload[q.sendAs] = q.options[answers.value[i]]?.text; });
+                fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+                    .catch(e => console.error('Submission failed:', e));
+            };
+
+            // ---- 画面操作 ----
+            const startQuiz = () => {
+                if (!selectedDrink.value) return;
+                answers.value = []; qIndex.value = 0; sent = false;
+                step.value = 'quiz'; scrollTop();
+            };
+            const answer = (optIdx) => {
+                if (step.value !== 'quiz') return;
+                answers.value.push(optIdx);
+                if (qIndex.value < questions.value.length - 1) { qIndex.value++; scrollTop(); return; }
+                step.value = 'pouring'; scrollTop();
+                setTimeout(() => { step.value = 'result'; scrollTop(); send(); }, 3500);
+            };
+            const reset = () => {
+                step.value = 'start'; selectedDrink.value = ''; qIndex.value = 0; answers.value = []; sent = false;
+                if (chart) { chart.destroy(); chart = null; }
+                scrollTop();
+            };
+
+            return { data, loadError, step, settings, drinks, questions, currentQuestion, qIndex,
+                     selectedDrink, result, product, img, hideImg, retryImg, startQuiz, answer, reset };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>

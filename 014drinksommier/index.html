@@ -65,7 +65,7 @@
                         <div class="w-full h-20 sm:h-24 flex items-center justify-center bg-white rounded-lg mb-2 sm:mb-3 overflow-hidden relative border-2 transition-all duration-300"
                              :class="selectedDrink === drink.id ? 'border-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.5)]' : 'border-slate-300'">
                             <span class="text-slate-400 text-[10px] sm:text-xs absolute">図</span>
-                            <img v-if="drink.img" :src="img(drink.img)" :alt="drink.name" class="w-full h-full object-contain relative z-10 rounded" @error="hideImg">
+                            <img v-if="drink.img" :key="drink.img" :src="img(drink.img)" :alt="drink.name" class="w-full h-full object-contain relative z-10 rounded" @error="e => retryImg(e, drink.img)">
                         </div>
                         <span class="text-[11px] sm:text-sm font-bold tracking-wide drop-shadow-md" :class="selectedDrink === drink.id ? 'text-lime-400' : 'text-slate-100'">{{ drink.name }}</span>
                     </div>
@@ -93,7 +93,7 @@
                         </div>
                         <div v-else class="w-full h-44 sm:h-52 flex items-center justify-center bg-white overflow-hidden relative p-1.5">
                             <span class="text-slate-400 text-xs font-sans absolute">ILLUSTRATION</span>
-                            <img v-if="option.img" :src="img(option.img)" class="w-full h-full object-contain relative z-10 scale-150" alt="" @error="hideImg">
+                            <img v-if="option.img" :key="option.img" :src="img(option.img)" class="w-full h-full object-contain relative z-10 scale-150" alt="" @error="e => retryImg(e, option.img)">
                         </div>
                         <div class="p-3 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-center text-center min-h-[3rem]">
                             <div class="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-snug">
@@ -135,7 +135,7 @@
                     <!-- 商品写真（menu.json の menu[].img） -->
                     <div class="w-1/2 bg-slate-800/50 rounded-xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden">
                         <span class="text-slate-500 text-xs sm:text-base font-bold font-sans tracking-wide px-2 text-center absolute">DRINK<br>PHOTO</span>
-                        <img v-if="product.img" :src="img(product.img)" :alt="product.name" class="w-full h-full object-cover relative z-10" @error="hideImg">
+                        <img v-if="product.img" :key="product.img" :src="img(product.img)" :alt="product.name" class="w-full h-full object-cover relative z-10" @error="e => retryImg(e, product.img)">
                     </div>
 
                     <!-- 商品情報（menu.json の menu[]） -->
@@ -184,6 +184,26 @@
             // 画像パス = image/ + ファイル名（http から始まるURLはそのまま）
             const img = (file) => /^(https?:)?\/\//.test(file) ? file : (settings.value.imageFolder || '') + file;
             const hideImg = (e) => { e.target.style.display = 'none'; };
+
+            // 画像・動画が見つからないときは、別の場所・拡張子も順番に探す
+            //   1. image/ファイル名   2. ファイル名（index.html と同じ場所）
+            //   3. 拡張子違い（.webp ⇔ .jpg / .png）も同じように探す
+            const candidates = (file) => {
+                if (/^(https?:)?\/\//.test(file)) return [file];
+                const folder = settings.value.imageFolder || '';
+                const base = file.replace(/\.[^.]+$/, '');
+                const ext = (file.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+                const exts = ext === '.mp4' ? ['.mp4'] : [ext, '.webp', '.jpg', '.jpeg', '.png'];
+                const names = [...new Set(exts.map(x => base + x))];
+                return [...new Set([...names.map(n => folder + n), ...names])];
+            };
+            const retryImg = (e, file) => {
+                const el = e.target;
+                const list = candidates(file);
+                const next = Number(el.dataset.try || 0) + 1;
+                if (next < list.length) { el.dataset.try = next; el.src = list[next]; }
+                else { el.style.display = 'none'; console.warn('画像が見つかりません:', file, list); }
+            };
             const scrollTop = () => document.getElementById('app')?.scrollTo({ top: 0 });
 
             // ---- menu.json 読み込み ----
@@ -195,7 +215,13 @@
                     const s = data.value.settings || {};
                     if (s.pageTitle) document.title = s.pageTitle;
                     const videos = s.backgroundVideos || [];
-                    if (videos.length) document.getElementById('bgVideo').src = img(videos[Math.floor(Math.random() * videos.length)]);
+                    if (videos.length) {
+                        const v = document.getElementById('bgVideo');
+                        const list = candidates(videos[Math.floor(Math.random() * videos.length)]);
+                        let i = 0;
+                        v.addEventListener('error', () => { if (++i < list.length) v.src = list[i]; else console.warn('動画が見つかりません:', list); });
+                        v.src = list[0];
+                    }
                     setTimeout(() => { if (step.value === 'opening') step.value = 'start'; }, 3000);
                 })
                 .catch(e => {
@@ -292,7 +318,7 @@
             };
 
             return { data, loadError, step, settings, drinks, questions, currentQuestion, qIndex,
-                     selectedDrink, result, product, img, hideImg, startQuiz, answer, reset };
+                     selectedDrink, result, product, img, hideImg, retryImg, startQuiz, answer, reset };
         }
     }).mount('#app');
     </script>

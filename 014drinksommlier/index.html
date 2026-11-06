@@ -125,8 +125,9 @@
                     <p class="text-[10px] sm:text-sm text-lime-300/80 mb-2 sm:mb-4 font-bold tracking-wide text-center px-2">{{ result.shortDescription }}</p>
                 </div>
 
-                <div class="w-full flex-grow flex items-center justify-center relative min-h-[150px] mb-2">
-                    <div class="w-full h-full max-w-[240px] max-h-[240px] relative">
+                <!-- レーダーチャート：大きさは下の max-w / h の数字で調整 -->
+                <div class="w-full flex-grow flex items-center justify-center relative min-h-[200px] mb-2">
+                    <div class="w-full max-w-[360px] h-[230px] sm:h-[280px] relative">
                         <canvas id="radarChart" class="w-full h-full"></canvas>
                     </div>
                 </div>
@@ -269,12 +270,15 @@
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        layout: { padding: { top: 15, bottom: 15, left: 25, right: 25 } },
+                        // 三角形は円の下側1/4が空白になるので、下の余白をマイナスにして
+                        // その分だけチャートを下に広げる（＝三角形が大きくなる）
+                        layout: { padding: (ctx) => ({ top: 4, left: 4, right: 4,
+                                  bottom: c && Object.keys(c).length === 3 ? -ctx.chart.height * 0.3 : 4 }) },
                         plugins: { legend: { display: false }, tooltip: { enabled: false } },
                         scales: { r: {
                             min: 0, max: 5,
                             angleLines: { color: grid }, grid: { color: grid, circular: false },
-                            pointLabels: { color: '#fff', font: { size: 11, family: 'serif', weight: 'bold' }, padding: 6 },
+                            pointLabels: { color: '#fff', font: { size: 13, family: 'serif', weight: 'bold' }, padding: 4 },
                             ticks: { display: false, stepSize: 1 }
                         } }
                     }

@@ -46,9 +46,9 @@
       display: flex;
     }
 
-    /* ① 設問画面：背景画像「background.jpg」 */
+    /* ① 設問画面：背景画像「image/background.jpg」 */
     #quiz-screen {
-      background-image: url('background.jpg'); 
+      background-image: url('image/background.jpg'); 
       background-repeat: no-repeat;
       background-position: center center;
       background-size: cover;
@@ -178,9 +178,9 @@
       object-fit: cover;
     }
 
-    /* ③ 結果画面：背景画像「result_bg.jpg」 */
+    /* ③ 結果画面：背景画像「image/result_bg.jpg」 */
     #result-screen {
-      background-image: url('result_bg.jpg'); 
+      background-image: url('image/result_bg.jpg'); 
       background-repeat: no-repeat;
       background-position: center center;
       background-size: cover;
@@ -205,7 +205,7 @@
       align-items: center;
     }
 
-    /* 🎨 診断結果カード */
+    /* 診断結果カード */
     .result-card {
       background: rgba(18, 22, 40, 0.92);
       border-radius: 20px;
@@ -235,7 +235,7 @@
 
     .past-life-title {
       font-size: 1.55rem;
-      color: #ffd700; /* この「黄色」と同じにします */
+      color: #ffd700;
       margin-bottom: 14px;
       font-weight: bold;
       text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
@@ -270,7 +270,7 @@
     .impact-tag-talent { color: #4deeea; font-weight: bold; }
     .impact-tag-weak { color: #ff6b6b; font-weight: bold; }
 
-    /* 🍺 おすすめメニュー表示ボックス */
+    /* おすすめメニュー表示ボックス */
     .menu-box-large {
       background: linear-gradient(135deg, rgba(255, 153, 51, 0.15), rgba(255, 51, 102, 0.15));
       padding: 16px 12px;
@@ -286,14 +286,11 @@
       letter-spacing: 0.5px;
     }
     
-    /* 🎨 ここを修正しました：メニュー名（「具だくさんミックスピザ」など）のスタイル */
     .menu-box-value {
-      /* 文字色を白(#fff)から、称号と同じ黄色(#ffd700)へ変更 */
       color: #ffd700;
       font-weight: bold;
       font-size: 1.25rem;
       line-height: 1.35;
-      /* 黄色の光を強調 */
       text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
     }
   </style>
@@ -324,7 +321,7 @@
 
     <div id="video-screen">
       <video id="time-video" playsinline muted webkit-playsinline preload="auto">
-        <source src="time-travel.mp4" type="video/mp4">
+        <source src="image/time-travel.mp4" type="video/mp4">
       </video>
     </div>
 
@@ -367,6 +364,26 @@
   </div>
 
   <script>
+    // 店舗CDの取得とmenu.jsonの読み込み管理
+    let storeCd = "000000";
+    let menuData = null;
+
+    function getStoreCdFromUrl() {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash && hash.length === 6) {
+        storeCd = hash;
+      }
+    }
+
+    async function loadMenuConfig() {
+      try {
+        const response = await fetch('menu.json');
+        menuData = await response.json();
+      } catch (error) {
+        console.warn("menu.json の読み込みに失敗しました（デフォルト表示を使用）:", error);
+      }
+    }
+
     // ランダム質問プール
     const questionPool = [
       { text: "カフェやレストランで座るならどこを選びがち？", options: ["壁際のすみっこ", "出入口に近い席", "外が見える窓際の席", "店内全体が見渡せる席"] },
@@ -379,91 +396,83 @@
       { text: "服を選ぶとき、一番重視するポイントは？", options: ["動きやすさ・機能性", "肌触りの良さ・着心地", "自分を守れるか（防寒・露出の少なさ等）", "周りからどう見られるか（見た目）"] }
     ];
 
-    // 結果データ
+    // 結果データ（画像パスは image/ 配下）
     const results = [
       {
         title: "🛡️ 仲間を絶対に裏切らない<br>伝説の騎士",
-        img: "result1.webp",
+        img: "image/result1.webp",
         story: "中世の戦場にて、最前線で味方の盾となり王国を守り抜いた。最期は仲間の笑顔に見送られ静かに眠りについた。",
         talent: "圧倒的な正義感と、いざという時の頼りがい",
-        weak: "情に厚すぎて、断れずに損をしてしまいがち",
-        menu: "やったぁ家の<br>チキン南蛮"
+        weak: "情に厚すぎて、断れずに損をしてしまいがち"
       },
       {
         title: "🍡 商売上手な<br>江戸のほっこり団子屋",
-        img: "result2.webp",
+        img: "image/result2.webp",
         story: "城下町で誰もが立ち寄る名物茶屋を切り盛り。笑顔と美味いお茶で、街中の人々の悩みと空腹を癒やし続けた人生。",
         talent: "相手の懐にスッと入る抜群のコミュ力",
-        weak: "お人好しで、ついついサービスしすぎてしまう",
-        menu: "やったぁ家の<br>紅芋コロッケ"
+        weak: "お人好しで、ついついサービスしすぎてしまう"
       },
       {
         title: "🏴‍☠️ 嵐を恐れない<br>大航海時代のカリスマ船長",
-        img: "result3.webp",
+        img: "image/result3.webp",
         story: "未開の海を求め、仲間と共に世界の果てまで旅をした。数々のピンチを豪快な笑いと度胸で切り抜けた伝説の大海賊。",
         talent: "常識にとらわれない直感力と決断力",
-        weak: "退屈に耐えられず、じっとしているとイライラする",
-        menu: "やったぁ家の<br>タコライス"
+        weak: "退屈に耐えられず、じっとしているとイライラする"
       },
       {
         title: "🐾 日向ぼっこを愛する<br>気ままな街の野良猫",
-        img: "result4.webp",
+        img: "image/result4.webp",
         story: "港町のあちこちを散歩し、美味しいものを分けてもらいながら自由に生きた。みんなに愛された街のアイドル猫。",
         talent: "自分の心地よさを優先できる自己肯定感",
-        weak: "気分屋で、急に興味を失う気まぐれさ",
-        menu: "やったぁ家の<br>うなちー焼きそば"
+        weak: "気分屋で、急に興味を失う気まぐれさ"
       },
       {
         title: "🔮 未来を見通す<br>宮廷の星読み師",
-        img: "result5.webp",
+        img: "image/result5.webp",
         story: "高い塔の上で星の動きを観察し、王国の運命を導いた賢者。静かな夜空と対話しながら真理を求め続けた生涯。",
         talent: "物事の違和感や本質を一瞬で見抜く観察眼",
-        weak: "考えすぎて頭がいっぱいになり不眠になりやすい",
-        menu: "やったぁ家の<br>海ぶどう"
+        weak: "考えすぎて頭がいっぱいになり不眠になりやすい"
       },
       {
         title: "⚙️ 密かに世界を変えた<br>からくり屋敷の発明家",
-        img: "result6.webp",
+        img: "image/result6.webp",
         story: "山奥の研究所で夜な夜なヘンテコな道具を作り続けた。人々をアッと言わせる瞬間を何より愛した孤高のクリエイター。",
         talent: "1つのことに没頭したときの爆発的な集中力",
-        weak: "こだわりが強すぎて周りの意見を聞かなくなる",
-        menu: "やったぁ家の<br>チキン南蛮"
+        weak: "こだわりが強すぎて周りの意見を聞かなくなる"
       },
       {
         title: "🐻 誰もを温かく包み込む<br>森の長老グマ",
-        img: "result7.webp",
+        img: "image/result7.webp",
         story: "深い森の奥で、迷い込んだ動物たちに木の実を分け与えていた。どっしり構えた姿で森の平和を守り抜いた頼れる存在。",
         talent: "いるだけで周囲に安心感を与える圧倒的包容力",
-        weak: "のんびりしすぎて約束の時間に遅れがち",
-        menu: "やったぁ家の<br>紅芋コロッケ"
+        weak: "のんびりしすぎて約束の時間に遅れがち"
       },
       {
         title: "🍷 宴を華やかに彩る<br>ヴェネツィアの貴族",
-        img: "result8.webp",
+        img: "image/result8.webp",
         story: "水の都で夜な夜な華やかなパーティーを開催。美味しいワインと音楽を愛し、人々の笑顔に囲まれて人生を満喫した。",
         talent: "華やかな場での立ち振る舞いと高い美意識",
-        weak: "見栄を張りすぎて財布の紐がゆるくなりがち",
-        menu: "やったぁ家の<br>タコライス"
+        weak: "見栄を張りすぎて財布の紐がゆるくなりがち"
       },
       {
         title: "🌠 宇宙から舞い降りた<br>流れ星の旅人",
-        img: "result9.webp",
+        img: "image/result9.webp",
         story: "銀河を旅する途中で地球の美しさに惹かれ、しばしの滞在を楽しんだ。独特な感性で人々に笑顔と奇跡をもたらした。",
         talent: "常識の枠にハマらないユニークな発想力",
-        weak: "現実的な細かい作業や書類手続きが大の苦手",
-        menu: "やったぁ家の<br>うなちー焼きそば"
+        weak: "現実的な細かい作業や書類手続きが大の苦手"
       },
       {
         title: "📜 一語一会を慈しむ<br>古書の街の図書委員長",
-        img: "result10.webp",
+        img: "image/result10.webp",
         story: "静寂に包まれた図書室で、たくさんの物語を守り続けた。ひそかに訪れる人々にぴったりの一冊を差し出すのが喜びだった。",
         talent: "じっくり物事を聞き届ける深い傾聴力",
-        weak: "自己主張が得意ではなく言いたいことを呑み込みがち",
-        menu: "やったぁ家の<br>海ぶどう"
+        weak: "自己主張が得意ではなく言いたいことを呑み込みがち"
       }
     ];
 
     window.onload = function() {
+      getStoreCdFromUrl();
+      loadMenuConfig();
       initBirthdateSelects();
       generateRandomQuestions();
     };
@@ -572,13 +581,21 @@
       const index = totalScore % results.length;
       const res = results[index];
 
-      // 改行コード<br>を適用して出力
+      // 店舗CDと結果インデックス(0〜9)に合わせたおすすめメニューを抽出
+      let selectedMenu = "おすすめメニュー";
+      if (menuData) {
+        const storeMenus = menuData[storeCd] || menuData["000000"];
+        if (storeMenus && storeMenus[String(index)]) {
+          selectedMenu = storeMenus[String(index)];
+        }
+      }
+
       document.getElementById('res-img').src = res.img;
       document.getElementById('res-title').innerHTML = res.title;
       document.getElementById('res-story').innerHTML = res.story;
       document.getElementById('res-talent').innerHTML = res.talent;
       document.getElementById('res-weak').innerHTML = res.weak;
-      document.getElementById('res-menu').innerHTML = res.menu;
+      document.getElementById('res-menu').innerHTML = selectedMenu;
 
       document.getElementById('result-screen').classList.add('active');
     }

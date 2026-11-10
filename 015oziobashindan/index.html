@@ -569,6 +569,18 @@ img, svg { max-width: 100%; }
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5), inset 0 -6px 12px rgba(17, 35, 58, .12);
 }
 .shop-rx.bag .shop-rx-note { color: var(--ink); }
+/* ===== デモ表示: 処方薬袋の写真と文言を空白にして「変更可能」と表示 ===== */
+.bag-window.demo {
+  display: grid; place-items: center; text-align: center;
+  background: repeating-linear-gradient(135deg, #F1F6F4 0 9px, #FFFFFF 9px 18px);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(17, 35, 58, .18), inset 0 0 0 2px rgba(18, 120, 108, .55);
+}
+.bag-window.demo::before {
+  content: "写真\A変更可能"; white-space: pre; font-weight: 900; font-size: 15px; line-height: 1.5; color: var(--teal);
+}
+.demo-ph { color: var(--ink-soft) !important; font-weight: 700 !important; }
+.shop-rx.bag .shop-rx-name.demo-ph { font-weight: 900 !important; opacity: .75; }
+.bag-usage dd.demo-ph { border-bottom: 1.5px dashed rgba(17, 35, 58, .35); }
 .bag-usage { margin: 12px 0 0; padding: 9px 0 0; border-top: 1px dashed rgba(17, 35, 58, .32); display: grid; gap: 5px; }
 .bag-usage div { display: flex; align-items: center; gap: 10px; }
 .bag-usage dt {
@@ -985,6 +997,7 @@ window.OJIBA_PHOTOS = {
     }
   };
 
+  var DEMO = true;          // true: 処方薬袋の写真・文言を空白(変更可能)にしたデモ表示
   var SESSION_N = 4;        // 1回の診断で出す質問数
   var MAX_PER_DEPT = 2;     // 同じ診察科から出す質問の上限(偏り防止)
   var IDLE_MS = 120000;     // 操作がないまま経つと最初の画面に戻る(ミリ秒)
@@ -1736,7 +1749,18 @@ window.OJIBA_PHOTOS = {
       setLines($('shopRxNote'), $('shopRxNote'), m.note ? fill(m.note) : '', 12);
       $('shopRxOrder').textContent = SHOP.orderNote || '';
       var photo = $('shopRxPhoto');
-      if (m.photo) {
+      if (DEMO) {
+        // デモ: メニュー固有の写真・文言を空白(=「変更可能」表示)にする
+        setLines($('shopRxName'), $('shopRxName'), 'メニュー名（変更可能）', 12, true);
+        setLines($('shopRxNote'), $('shopRxNote'), 'おすすめの一言\n（変更可能）', 12);
+        $('shopRxName').classList.add('demo-ph');
+        $('shopRxNote').classList.add('demo-ph');
+        photo.hidden = true;
+        $('shopRxWin').hidden = false;
+        $('shopRxWin').classList.add('demo');
+        var us = document.querySelectorAll('.bag-usage dd');
+        for (var u = 0; u < us.length; u++) { us[u].textContent = '変更可能'; us[u].classList.add('demo-ph'); }
+      } else if (m.photo) {
         photo.src = m.photo;
         photo.alt = fill(m.name);
         photo.hidden = false;

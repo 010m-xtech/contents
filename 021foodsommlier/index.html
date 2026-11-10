@@ -25,6 +25,16 @@
         
         #chartjs-tooltip { display: none !important; }
 
+        /* ▼ スマホのURLバー対策 ▼
+           100vh はURLバーの裏まで含んだ高さになり、下がかくれてしまうため、
+           実際に見えている高さ（dvh）を使う。中身が画面より高いときは上からスクロールできるようにする。 */
+        body.h-screen { height: 100vh; height: 100dvh; }
+        #app { justify-content: flex-start; }
+        #app::before, #app::after { content: ''; flex: 1 0 0; }
+        #app > *, #app > * > * { flex-shrink: 0; } /* 画面が低くても中身をつぶさない */
+        #app .min-h-\[85vh\] { min-height: 85vh; min-height: 85dvh; }
+        #app .min-h-\[60vh\] { min-height: 60vh; min-height: 60dvh; }
+
         /* エモいイントロ用のアニメーション */
         .intro-fade {
             animation: introFadeIn 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;

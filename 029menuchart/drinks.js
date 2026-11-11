@@ -65,7 +65,7 @@ const STORE_CONFIG = {
 //                 例）日本酒：精米歩合 ／ ビール：スタイル・IBU ／ ジン：ボタニカル ／ ワイン：品種・ヴィンテージ
 //   images      : 商品画像（省略できます）
 //                 省略すると images フォルダの「id と同じ名前の画像」を自動で使います。
-//                   例）id が "sake-enasan" → images/sake-enasan.webp（.jpg / .jpeg / .png でもOK）
+//                   例）id が "sake-enasan" → image/sake-enasan.webp（.jpg / .jpeg / .png でもOK）
 //                 複数枚をスライドショーにしたいときだけ ["a.webp", "b.webp"] のように書きます。
 //                 1枚目がマップのピンとおすすめカードに使われます。
 //   gallery     : 「お酒をめぐる環境」の写真と説明文（省略できます）
@@ -104,7 +104,7 @@ const DRINKS_DATABASE = [
       { label: "精米歩合", value: "50％" },
       { label: "アルコール度数", value: "16％" }
     ],
-    images: ["images/恵那山①.webp", "images/恵那山②.webp", "images/恵那山③.webp"],
+    images: ["image/enasan-1.webp", "image/enasan-2.webp", "image/enasan-3.webp"],
     gallery: [
       { wiki: "恵那山", file: "Mount_Ena.jpg", caption: "恵那山の伏流水を敷地内の井戸から汲み上げて使用。恵那山に降り積もった雨雪が、長い時間をかけて地中に染み込み磨かれてできた水は、日本酒をやわらかい味わいにします。" },
       { wiki: "馬籠宿", caption: "中山道・馬籠宿。石畳が続く歴史ある宿場町は、往時の面影を色濃く残し、訪れる人々をタイムスリップしたかのような気分にさせてくれます。" }

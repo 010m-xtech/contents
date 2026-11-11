@@ -1,10 +1,4 @@
 {
-  "default": "https://010m-xtech.github.io/contents/000playground/",
-  "100001": "https://010m-xtech.github.io/contents/009aishouranai/",
-  "073810": "https://010m-xtech.github.io/contents/000playground/#073810"
-}
-
-{
   "default": {
     "name": "あそび場",
     "url": "https://010m-xtech.github.io/contents/000playground/"

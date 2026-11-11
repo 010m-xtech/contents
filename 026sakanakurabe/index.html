@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おおきさ くらべ</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts (Game1,2用のStickとGame3用のYomogi) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Stick&family=Yomogi&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* 共通・Game1・Game2用 */
+            --ai: #2C4A78;
+            --ai-light: #4C6A94;
+            --ai-pale: #DCE7F5;
+            --shu: #E8563E;
+            --shu-pale: #FFE3DA;
+            --maru: #2E86AB;
+            --batsu: #E8563E;
+            --sumi: #3A342C;
+            --font: 'Stick', sans-serif;
+
+            /* Game3 (おおきさくらべ)用 */
+            --g3-kinari: rgba(253, 248, 240, 0.75);
+            --g3-ai: #30547A;
+            --g3-ai-light: #52759E;
+            --g3-ai-pale: #E4EDF7;
+            --g3-shu: #E25B45;
+            --g3-shu-pale: #FCE7E3;
+            --g3-sumi: #3A3228;
+            --g3-line: #D4C5AC; /* 【修正1】未定義だった変数を追加 */
+            --g3-font: 'Yomogi', cursive;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: var(--font);
+            background-color: transparent;
+            color: #4a3b32;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+            -webkit-font-smoothing: antialiased;
+            margin: 0; padding: 0;
+            min-height: 100vh;
+        }
+
+        /* 共通背景（動画なし/読み込み失敗時は、この静止背景が表示される） */
+        .video-bg-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 45%),
+                radial-gradient(circle at 85% 85%, rgba(255, 176, 124, 0.35) 0, rgba(255, 176, 124, 0) 50%),
+                #FDECC8;
+        }
+        .video-bg-container video {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            transition: opacity 1.5s linear;
+        }
+        /* 【修正4】軽量モード・動画失敗時は動画を完全に非表示 */
+        body.lite .video-bg-container video,
+        .video-bg-container.no-video video { display: none; }
+
+        /* オープニング用のCSS */
+        #intro-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #FFFFFF; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1s ease; cursor: pointer;
+        }
+        #intro-video {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; transition: opacity 1s ease;
+        }
+        /* 横長のオープニング動画：縦画面ではロゴが小さくなりすぎないよう拡大して中央に置く */
+        @media (orientation: portrait) {
+            #intro-video { top: 50%; left: -40%; width: 180%; height: auto; transform: translateY(-50%); object-fit: fill; }
+        }
+        #intro-logo {
+            position: relative; z-index: 10; max-width: 55%; max-height: 55%;
+            opacity: 0; transform: scale(0.92); transition: opacity 1s ease, transform 1.2s ease; object-fit: contain;
+        }
+        #intro-logo[style*="opacity: 1"] { transform: scale(1); }
+        #intro-skip-text {
+            position: absolute; bottom: 8vh; left: 50%; transform: translateX(-50%);
+            color: #6b7280; font-size: 15px; font-weight: bold; z-index: 20;
+            white-space: nowrap; letter-spacing: 0.1em;
+                        animation: blinkAndFloat 2s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes blinkAndFloat {
+            0%, 100% { opacity: 0.3; transform: translate(-50%, 0); }
+            50% { opacity: 1; transform: translate(-50%, -10px); }
+        }
+
+        /* 【修正2】誤タップ防止：この間は押せない */
+        .tap-lock { pointer-events: none !important; }
+
+        .kirie-box {
+            background-color: rgba(255, 255, 255, 0.85);
+            clip-path: polygon(2% 3%, 30% 1%, 75% 2%, 98% 4%, 99% 30%, 97% 75%, 96% 97%, 70% 99%, 25% 97%, 4% 96%, 1% 70%, 2% 25%);
+            filter: drop-shadow(6px 6px 0px rgba(74, 59, 50, 0.4));
+            transform: rotate(-1deg);
+        }
+        .kirie-btn {
+            clip-path: polygon(3% 4%, 25% 1%, 80% 3%, 97% 5%, 99% 50%, 96% 96%, 75% 98%, 20% 96%, 4% 97%, 1% 50%);
+            filter: drop-shadow(4px 4px 0px rgba(74, 59, 50, 0.4));
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .kirie-btn:nth-child(odd) {
+            clip-path: polygon(1% 5%, 40% 1%, 98% 3%, 96% 50%, 99% 95%, 60% 98%, 3% 97%, 4% 50%);
+            transform: rotate(1deg);
+        }
+        .kirie-btn:nth-child(even) {
+            clip-path: polygon(4% 2%, 70% 3%, 96% 1%, 98% 60%, 95% 98%, 30% 96%, 1% 95%, 2% 40%);
+            transform: rotate(-1deg);
+        }
+        .kirie-btn:active {
+            transform: translate(4px, 4px) rotate(0deg) !important;
+            filter: drop-shadow(0px 0px 0px rgba(74, 59, 50, 0.4)) !important;
+        }
+
+        .kirie-title { display: inline-block; transform: rotate(-2deg); }
+        .kirie-badge {
+            clip-path: polygon(4% 3%, 96% 5%, 98% 95%, 5% 96%);
+            filter: drop-shadow(3px 3px 0px rgba(74, 59, 50, 0.3));
+            transform: rotate(2deg);
+        }
+        .kirie-img-box {
+            background-color: #fdf6e3;
+            clip-path: polygon(2% 3%, 97% 2%, 96% 97%, 3% 96%);
+            filter: drop-shadow(4px 4px 0px rgba(74, 59, 50, 0.15));
+        }
+        .btn-orange { background-color: #ffb07c; }
+        .btn-blue { background-color: #93c5fd; }
+        .btn-green { background-color: #86efac; }
+        .btn-pink { background-color: #f9a8d4; }
+        .btn-yellow { background-color: #fde047; }
+        .btn-gray { background-color: #e5e7eb; }
+
+        .silhouette { filter: brightness(0); transition: filter 0.3s ease; }
+        .hint-mode { filter: brightness(0.3) grayscale(0.5); transition: filter 0.3s ease; }
+
+        .fade-in { animation: fadeIn 0.5s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .swim-in { animation: swimIn 2.5s ease-in-out forwards; }
+        @keyframes swimIn {
+            0% { opacity: 0; transform: translateX(60px) translateY(10px) rotate(-3deg); }
+            50% { opacity: 0.8; transform: translateX(20px) translateY(-5px) rotate(2deg); }
+            100% { opacity: 1; transform: translateX(0) translateY(0) rotate(0deg); }
+        }
+
+        @keyframes animSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes animFlip { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+        @keyframes animShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) rotate(-3deg); }
+            20%, 40%, 60%, 80% { transform: translateX(5px) rotate(3deg); }
+        }
+        .anim-spin { animation: animSpin 0.6s ease; }
+        .anim-flip { animation: animFlip 0.6s ease; }
+        .anim-shake { animation: animShake 0.6s ease; }
+
+        #game3-container {
+            font-family: var(--g3-font);
+            font-weight: 900;
+            -webkit-text-stroke: 0.6px currentColor;
+            text-shadow: 0.2px 0.2px 0 currentColor;
+        }
+        #game3-container .app {
+            width: 100%; max-width: 460px; min-height: 100vh;
+            background: var(--g3-kinari);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; margin: auto;
+        }
+        #game3-container header { padding: 18px 20px 12px; text-align: center; }
+        #game3-container header h1 { font-size: 20px; font-weight: 900; color: var(--g3-ai); margin: 0; letter-spacing: 0.03em; }
+        #game3-container main { flex: 1; padding: 10px 20px 40px; display: flex; flex-direction: column; }
+
+        @keyframes g3-wobble {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-1deg); }
+            75% { transform: rotate(1deg); }
+        }
+        @keyframes g3-fish-jump {
+            0% { transform: rotate(var(--g3-rot, -90deg)) scale(1); }
+            25% { transform: rotate(calc(var(--g3-rot, -90deg) - 10deg)) scale(1.1); }
+            50% { transform: rotate(calc(var(--g3-rot, -90deg) + 10deg)) scale(1.1); }
+            75% { transform: rotate(calc(var(--g3-rot, -90deg) - 10deg)) scale(1.1); }
+            100% { transform: rotate(var(--g3-rot, -90deg)) scale(1); }
+        }
+        #game3-container .animate-fish { animation: g3-fish-jump 0.4s ease; }
+        #game3-container .screen { display: none; flex: 1; flex-direction: column; animation: g3-pop .35s ease both; }
+        #game3-container .screen.active { display: flex; }
+        @keyframes g3-pop { from{opacity:0; transform:scale(0.96) rotate(-2deg);} to{opacity:1; transform:scale(1) rotate(0deg);} }
+        @media (prefers-reduced-motion: reduce){ #game3-container .screen{ animation:none; } }
+
+        #game3-container .center-wrap {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 20px; padding: 10px 0 30px;
+        }
+        #game3-container .mascot { width: 120px; height: 120px; }
+        #game3-container .center-title { font-size: 24px; font-weight: 900; color: var(--g3-ai); line-height: 1.5; margin: 0; }
+        #game3-container .center-lead { font-size: 15px; color: #000; line-height: 1.9; margin: 0; max-width: 270px; }
+
+        #game3-container .big-btn {
+            font-family: var(--g3-font); font-weight: 900; font-size: 24px;
+            color: #fff; background: var(--g3-shu);
+            border: 3px solid var(--g3-sumi);
+            border-radius: 40px 15px 50px 25px / 20px 40px 15px 45px;
+            padding: 20px 44px; box-shadow: 4px 6px 0 var(--g3-sumi);
+            cursor: pointer; transition: all 0.15s; position: relative; z-index: 1;
+        }
+        #game3-container .big-btn:hover { animation: g3-wobble 1s ease-in-out infinite; }
+        #game3-container .big-btn:active { box-shadow: 0px 2px 0 var(--g3-sumi); transform: translateY(4px) translateX(2px); animation: none; }
+
+        #game3-container .height-options { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 260px; margin: 0 auto; }
+        #game3-container .height-btn {
+            font-family: var(--g3-font); background: #fff; border: 3px solid var(--g3-sumi);
+            padding: 12px 20px; box-shadow: 3px 4px 0 rgba(58,52,44,0.15);
+            cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: space-between;
+        }
+        #game3-container .height-btn:hover { transform: scale(1.02) rotate(-1deg); }
+        #game3-container .height-btn:active { box-shadow: 0px 1px 0 rgba(58,52,44,0.15); transform: translateY(2px) translateX(1px); }
+        #game3-container .height-btn:nth-child(1) { border-radius: 15px 25px 10px 20px / 20px 10px 25px 15px; }
+        #game3-container .height-btn:nth-child(2) { border-radius: 25px 10px 20px 15px / 15px 20px 10px 25px; }
+        #game3-container .height-btn:nth-child(3) { border-radius: 10px 20px 15px 25px / 25px 15px 20px 10px; }
+        #game3-container .height-btn:nth-child(4) { border-radius: 20px 15px 25px 10px / 10px 25px 15px 20px; }
+        #game3-container .height-btn:nth-child(5) { border-radius: 15px 20px 25px 10px / 20px 15px 10px 25px; }
+        #game3-container .height-btn:nth-child(6) { border-radius: 10px 15px 20px 25px / 25px 20px 15px 10px; }
+        #game3-container .height-btn .cm { font-size: 22px; font-weight: 900; color: var(--g3-ai); }
+        #game3-container .height-btn .unit { font-size: 14px; font-weight: 900; color: var(--g3-ai); margin-left: 2px; }
+        #game3-container .height-btn .age { font-size: 12.5px; color: #000; font-weight: 900; }
+
+        #game3-container .theme-options { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; margin: 0 auto; }
+        #game3-container .theme-btn {
+            font-family: var(--g3-font); background: #fff; border: 3px solid var(--g3-sumi);
+            padding: 16px 20px; box-shadow: 3px 4px 0 rgba(58,52,44,0.15);
+            cursor: pointer; transition: all 0.15s; font-size: 16.5px; font-weight: 900; color: var(--g3-ai);
+            text-align: left; line-height: 1.4;
+        }
+        #game3-container .theme-btn:hover { transform: scale(1.02) rotate(-1deg); }
+        #game3-container .theme-btn:active { box-shadow: 0px 1px 0 rgba(58,52,44,0.15); transform: translateY(2px) translateX(1px); }
+        #game3-container .theme-btn:nth-child(1) { border-radius: 15px 25px 10px 20px / 20px 10px 25px 15px; }
+        #game3-container .theme-btn:nth-child(2) { border-radius: 25px 10px 20px 15px / 15px 20px 10px 25px; }
+        #game3-container .theme-btn:nth-child(3) { border-radius: 10px 20px 15px 25px / 25px 15px 20px 10px; }
+        #game3-container .theme-btn:nth-child(4) { border-radius: 20px 15px 25px 10px / 10px 25px 15px 20px; }
+        #game3-container .theme-btn .highlight { color: var(--g3-shu); }
+
+        #game3-container .q-progress { display: flex; justify-content: center; gap: 8px; margin: 4px 0 18px; }
+        #game3-container .q-dot {
+            width: 14px; height: 14px;
+            border-radius: 45% 65% 50% 55% / 55% 45% 60% 40%;
+            border: 2px solid var(--g3-sumi); background: var(--g3-line); transition: all 0.3s;
+        }
+        #game3-container .q-dot.done { background: var(--g3-ai-light); border-color: var(--g3-sumi); }
+        #game3-container .q-dot.now { background: var(--g3-shu); transform: scale(1.4) rotate(10deg); }
+
+        #game3-container .compare-card {
+            background: #fff; padding: 18px 16px 14px;
+            border-radius: 8px 30px 12px 25px / 25px 10px 30px 15px;
+            border: 3px solid var(--g3-sumi); box-shadow: 5px 7px 0 rgba(58,52,44,0.15); margin-bottom: 18px;
+        }
+        #game3-container .compare-stage { position: relative; padding: 10px 4px 10px; overflow: visible; }
+        #game3-container .compare-inner {
+            position: relative; display: flex; flex-direction: row; justify-content: space-evenly;
+            align-items: flex-end; height: 270px; gap: 16px; border-bottom: 4px solid var(--g3-sumi);
+        }
+        #game3-container .bar-col { display: flex; align-items: flex-end; justify-content: center; height: 100%; width: 45%; }
+        #game3-container .compare-labels { display: flex; flex-direction: row; justify-content: space-evenly; padding-top: 12px; gap: 16px; padding-left: 36px; }
+        /* 目盛り（左の定規）：魚と身長を同じ縮尺で測るための基準 */
+        #game3-container .compare-inner { padding-left: 36px; }
+        #game3-container .ruler { position: absolute; left: 0; right: 0; bottom: 0; height: 250px; pointer-events: none; z-index: 0; }
+        #game3-container .ruler-spine { position: absolute; left: 33px; top: 0; bottom: 0; border-left: 2px solid var(--g3-sumi); }
+        #game3-container .ruler-tick { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(58, 50, 40, 0.22); }
+        #game3-container .ruler-tick::after { content: ""; position: absolute; left: 29px; top: -1px; width: 9px; border-top: 2px solid var(--g3-sumi); }
+        #game3-container .ruler-tick span {
+            position: absolute; left: 0; top: -9px; width: 29px; text-align: right;
+            font-size: 11px; line-height: 18px; color: var(--g3-sumi); font-weight: 900;
+            background: #fff; letter-spacing: -0.02em;
+        }
+        #game3-container .bar-label { font-size: 15px; font-weight: 900; color: var(--g3-sumi); line-height: 1.3; text-align: center; width: 45%; }
+
+        #game3-container .sentence-card { text-align: center; margin-top: 4px; }
+        #game3-container .sentence-main { font-size: 19px; font-weight: 900; color: var(--g3-sumi); line-height: 1.7; }
+        #game3-container .sentence-main .name { color: var(--g3-shu); }
+        #game3-container .sentence-sub { font-size: 13.5px; color: #000; margin-top: 6px; font-weight: 900; }
+        #game3-container .sentence-info {
+            font-size: 13.5px; color: var(--g3-sumi); font-weight: 900;
+            margin-top: 14px; padding: 12px; background: var(--g3-kinari);
+            border-radius: 12px 15px 10px 18px / 18px 10px 15px 12px;
+            border: 2px dashed #D4C5AC; line-height: 1.6; text-align: left;
+        }
+
+        #game3-container .nav-row { display: flex; gap: 18px; margin-top: auto; padding-top: 20px; }
+        #game3-container .nav-btn {
+            flex: 1; font-family: var(--g3-font); font-weight: 900; font-size: 22px; padding: 16px 10px; min-height: 60px;
+            border-radius: 20px 10px 25px 15px / 15px 25px 10px 20px; border: 3px solid var(--g3-sumi);
+            background: #fff; color: var(--g3-sumi); cursor: pointer; box-shadow: 3px 4px 0 var(--g3-sumi); transition: all 0.15s;
+        }
+        #game3-container .nav-btn:active:not(:disabled) { box-shadow: 0px 1px 0 var(--g3-sumi); transform: translateY(3px) translateX(1px); }
+        #game3-container .nav-btn:disabled { opacity: 0.5; box-shadow: 1px 2px 0 var(--g3-sumi); transform: translateY(2px); cursor: default; border-style: dashed;}
+        #game3-container .nav-btn.primary { background: var(--g3-ai); color: #fff; border-radius: 15px 25px 10px 20px / 20px 10px 25px 15px; }
+
+    
+        /* ===== ごほうび／はげまし演出（音なし） ===== */
+        #fx-layer { position: fixed; inset: 0; z-index: 100000; pointer-events: none; overflow: hidden; }
+        .fx-piece { position: absolute; left: 50%; top: 45%; font-size: 30px; line-height: 1; opacity: 0;
+            animation: fxFly 1.5s ease-out forwards; }
+        @keyframes fxFly {
+            0% { opacity: 0; transform: translate(-50%,-50%) scale(0.3) rotate(0deg); }
+            15% { opacity: 1; }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2) rotate(var(--rot)); }
+        }
+        .fx-swim { position: absolute; left: -20%; font-size: 44px; line-height: 1; animation: fxSwim 2.4s ease-in-out forwards; }
+        @keyframes fxSwim {
+            0% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(65vw) translateY(-14px); }
+            100% { transform: translateX(135vw) translateY(0); }
+        }
+        .fx-bubble { position: absolute; bottom: -10%; font-size: 26px; line-height: 1; opacity: 0; animation: fxRise 2.2s ease-in forwards; }
+        @keyframes fxRise {
+            0% { opacity: 0; transform: translateY(0); }
+            20% { opacity: .9; }
+            100% { opacity: 0; transform: translateY(-85vh) translateX(var(--sx)); }
+        }
+        .fx-wobble { animation: fxWobble 0.9s ease-in-out; }
+        @keyframes fxWobble {
+            0%,100% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(-6deg) scale(1.05); }
+            40% { transform: rotate(5deg) scale(0.97); }
+            60% { transform: rotate(-3deg) scale(1.02); }
+            80% { transform: rotate(2deg); }
+        }
+        .fx-hop { animation: fxHop 0.7s ease-out; }
+        @keyframes fxHop { 0% { transform: scale(0.6); } 55% { transform: scale(1.15); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+
+    <!-- オープニング（デモ用：MMGロゴを表示） -->
+    <div id="intro-container">
+        <img id="intro-logo" src="mmg_logo.webp" alt="MMG">
+        <div id="intro-skip-text">画面をタップしてスキップ</div>
+    </div>
+
+    <!-- 共通背景動画（失敗・軽量モード時は .video-bg-container の静止背景が見える） -->
+    <div class="video-bg-container" id="bg-container">
+        <video id="bg-video-1" data-src="marubatsu_back.mp4" muted playsinline preload="auto" style="opacity: 1;"></video>
+        <video id="bg-video-2" data-src="marubatsu_back.mp4" muted playsinline preload="none" style="opacity: 0;"></video>
+    </div>
+
+    <!-- GAME 3: おおきさくらべ -->
+    <div id="game3-container" class="w-full relative overflow-hidden">
+        <div class="app">
+            <header><h1>おおきさ くらべ</h1></header>
+            <main>
+                <!-- スタート画面 -->
+                <section class="screen active" data-screen="start">
+                    <div class="center-wrap">
+                        <img class="mascot" src="sokutei.webp" alt="おおきさくらべ" style="width:100px;height:200px;object-fit:contain;">
+                        <p class="center-title">さかなって、<br>どれくらい おおきいかな?</p>
+                        <p class="center-lead">じぶんの しんちょうと<br>くらべて みてみよう!</p>
+                        <button class="big-btn" onclick="g3_goScreen('height-select')">はじめる</button>
+                    </div>
+                </section>
+
+                <!-- しんちょうをえらぶ画面 -->
+                <section class="screen" data-screen="height-select">
+                    <div class="center-wrap">
+                        <p class="center-title">じぶんの しんちょうは<br>どれくらいかな？</p>
+                        <p class="center-lead">だいたいの おおきさを<br>えらんでね！</p>
+                        <div class="height-options">
+                            <button class="height-btn" onclick="g3_setHeight(100)">
+                                <div><span class="cm">100</span><span class="unit">cm</span></div>
+                                <span class="age">(4〜5さい くらい)</span>
+                            </button>
+                            <button class="height-btn" onclick="g3_setHeight(110)">
+                                <div><span class="cm">110</span><span class="unit">cm</span></div>
+                                <span class="age">(5〜6さい くらい)</span>
+                            </button>
+                            <button class="height-btn" onclick="g3_setHeight(120)">
+                                <div><span class="cm">120</span><span class="unit">cm</span></div>
+                                <span class="age">(7〜8さい くらい)</span>
+                            </button>
+                            <button class="height-btn" onclick="g3_setHeight(130)">
+                                <div><span class="cm">130</span><span class="unit">cm</span></div>
+                                <span class="age">(8〜9さい くらい)</span>
+                            </button>
+                            <button class="height-btn" onclick="g3_setHeight(160)">
+                                <div><span class="cm">160</span><span class="unit">cm</span></div>
+                                <span class="age">(ママ くらい)</span>
+                            </button>
+                            <button class="height-btn" onclick="g3_setHeight(170)">
+                                <div><span class="cm">170</span><span class="unit">cm</span></div>
+                                <span class="age">(パパ くらい)</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- テーマをえらぶ画面 -->
+                <section class="screen" data-screen="theme-select">
+                    <div class="center-wrap">
+                        <p class="center-title">どんな おさかなを<br>みてみる？</p>
+                        <div class="theme-options">
+                            <button class="theme-btn" onclick="g3_startTheme('same')">
+                                ぼく・わたしと<br>「<span class="highlight">おなじくらい</span>」のおさかな
+                            </button>
+                            <button class="theme-btn" onclick="g3_startTheme('adult')">
+                                パパ・ママより<br>「<span class="highlight">おおきい</span>」おさかな
+                            </button>
+                            <button class="theme-btn" onclick="g3_startTheme('huge')">
+                                バスやおうちみたいに<br>「<span class="highlight">とてつもなくおおきい</span>」おさかな
+                            </button>
+                            <button class="theme-btn" onclick="g3_startTheme('tiny')">
+                                「<span class="highlight">てのひら くらい</span>」の<br>ちいさな おさかな
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- くらべる画面 -->
+                <section class="screen" data-screen="compare">
+                    <div class="q-progress" id="g3-qProgress"></div>
+                    <div class="compare-card">
+                        <div class="compare-stage" id="g3-compareStage">
+                            <div class="compare-inner" id="g3-compareInner"></div>
+                            <div class="compare-labels" id="g3-compareLabels"></div>
+                        </div>
+                    </div>
+                    <div class="sentence-card">
+                        <p class="sentence-main" id="g3-sentenceMain"></p>
+                        <p class="sentence-sub" id="g3-sentenceSub"></p>
+                        <div class="sentence-info" id="g3-sentenceInfo"></div>
+                    </div>
+                    <div class="nav-row">
+                        <button class="nav-btn" id="g3-prevBtn" onclick="g3_prevRound()">まえへ</button>
+                        <button class="nav-btn primary" id="g3-nextBtn" onclick="g3_nextRound()">つぎへ</button>
+                    </div>
+                </section>
+
+                <!-- おわり画面 -->
+                <section class="screen" data-screen="end">
+                    <div class="center-wrap">
+                        <img id="g3-endMascot" class="mascot" src="" alt="おさかな" style="transform: rotate(var(--g3-rot, -90deg)); object-fit: contain; cursor: pointer;" onclick="g3_animateEndMascot()">
+                        <p class="center-title">たのしんで もらえたかな?</p>
+                        <p class="center-lead">おおきい いきものも、<br>ちいさい いきものも、みんな すごいね。</p>
+                        <button class="big-btn" onclick="g3_goScreen('theme-select')">もういちど みる</button>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+
+
+    <div id="fx-layer" aria-hidden="true"></div>
+    <script>
+        // ===== ごほうび／はげまし演出 =====
+        const FX_LAYER = () => document.getElementById('fx-layer');
+        function fxClear(ms) { setTimeout(() => { const l = FX_LAYER(); if (l) l.innerHTML = ''; }, ms); }
+        function fxReward(big) {
+            const l = FX_LAYER(); if (!l) return;
+            const icons = ['⭐', '✨', '🐟', '🫧', '🌟', '🐠'];
+            const n = big ? 26 : 16;
+            for (let i = 0; i < n; i++) {
+                const p = document.createElement('span'); p.className = 'fx-piece';
+                p.textContent = icons[Math.floor(Math.random() * icons.length)];
+                const ang = Math.random() * Math.PI * 2, dist = 90 + Math.random() * (big ? 230 : 170);
+                p.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+                p.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+                p.style.setProperty('--rot', (Math.random() * 360 - 180) + 'deg');
+                p.style.animationDelay = (Math.random() * 0.15) + 's';
+                l.appendChild(p);
+            }
+            const f = document.createElement('span'); f.className = 'fx-swim';
+            f.textContent = ['🐟', '🐠', '🐡'][Math.floor(Math.random() * 3)];
+            f.style.top = (18 + Math.random() * 55) + '%';
+            l.appendChild(f);
+            fxClear(2600);
+        }
+        // まちがえたとき：やさしく あわが のぼる
+        function fxCheer() {
+            const l = FX_LAYER(); if (!l) return;
+            for (let i = 0; i < 9; i++) {
+                const b = document.createElement('span'); b.className = 'fx-bubble';
+                b.textContent = '🫧';
+                b.style.left = (8 + Math.random() * 84) + '%';
+                b.style.setProperty('--sx', (Math.random() * 60 - 30) + 'px');
+                b.style.animationDelay = (Math.random() * 0.6) + 's';
+                l.appendChild(b);
+            }
+            fxClear(3000);
+        }
+        const FX_CHEER_WORDS = ['だいじょうぶ！', 'つぎは できるよ！', 'いいちょうせん！', 'もうすこし！'];
+        const fxCheerWord = () => FX_CHEER_WORDS[Math.floor(Math.random() * FX_CHEER_WORDS.length)];
+    </script>
+
+    <script>
+        // ------------------------------------------------
+        // 設定
+        // ------------------------------------------------
+        const IDLE_RETURN_MS = 60000; // 操作がなければ最初の画面へ戻るまでの時間（ミリ秒）
+        const TAP_LOCK_MS = 500;      // 【修正2】誤タップ防止の時間（ミリ秒）
+
+        // ------------------------------------------------
+        // 【修正2】誤タップ防止ヘルパー
+        // ------------------------------------------------
+        function lockTap(elements, ms) {
+            const list = Array.from(elements).filter(Boolean);
+            list.forEach(el => el.classList.add('tap-lock'));
+            setTimeout(() => list.forEach(el => el.classList.remove('tap-lock')), ms || TAP_LOCK_MS);
+        }
+
+        // ------------------------------------------------
+        // 【修正4】軽量モード判定
+        //   ?lite=1 で軽量モード（この端末に記憶）、?lite=0 で解除
+        //   端末の「データセーバー」設定でも自動で軽量モード
+        // ------------------------------------------------
+        let isLite = false;
+        (function detectLite() {
+            const params = new URLSearchParams(location.search);
+            const q = params.get('lite');
+            try {
+                if (q === '1') localStorage.setItem('fishQuizLite', '1');
+                if (q === '0') localStorage.removeItem('fishQuizLite');
+                isLite = localStorage.getItem('fishQuizLite') === '1';
+            } catch (e) {
+                isLite = (q === '1');
+            }
+            try {
+                if (navigator.connection && navigator.connection.saveData) isLite = true;
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches) isLite = true;
+            } catch (e) {}
+            if (isLite) document.body.classList.add('lite');
+        })();
+
+        function resetToStart() { g3_goScreen('start'); }
+
+        // ------------------------------------------------
+        // 操作がなければ、お店の端末で次のお客さんがすぐ遊べるよう最初の画面に戻す
+        // ------------------------------------------------
+        let idleTimer = null;
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(resetToStart, IDLE_RETURN_MS);
+        }
+        ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
+            window.addEventListener(evt, resetIdleTimer, { passive: true });
+        });
+        resetIdleTimer();
+
+        // ------------------------------------------------
+        // 共通: 背景動画（クロスフェードループ）とオープニング
+        // 【修正4】軽量モード／再生失敗時は静止背景にフォールバック
+        // ------------------------------------------------
+        function disableBgVideo() {
+            const box = document.getElementById('bg-container');
+            if (box) box.classList.add('no-video');
+            ['bg-video-1', 'bg-video-2'].forEach(id => {
+                const v = document.getElementById(id);
+                if (v) { try { v.pause(); } catch (e) {} v.removeAttribute('src'); v.load(); }
+            });
+        }
+
+        function initBackgroundVideo() {
+            const v1 = document.getElementById('bg-video-1');
+            const v2 = document.getElementById('bg-video-2');
+            if (!v1 || !v2) return;
+
+            if (isLite) { disableBgVideo(); return; }
+
+            v1.src = v1.dataset.src;
+            v2.src = v2.dataset.src;
+            v2.preload = 'auto';
+
+            const fadeDuration = 1.5;
+            let activeVideo = v1;
+            let nextVideo = v2;
+            let isSwapping = false;
+            let failed = false;
+
+            const fail = () => { if (failed) return; failed = true; disableBgVideo(); };
+
+            v1.addEventListener('error', fail);
+            v2.addEventListener('error', fail);
+            v1.play().catch(fail);
+
+            // 4秒たっても再生が始まらなければ静止背景にする（iOS Safariの自動再生制限など）
+            setTimeout(() => {
+                if (!failed && (v1.paused || v1.readyState < 2 || v1.currentTime === 0)) fail();
+            }, 4000);
+
+            function handleTimeUpdate(e) {
+                const vid = e.target;
+                if (vid !== activeVideo) return;
+
+                if (vid.duration > 0 && (vid.duration - vid.currentTime <= fadeDuration)) {
+                    if (isSwapping) return;
+                    isSwapping = true;
+
+                    nextVideo.currentTime = 0;
+                    nextVideo.play().catch(() => {});
+                    nextVideo.style.opacity = 1;
+                    activeVideo.style.opacity = 0;
+
+                    setTimeout(() => {
+                        let temp = activeVideo;
+                        activeVideo = nextVideo;
+                        nextVideo = temp;
+                        isSwapping = false;
+                    }, fadeDuration * 1000);
+                }
+            }
+            v1.addEventListener('timeupdate', handleTimeUpdate);
+            v2.addEventListener('timeupdate', handleTimeUpdate);
+
+            // タブが隠れたときは動画を止めて電池を節約
+            document.addEventListener('visibilitychange', () => {
+                if (failed) return;
+                if (document.hidden) { v1.pause(); v2.pause(); }
+                else { activeVideo.play().catch(() => {}); }
+            });
+        }
+
+        function initIntro() {
+            const introContainer = document.getElementById('intro-container');
+            const introVideo = document.getElementById('intro-video');
+            const introLogo = document.getElementById('intro-logo');
+            if (!introContainer) return;
+
+            let introSkipped = false;
+            let introTimeouts = [];
+            let introPhaseTriggered = false;
+
+            const endIntro = () => {
+                if (introSkipped) return;
+                introSkipped = true;
+                introTimeouts.forEach(clearTimeout);
+                introContainer.style.opacity = '0';
+                setTimeout(() => {
+                    introContainer.style.display = 'none';
+                    if (introVideo) { try { introVideo.pause(); } catch (e) {} }
+                }, 1000);
+            };
+
+            // 動画なしでロゴだけ見せて終了する
+            const logoOnly = () => {
+                if (introSkipped || introPhaseTriggered) return;
+                introPhaseTriggered = true;
+                if (introVideo) { try { introVideo.pause(); } catch (e) {} introVideo.style.display = 'none'; }
+                if (introLogo) introLogo.style.opacity = '1';
+                introTimeouts.push(setTimeout(endIntro, 2800));
+            };
+
+            introContainer.addEventListener('click', endIntro);
+            introContainer.addEventListener('touchstart', endIntro, {passive: true});
+
+            if (isLite || !introVideo) {
+                logoOnly();
+                return;
+            }
+
+            introVideo.src = introVideo.dataset.src;
+            introVideo.addEventListener('error', logoOnly);
+            introVideo.play().catch(logoOnly);
+
+            // 3.5秒たっても動画が動かなければロゴだけにする
+            introTimeouts.push(setTimeout(() => {
+                if (!introPhaseTriggered && (introVideo.paused || introVideo.currentTime === 0)) logoOnly();
+            }, 3500));
+
+            // 新しいオープニング動画はロゴの演出まで動画の中に入っているので、
+            // 終わったらそのままゲームへ進む（ロゴ画像は動画が使えないときだけ表示）
+            introVideo.addEventListener('ended', () => {
+                if (!introSkipped && !introPhaseTriggered) {
+                    introPhaseTriggered = true;
+                    endIntro();
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initBackgroundVideo();
+            initIntro();
+        });
+
+        // ================================================
+        // GAME 3 の ロジック (おおきさくらべ)
+        // ================================================
+        let g3_CHILD_CM = 116;
+        const g3_PX_PER_CM = 1.5;
+
+        const g3_fishData = {
+            same: [
+                { id:"sake", name:"サケ", cm:90, displaySize:"70せんち から 90せんち くらい", img:"sake.webp", info:"まるまる ふとった からだで、うまれた かわを めざして おおきな うみを たくさん およぐ、力もちな おさかなだよ。" },
+                { id:"tara", name:"タラ", cm:100, displaySize:"100せんち くらい", img:"tara.webp", info:"とっても おおきな くちと、ぽっこり でた おなかが とくちょう。じぶんより ちいさな おさかなや エビを 丸のみに しちゃうよ！" },
+                { id:"buri", name:"ぶり", cm:100, displaySize:"80せんち から 100せんち くらい", img:"buri.webp", info:"1メートルくらい おおきくなると「ぶり」と よばれるよ。おおきくなるに つれて なまえが かわる ふしぎな おさかななんだ！" }
+            ],
+            adult: [
+                { id:"manbo", name:"マンボウ", cm:300, displaySize:"200せんち から 300せんち くらい", img:"manbo.webp", info:"ぺしゃんこな かたちを しているけど、たてにも よこにも 3メートルくらいに なる、とっても おおきな おさかな なんだ。" },
+                { id:"maguro", name:"まぐろ", cm:300, displaySize:"200せんち から 300せんち くらい", img:"g3_maguro.webp", info:"パパやママより ずっと おおきくて、くるま みたいに スピードを だして およぐんだ。たいじゅうも 200キロ いじょう あるよ！" }
+            ],
+            huge: [
+                { id:"ryugu", name:"リュウグウノツカイ", cm:1100, displaySize:"300せんち から 1100せんち くらい", img:"ryugu.webp", info:"うみの ずっと ふかい ところに すんでいる、ふしぎな おさかな。ぎんいろの ながーい からだと、あかい ヒレが とくちょう だよ！" },
+                { id:"zinbee", name:"ジンベエザメ", cm:2000, displaySize:"550せんち から 2000せんち", img:"zinbee.webp", info:"せかいで いちばん おおきな おさかな だよ！<br>ビルみたいに おおきな からだ なのに、<br>たべるのは ちいさな プランクトンなんだ。" }
+            ],
+            tiny: [
+                { id:"kakure", name:"カクレクマノミ", cm:15, displaySize:"10せんち から 15せんち くらい", img:"kakure.webp", info:"オレンジと しろの しましま もようが とっても かわいいね。イソギンチャクの なかに かくれて くらして いるよ。" },
+                { id:"sanma", name:"さんま", cm:30, displaySize:"30せんち くらい", img:"sanma.webp", info:"ほそながくて、えんぴつを おおきくした ような かたち。あきに なると おおきな むれに なって たくさん およいで くるよ。" }
+            ]
+        };
+
+        let g3_rounds = [];
+        let g3_currentIndex = 0;
+
+        function g3_goScreen(name){
+            document.querySelectorAll('#game3-container .screen').forEach(el=>{
+                el.classList.toggle('active', el.dataset.screen === name);
+            });
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        function g3_setHeight(cm){
+            g3_CHILD_CM = cm;
+            g3_goScreen('theme-select');
+        }
+
+        function g3_startTheme(themeId){
+            g3_rounds = g3_fishData[themeId];
+            g3_currentIndex = 0;
+            g3_renderRound();
+            g3_goScreen('compare');
+        }
+
+        function g3_renderProgress(){
+            const wrap = document.getElementById('g3-qProgress');
+            wrap.innerHTML = "";
+            g3_rounds.forEach((r,i)=>{
+                const dot = document.createElement('div');
+                dot.className = 'q-dot';
+                if (i < g3_currentIndex) dot.classList.add('done');
+                if (i === g3_currentIndex) dot.classList.add('now');
+                wrap.appendChild(dot);
+            });
+        }
+
+        function g3_formatCm(cm){
+            if (cm >= 100){
+                const m = (cm / 100).toFixed(cm % 100 === 0 ? 0 : 1);
+                return m + 'm';
+            }
+            return cm + 'cm';
+        }
+
+        function g3_renderRound(){
+            const r = g3_rounds[g3_currentIndex];
+            g3_renderProgress();
+
+            const maxCm = Math.max(g3_CHILD_CM, r.cm);
+            const childPercent = Math.max(0.5, (g3_CHILD_CM / maxCm) * 100);
+            const baseFishPercent = Math.max(0.5, (r.cm / maxCm) * 100);
+
+            // 目盛り：いちばん大きい方を上端にして、切りのいい長さごとに線を引く
+            // 横幅の広い魚（マンボウなど）が枠からはみ出さないよう、必要なときだけ全体の縮尺を小さくする
+            const G3_ASPECT = { sake: 0.35, tara: 0.43, buri: 0.43, manbo: 0.81, maguro: 0.45, ryugu: 0.51, zinbee: 0.40, kakure: 0.65, sanma: 0.22 };
+            const innerBox = document.getElementById('g3-compareInner');
+            const colW = Math.max(80, (innerBox.clientWidth - 36 - 16) * 0.45);
+            const fishAr = G3_ASPECT[r.id] || 0.5;
+            const fishWidthAtMax = fishAr * (r.cm / maxCm);   // 縮尺1あたりの魚の横幅（高さ比）
+            const PLOT_PX = Math.round(Math.max(120, Math.min(250, (colW * 1.25) / Math.max(fishWidthAtMax, 0.0001))));
+            const niceSteps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+            const rawStep = maxCm / 5;
+            const step = niceSteps.find(v => v >= rawStep) || niceSteps[niceSteps.length - 1];
+            let rulerHtml = `<div class="ruler" style="height:${PLOT_PX}px"><div class="ruler-spine"></div>`;
+            for (let v = step; v <= maxCm * 1.0001; v += step) {
+                rulerHtml += `<div class="ruler-tick" style="bottom:${(v / maxCm) * PLOT_PX}px"><span>${g3_formatCm(v)}</span></div>`;
+            }
+            rulerHtml += '</div>';
+
+            // 画像を魚の外周でトリミング済みなので、全ての魚を「長さ＝高さ」で同じルールで描く
+            const extraFishStyle = `height: ${baseFishPercent}% !important; width: auto !important; max-width: none;`;
+            const fishDisplayPercent = 100;
+
+            const inner = document.getElementById('g3-compareInner');
+            inner.innerHTML = rulerHtml + `
+                <div class="bar-col" style="z-index: 1;">
+                    <div style="width: 100%; height: ${PLOT_PX}px; position: relative; display: flex; align-items: flex-end; justify-content: center;">
+                        <div style="position: absolute; bottom: ${childPercent}%; left: 0%; width: 220%; border-bottom: 3px dashed var(--g3-ai-light); opacity: 0.6; z-index: 0; pointer-events: none;"></div>
+
+                        <svg style="height:${childPercent}%; width:auto; display: block; position: relative; z-index: 1;" viewBox="0 5 100 193" preserveAspectRatio="xMidYMax meet">
+                            <circle cx="50" cy="30" r="22" fill="var(--g3-ai-pale)" stroke="var(--g3-sumi)" stroke-width="6"/>
+                            <line x1="50" y1="52" x2="50" y2="120" stroke="var(--g3-sumi)" stroke-width="8" stroke-linecap="round"/>
+                            <line x1="50" y1="70" x2="15" y2="50" stroke="var(--g3-sumi)" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="50" y1="70" x2="85" y2="50" stroke="var(--g3-sumi)" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="50" y1="115" x2="20" y2="194" stroke="var(--g3-sumi)" stroke-width="8" stroke-linecap="round"/>
+                            <line x1="50" y1="115" x2="80" y2="194" stroke="var(--g3-sumi)" stroke-width="8" stroke-linecap="round"/>
+                            <circle cx="42" cy="25" r="3" fill="var(--g3-sumi)"/>
+                            <circle cx="58" cy="25" r="3" fill="var(--g3-sumi)"/>
+                            <path d="M42 38 Q50 45 58 38" stroke="var(--g3-sumi)" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="bar-col" style="z-index: 1;">
+                    <div style="width: 100%; height: ${PLOT_PX}px; position: relative; display: flex; align-items: flex-end; justify-content: center;">
+                        <img src="${r.img}" alt="${r.name}" style="width:${fishDisplayPercent}%; height:auto; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px -4px 0 rgba(0,0,0,0.15)); display: block; ${extraFishStyle}" />
+                    </div>
+                </div>
+            `;
+
+            const labels = document.getElementById('g3-compareLabels');
+            let personLabel = "じぶん";
+            if (g3_CHILD_CM === 160) personLabel = "ママ";
+            if (g3_CHILD_CM === 170) personLabel = "パパ";
+
+            labels.innerHTML = `
+                <div class="bar-label">${personLabel}<br>(${g3_formatCm(g3_CHILD_CM)})</div>
+                <div class="bar-label">${r.name}</div>
+            `;
+
+            let mainSentence = "";
+            let subSentence = "";
+            const diffRatio = r.cm / g3_CHILD_CM;
+
+            if (diffRatio >= 5.0) {
+                mainSentence = `<span class="name">${r.name}</span>は とてつもなく おおきいね！`;
+            } else if (diffRatio >= 1.5) {
+                mainSentence = `<span class="name">${r.name}</span>は ${personLabel}より ずっと おおきい！`;
+            } else if (diffRatio > 1.15){
+                mainSentence = `<span class="name">${r.name}</span>は ${personLabel}より おおきいよ!`;
+            } else if (diffRatio < 0.3){
+                mainSentence = `<span class="name">${r.name}</span>は ${personLabel}より ずっと ちいさいよ!`;
+            } else if (diffRatio < 0.85){
+                mainSentence = `<span class="name">${r.name}</span>は ${personLabel}より ちいさいね。`;
+            } else {
+                mainSentence = `<span class="name">${r.name}</span>は ${personLabel}と おなじくらいだよ!`;
+            }
+
+            subSentence = `おおきさは ${r.displaySize}だよ`;
+
+            document.getElementById('g3-sentenceMain').innerHTML = mainSentence;
+            document.getElementById('g3-sentenceSub').textContent = subSentence;
+            document.getElementById('g3-sentenceInfo').innerHTML = r.info;
+
+            // おおきい さかなが でたら ごほうび／いつも さかなが ぽよんと でる
+            const fishEl = inner.querySelector('.bar-col:last-child img');
+            if (fishEl) { fishEl.classList.remove('fx-hop'); void fishEl.offsetWidth; fishEl.classList.add('fx-hop'); }
+            if (r.cm / g3_CHILD_CM >= 5.0) fxReward(false);
+
+            document.getElementById('g3-prevBtn').disabled = false;
+            document.getElementById('g3-prevBtn').textContent = (g3_currentIndex === 0) ? 'もどる' : 'まえへ';
+            document.getElementById('g3-nextBtn').textContent = (g3_currentIndex === g3_rounds.length - 1) ? 'おわる' : 'つぎへ';
+
+            // 【修正2】ページ切り替え直後の連打を防ぐ
+            lockTap([document.getElementById('g3-prevBtn'), document.getElementById('g3-nextBtn')], 400);
+        }
+
+        function g3_prevRound(){
+            if (g3_currentIndex > 0){
+                g3_currentIndex--;
+                g3_renderRound();
+            } else {
+                g3_goScreen('theme-select');
+            }
+        }
+
+        function g3_nextRound(){
+            if (g3_currentIndex < g3_rounds.length - 1){
+                g3_currentIndex++;
+                g3_renderRound();
+            } else {
+                const allFishes = Object.values(g3_fishData).flat();
+                const randomFish = allFishes[Math.floor(Math.random() * allFishes.length)];
+                const endMascot = document.getElementById('g3-endMascot');
+                if(endMascot) {
+                    // 頭が上向きの絵は90度回して左向きにする。マンボウは最初から左向きなので回さない
+                    endMascot.style.setProperty('--g3-rot', randomFish.id === 'manbo' ? '0deg' : '-90deg');
+                    endMascot.src = randomFish.img;
+                }
+
+                g3_goScreen('end');
+                fxReward(true);
+            }
+        }
+
+        function g3_animateEndMascot() {
+            const mascot = document.getElementById('g3-endMascot');
+            if(!mascot) return;
+            mascot.classList.remove('animate-fish');
+            void mascot.offsetWidth;
+            mascot.classList.add('animate-fish');
+        }
+    </script>
+</body>
+</html>

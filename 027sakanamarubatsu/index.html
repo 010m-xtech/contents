@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おさかな ○✕ くいず</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts (Game1,2用のStickとGame3用のYomogi) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Stick&family=Yomogi&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* 共通・Game1・Game2用 */
+            --ai: #2C4A78;
+            --ai-light: #4C6A94;
+            --ai-pale: #DCE7F5;
+            --shu: #E8563E;
+            --shu-pale: #FFE3DA;
+            --maru: #2E86AB;
+            --batsu: #E8563E;
+            --sumi: #3A342C;
+            --font: 'Stick', sans-serif;
+
+            /* Game3 (おおきさくらべ)用 */
+            --g3-kinari: rgba(253, 248, 240, 0.75);
+            --g3-ai: #30547A;
+            --g3-ai-light: #52759E;
+            --g3-ai-pale: #E4EDF7;
+            --g3-shu: #E25B45;
+            --g3-shu-pale: #FCE7E3;
+            --g3-sumi: #3A3228;
+            --g3-line: #D4C5AC; /* 【修正1】未定義だった変数を追加 */
+            --g3-font: 'Yomogi', cursive;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: var(--font);
+            background-color: transparent;
+            color: #4a3b32;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+            -webkit-font-smoothing: antialiased;
+            margin: 0; padding: 0;
+            min-height: 100vh;
+        }
+
+        /* 共通背景（動画なし/読み込み失敗時は、この静止背景が表示される） */
+        .video-bg-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 45%),
+                radial-gradient(circle at 85% 85%, rgba(255, 176, 124, 0.35) 0, rgba(255, 176, 124, 0) 50%),
+                #FDECC8;
+        }
+        .video-bg-container video {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            transition: opacity 1.5s linear;
+        }
+        /* 【修正4】軽量モード・動画失敗時は動画を完全に非表示 */
+        body.lite .video-bg-container video,
+        .video-bg-container.no-video video { display: none; }
+
+        /* オープニング用のCSS */
+        #intro-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #FFFFFF; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1s ease; cursor: pointer;
+        }
+        #intro-video {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; transition: opacity 1s ease;
+        }
+        /* 横長のオープニング動画：縦画面ではロゴが小さくなりすぎないよう拡大して中央に置く */
+        @media (orientation: portrait) {
+            #intro-video { top: 50%; left: -40%; width: 180%; height: auto; transform: translateY(-50%); object-fit: fill; }
+        }
+        #intro-logo {
+            position: relative; z-index: 10; max-width: 55%; max-height: 55%;
+            opacity: 0; transform: scale(0.92); transition: opacity 1s ease, transform 1.2s ease; object-fit: contain;
+        }
+        #intro-logo[style*="opacity: 1"] { transform: scale(1); }
+        #intro-skip-text {
+            position: absolute; bottom: 8vh; left: 50%; transform: translateX(-50%);
+            color: #6b7280; font-size: 15px; font-weight: bold; z-index: 20;
+            white-space: nowrap; letter-spacing: 0.1em;
+                        animation: blinkAndFloat 2s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes blinkAndFloat {
+            0%, 100% { opacity: 0.3; transform: translate(-50%, 0); }
+            50% { opacity: 1; transform: translate(-50%, -10px); }
+        }
+
+        /* 【修正2】誤タップ防止：この間は押せない */
+        .tap-lock { pointer-events: none !important; }
+
+        .kirie-box {
+            background-color: rgba(255, 255, 255, 0.85);
+            clip-path: polygon(2% 3%, 30% 1%, 75% 2%, 98% 4%, 99% 30%, 97% 75%, 96% 97%, 70% 99%, 25% 97%, 4% 96%, 1% 70%, 2% 25%);
+            filter: drop-shadow(6px 6px 0px rgba(74, 59, 50, 0.4));
+            transform: rotate(-1deg);
+        }
+        .kirie-btn {
+            clip-path: polygon(3% 4%, 25% 1%, 80% 3%, 97% 5%, 99% 50%, 96% 96%, 75% 98%, 20% 96%, 4% 97%, 1% 50%);
+            filter: drop-shadow(4px 4px 0px rgba(74, 59, 50, 0.4));
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .kirie-btn:nth-child(odd) {
+            clip-path: polygon(1% 5%, 40% 1%, 98% 3%, 96% 50%, 99% 95%, 60% 98%, 3% 97%, 4% 50%);
+            transform: rotate(1deg);
+        }
+        .kirie-btn:nth-child(even) {
+            clip-path: polygon(4% 2%, 70% 3%, 96% 1%, 98% 60%, 95% 98%, 30% 96%, 1% 95%, 2% 40%);
+            transform: rotate(-1deg);
+        }
+        .kirie-btn:active {
+            transform: translate(4px, 4px) rotate(0deg) !important;
+            filter: drop-shadow(0px 0px 0px rgba(74, 59, 50, 0.4)) !important;
+        }
+
+        .kirie-title { display: inline-block; transform: rotate(-2deg); }
+        .kirie-badge {
+            clip-path: polygon(4% 3%, 96% 5%, 98% 95%, 5% 96%);
+            filter: drop-shadow(3px 3px 0px rgba(74, 59, 50, 0.3));
+            transform: rotate(2deg);
+        }
+        .kirie-img-box {
+            background-color: #fdf6e3;
+            clip-path: polygon(2% 3%, 97% 2%, 96% 97%, 3% 96%);
+            filter: drop-shadow(4px 4px 0px rgba(74, 59, 50, 0.15));
+        }
+        .btn-orange { background-color: #ffb07c; }
+        .btn-blue { background-color: #93c5fd; }
+        .btn-green { background-color: #86efac; }
+        .btn-pink { background-color: #f9a8d4; }
+        .btn-yellow { background-color: #fde047; }
+        .btn-gray { background-color: #e5e7eb; }
+
+        .silhouette { filter: brightness(0); transition: filter 0.3s ease; }
+        .hint-mode { filter: brightness(0.3) grayscale(0.5); transition: filter 0.3s ease; }
+
+        .fade-in { animation: fadeIn 0.5s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .swim-in { animation: swimIn 2.5s ease-in-out forwards; }
+        @keyframes swimIn {
+            0% { opacity: 0; transform: translateX(60px) translateY(10px) rotate(-3deg); }
+            50% { opacity: 0.8; transform: translateX(20px) translateY(-5px) rotate(2deg); }
+            100% { opacity: 1; transform: translateX(0) translateY(0) rotate(0deg); }
+        }
+
+        @keyframes animSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes animFlip { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+        @keyframes animShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) rotate(-3deg); }
+            20%, 40%, 60%, 80% { transform: translateX(5px) rotate(3deg); }
+        }
+        .anim-spin { animation: animSpin 0.6s ease; }
+        .anim-flip { animation: animFlip 0.6s ease; }
+        .anim-shake { animation: animShake 0.6s ease; }
+
+        #game2-container .app {
+            width: 100%; max-width: 460px; min-height: 100vh;
+            background: transparent; position: relative;
+            display: flex; flex-direction: column; margin: auto;
+        }
+        #game2-container header { padding: 32px 20px 12px; text-align: center; }
+        #game2-container header h1 {
+            font-size: 20px; font-weight: 900; color: var(--ai); margin: 0;
+            letter-spacing: 0.03em; display: inline-block;
+            padding: 10px 28px; position: relative;
+            filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.15));
+        }
+        #game2-container header h1::before {
+            content: ""; position: absolute; inset: 0; z-index: -1;
+            background: rgba(255, 255, 255, 0.85);
+            clip-path: polygon(2% 8%, 35% 2%, 80% 5%, 97% 4%, 99% 45%, 96% 92%, 60% 98%, 20% 95%, 4% 97%, 0% 50%);
+        }
+        #game2-container main { flex: 1; padding: 10px 20px 40px; display: flex; flex-direction: column; }
+
+        #game2-container .screen { display: none; flex: 1; flex-direction: column; animation: pop .35s ease both; }
+        #game2-container .screen.active { display: flex; }
+        @keyframes pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+        #game2-container .start-wrap {
+            width: 100%; margin: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 22px; padding: 30px 20px; min-height: 360px;
+            background: transparent; filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.15)); position: relative;
+        }
+        #game2-container .start-wrap::before {
+            content: ""; position: absolute; inset: 0; z-index: -1;
+            background: rgba(255, 255, 255, 0.85);
+            clip-path: polygon(1% 2%, 35% 0%, 75% 2%, 98% 1%, 100% 35%, 98% 75%, 99% 98%, 65% 100%, 25% 98%, 2% 99%, 0% 65%, 1% 25%);
+        }
+
+        #game2-container .start-title, #game2-container .start-lead, #game2-container .start-wrap .big-btn {
+            position: relative; z-index: 1;
+        }
+        /* 飾りの魚：白枠の上下に1列ずつ並べる（文字と重ならない・枠からはみ出さない） */
+        #game2-container .deco-row { position: relative; z-index: 1; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        #game2-container .deco-fish { width: 29%; height: 64px; object-fit: contain; opacity: 0.9; cursor: pointer; }
+
+        #game2-container .start-title { font-size: 26px; font-weight: 900; color: var(--ai); line-height: 1.5; margin: 0; }
+        #game2-container .start-lead { font-size: 15px; color: #000; line-height: 1.9; margin: 0; max-width: 260px; }
+
+        #game2-container .big-btn {
+            font-family: var(--font); font-weight: 900; font-size: 22px; color: #fff;
+            background: transparent; border: none; padding: 22px 52px;
+            filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.15));
+            cursor: pointer; position: relative;
+            transition: transform .08s ease, filter .08s ease;
+        }
+        #game2-container .big-btn::before {
+            content: ""; position: absolute; inset: 0; z-index: -1; background: var(--shu);
+            clip-path: polygon(3% 5%, 45% 1%, 85% 6%, 98% 18%, 99% 65%, 94% 93%, 60% 98%, 15% 95%, 2% 80%, 0% 45%);
+        }
+        #game2-container .big-btn:active { transform: translateY(4px); filter: drop-shadow(0px 1px 0 rgba(0,0,0,0.15)); }
+        #game2-container .big-btn.gray-btn { color: #333; font-size: 16px; padding: 12px 32px; margin-top: 10px; }
+        #game2-container .big-btn.gray-btn::before { background: #cbd5e1; }
+
+        #game2-container .q-progress {
+            width: 85%; max-width: 320px; height: 12px; margin: 4px auto 14px;
+            background: rgba(255, 255, 255, 0.8); border-radius: 10px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #game2-container .q-progress-inner {
+            height: 100%; background: var(--ai-light); border-radius: 10px; width: 0%; transition: width 0.4s ease-out;
+        }
+        #game2-container .q-progress-fish {
+            position: absolute; top: -24px; width: 60px; height: auto;
+            transform: translateX(-50%) scaleX(-1); transition: left 0.4s ease-out; z-index: 2;
+        }
+
+        #game2-container .q-card {
+            background: transparent; padding: 20px 22px; filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.15));
+            text-align: center; margin-bottom: 12px; display: flex; flex-direction: column; align-items: center; position: relative;
+        }
+        #game2-container .q-card::before {
+            content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(255, 255, 255, 0.75);
+            clip-path: polygon(2% 1%, 40% 0%, 80% 2%, 99% 1%, 100% 40%, 98% 80%, 97% 98%, 60% 100%, 20% 98%, 1% 99%, 0% 60%, 1% 20%);
+        }
+        #game2-container .q-num { font-size: 13px; color: var(--ai-light); font-weight: 700; margin-bottom: 8px; }
+        #game2-container .q-text { font-size: 19px; font-weight: 700; color: var(--sumi); line-height: 1.6; margin: 0; }
+
+        #game2-container .q-img-wrap { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 10px; width: 100%; }
+        #game2-container .q-img { max-width: 100%; max-height: 160px; border-radius: 12px; display: none; object-fit: contain; cursor: pointer; }
+        #game2-container .q-img.multi { max-width: 30%; max-height: 110px; }
+        #game2-container .q-img.silhouette { filter: brightness(0); }
+
+        #game2-container .ans-row { display: flex; gap: 32px; justify-content: center; margin-top: auto; margin-bottom: 56px; }
+        #game2-container .ans-btn {
+            flex: 1; max-width: 160px; aspect-ratio: 1 / 1; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.15)); transition: transform .08s ease, filter .08s ease;
+            background: transparent; position: relative; padding: 0;
+        }
+        #game2-container .ans-btn:active { transform: translateY(4px) scale(0.95); filter: drop-shadow(0px 1px 0 rgba(0,0,0,0.15)); }
+        #game2-container .ans-btn::before { content: ""; position: absolute; inset: 0; z-index: -1; }
+        #game2-container .ans-btn svg { width: 56%; height: 56%; position: relative; z-index: 1; }
+
+        #game2-container .ans-maru::before {
+            background: var(--ai-pale);
+            clip-path: polygon(18% 4%, 48% 0%, 78% 7%, 95% 22%, 100% 52%, 93% 82%, 76% 98%, 46% 100%, 15% 93%, 2% 70%, 0% 38%, 4% 15%);
+        }
+        #game2-container .ans-maru svg { stroke: var(--maru); }
+
+        #game2-container .ans-batsu::before {
+            background: var(--shu-pale);
+            clip-path: polygon(12% 10%, 38% 3%, 72% 9%, 92% 26%, 99% 58%, 87% 89%, 64% 99%, 30% 97%, 6% 83%, 0% 55%, 3% 28%);
+        }
+        #game2-container .ans-batsu svg { stroke: var(--batsu); }
+
+        #game2-container .result-feedback {
+            width: 100%; margin: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 12px; padding: 24px 20px; background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+        #game2-container .feedback-icon { width: 90px; height: 90px; }
+        #game2-container .feedback-word { font-size: 26px; font-weight: 900; }
+        #game2-container .feedback-word.ok { color: var(--maru); }
+        #game2-container .feedback-word.ng { color: var(--batsu); }
+        #game2-container .feedback-text { font-size: 15px; color: #000; line-height: 1.9; max-width: 280px; margin: 0; }
+
+        #game2-container .feedback-img-wrap { position: relative; margin-top: 4px; display: none; max-width: 100%; }
+        #game2-container .feedback-img { max-width: 100%; max-height: 140px; border-radius: 12px; display: block; object-fit: contain; cursor: pointer; }
+        #game2-container .telop {
+            position: absolute; background: rgba(0, 0, 0, 0.65); color: #fff; padding: 2px 8px; border-radius: 6px;
+            font-size: 13px; font-weight: 700; top: 10px; letter-spacing: 0.05em;
+        }
+        #game2-container .telop.left { left: 10px; }
+        #game2-container .telop.right { right: 10px; }
+
+        #game2-container .final-wrap {
+            width: 100%; margin: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 18px; padding: 30px 20px; min-height: 360px; background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+        }
+        #game2-container .final-score, #game2-container .final-msg, #game2-container .final-wrap .big-btn { position: relative; z-index: 1; }
+
+        #game2-container .final-score { font-size: 46px; font-weight: 900; color: var(--ai); margin: 0; }
+        #game2-container .final-score span { font-size: 22px; color: #7a6f5c; }
+        #game2-container .final-msg { font-size: 16px; color: var(--sumi); font-weight: 700; line-height: 1.8; max-width: 260px; margin: 0; }
+
+        @keyframes fishBounce {
+            0% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+            25% { transform: translate(-3px, -15px) rotate(calc(var(--rot, 0deg) - 15deg)) scale(1.1); }
+            50% { transform: translate(0, -25px) rotate(calc(var(--rot, 0deg) + 15deg)) scale(1.2); }
+            75% { transform: translate(3px, -15px) rotate(calc(var(--rot, 0deg) - 15deg)) scale(1.1); }
+            100% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+        }
+        .animate-bounce { animation: fishBounce 0.5s ease; }
+        @keyframes fishRotate {
+            0% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+            100% { transform: translate(0, 0) rotate(calc(var(--rot, 0deg) + 360deg)); }
+        }
+        .animate-rotate { animation: fishRotate 0.6s ease-in-out; }
+
+
+        /* ===== ごほうび／はげまし演出（音なし） ===== */
+        #fx-layer { position: fixed; inset: 0; z-index: 100000; pointer-events: none; overflow: hidden; }
+        .fx-piece { position: absolute; left: 50%; top: 45%; font-size: 30px; line-height: 1; opacity: 0;
+            animation: fxFly 1.5s ease-out forwards; }
+        @keyframes fxFly {
+            0% { opacity: 0; transform: translate(-50%,-50%) scale(0.3) rotate(0deg); }
+            15% { opacity: 1; }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2) rotate(var(--rot)); }
+        }
+        .fx-swim { position: absolute; left: -20%; font-size: 44px; line-height: 1; animation: fxSwim 2.4s ease-in-out forwards; }
+        @keyframes fxSwim {
+            0% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(65vw) translateY(-14px); }
+            100% { transform: translateX(135vw) translateY(0); }
+        }
+        .fx-bubble { position: absolute; bottom: -10%; font-size: 26px; line-height: 1; opacity: 0; animation: fxRise 2.2s ease-in forwards; }
+        @keyframes fxRise {
+            0% { opacity: 0; transform: translateY(0); }
+            20% { opacity: .9; }
+            100% { opacity: 0; transform: translateY(-85vh) translateX(var(--sx)); }
+        }
+        .fx-wobble { animation: fxWobble 0.9s ease-in-out; }
+        @keyframes fxWobble {
+            0%,100% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(-6deg) scale(1.05); }
+            40% { transform: rotate(5deg) scale(0.97); }
+            60% { transform: rotate(-3deg) scale(1.02); }
+            80% { transform: rotate(2deg); }
+        }
+        .fx-hop { animation: fxHop 0.7s ease-out; }
+        @keyframes fxHop { 0% { transform: scale(0.6); } 55% { transform: scale(1.15); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+
+    <!-- オープニング（デモ用：MMGロゴを表示） -->
+    <div id="intro-container">
+        <img id="intro-logo" src="mmg_logo.webp" alt="MMG">
+        <div id="intro-skip-text">画面をタップしてスキップ</div>
+    </div>
+
+    <!-- 共通背景動画（失敗・軽量モード時は .video-bg-container の静止背景が見える） -->
+    <div class="video-bg-container" id="bg-container">
+        <video id="bg-video-1" data-src="marubatsu_back.mp4" muted playsinline preload="auto" style="opacity: 1;"></video>
+        <video id="bg-video-2" data-src="marubatsu_back.mp4" muted playsinline preload="none" style="opacity: 0;"></video>
+    </div>
+
+    <!-- GAME 2: おさかな ○✕ くいず -->
+    <div id="game2-container" class="w-full relative overflow-hidden">
+        <div class="app">
+            <header><h1>おさかな ○✕ くいず</h1></header>
+            <main>
+                <!-- スタート画面 -->
+                <section class="screen active" data-screen="start">
+                    <div class="start-wrap">
+                        <p class="start-title">おさかなの こと、<br>どれくらい しってるかな?</p>
+                        <p class="start-lead">○か ✕で こたえてね。<br>ぜんぶで 5もん あるよ!</p>
+                        <button class="big-btn" onclick="g2_startQuiz()">はじめる</button>
+                    </div>
+                </section>
+
+                <!-- 出題画面 -->
+                <section class="screen" data-screen="quiz">
+                    <div class="q-progress" id="g2-qProgress"></div>
+                    <div class="q-card">
+                        <div class="q-num" id="g2-qNum">1 もんめ</div>
+                        <div class="q-text" id="g2-qText"></div>
+                        <div id="g2-qImgWrap" class="q-img-wrap"></div>
+                    </div>
+                    <div class="ans-row">
+                        <button class="ans-btn ans-maru" onclick="g2_answer(true)" aria-label="まる">
+                            <svg viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="22" stroke-width="7"/></svg>
+                        </button>
+                        <button class="ans-btn ans-batsu" onclick="g2_answer(false)" aria-label="ばつ">
+                            <svg viewBox="0 0 60 60" fill="none"><path d="M14 14l32 32M46 14L14 46" stroke-width="7" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- こたえあわせ画面 -->
+                <section class="screen" data-screen="feedback">
+                    <div class="result-feedback">
+                        <svg class="feedback-icon" id="g2-feedbackIcon" viewBox="0 0 100 100" fill="none"></svg>
+                        <div class="feedback-word" id="g2-feedbackWord"></div>
+                        <p class="feedback-text" id="g2-feedbackText"></p>
+                        <div id="g2-feedbackImgWrap" class="feedback-img-wrap">
+                            <img id="g2-feedbackImg" class="feedback-img" src="" alt="かいせつ画像">
+                            <div class="telop left">カレイ</div>
+                            <div class="telop right">ヒラメ</div>
+                        </div>
+                        <button class="big-btn" id="g2-nextBtn" style="margin-top: 4px;" onclick="g2_nextQuestion()">つぎへすすむ</button>
+                    </div>
+                </section>
+
+                <!-- さいごの画面 -->
+                <section class="screen" data-screen="final">
+                    <div class="final-wrap">
+                        <div class="final-score" id="g2-finalScore">0<span> / 5 もん</span></div>
+                        <p class="final-msg" id="g2-finalMsg"></p>
+                        <button class="big-btn" onclick="g2_startQuiz()">もういちど あそぶ</button>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+
+
+    <div id="fx-layer" aria-hidden="true"></div>
+    <script>
+        // ===== ごほうび／はげまし演出 =====
+        const FX_LAYER = () => document.getElementById('fx-layer');
+        function fxClear(ms) { setTimeout(() => { const l = FX_LAYER(); if (l) l.innerHTML = ''; }, ms); }
+        function fxReward(big) {
+            const l = FX_LAYER(); if (!l) return;
+            const icons = ['⭐', '✨', '🐟', '🫧', '🌟', '🐠'];
+            const n = big ? 26 : 16;
+            for (let i = 0; i < n; i++) {
+                const p = document.createElement('span'); p.className = 'fx-piece';
+                p.textContent = icons[Math.floor(Math.random() * icons.length)];
+                const ang = Math.random() * Math.PI * 2, dist = 90 + Math.random() * (big ? 230 : 170);
+                p.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+                p.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+                p.style.setProperty('--rot', (Math.random() * 360 - 180) + 'deg');
+                p.style.animationDelay = (Math.random() * 0.15) + 's';
+                l.appendChild(p);
+            }
+            const f = document.createElement('span'); f.className = 'fx-swim';
+            f.textContent = ['🐟', '🐠', '🐡'][Math.floor(Math.random() * 3)];
+            f.style.top = (18 + Math.random() * 55) + '%';
+            l.appendChild(f);
+            fxClear(2600);
+        }
+        // まちがえたとき：やさしく あわが のぼる
+        function fxCheer() {
+            const l = FX_LAYER(); if (!l) return;
+            for (let i = 0; i < 9; i++) {
+                const b = document.createElement('span'); b.className = 'fx-bubble';
+                b.textContent = '🫧';
+                b.style.left = (8 + Math.random() * 84) + '%';
+                b.style.setProperty('--sx', (Math.random() * 60 - 30) + 'px');
+                b.style.animationDelay = (Math.random() * 0.6) + 's';
+                l.appendChild(b);
+            }
+            fxClear(3000);
+        }
+        const FX_CHEER_WORDS = ['だいじょうぶ！', 'つぎは できるよ！', 'いいちょうせん！', 'もうすこし！'];
+        const fxCheerWord = () => FX_CHEER_WORDS[Math.floor(Math.random() * FX_CHEER_WORDS.length)];
+    </script>
+
+    <script>
+        // ------------------------------------------------
+        // 設定
+        // ------------------------------------------------
+        const IDLE_RETURN_MS = 60000; // 操作がなければ最初の画面へ戻るまでの時間（ミリ秒）
+        const TAP_LOCK_MS = 500;      // 【修正2】誤タップ防止の時間（ミリ秒）
+
+        // ------------------------------------------------
+        // 【修正2】誤タップ防止ヘルパー
+        // ------------------------------------------------
+        function lockTap(elements, ms) {
+            const list = Array.from(elements).filter(Boolean);
+            list.forEach(el => el.classList.add('tap-lock'));
+            setTimeout(() => list.forEach(el => el.classList.remove('tap-lock')), ms || TAP_LOCK_MS);
+        }
+
+        // ------------------------------------------------
+        // 【修正4】軽量モード判定
+        //   ?lite=1 で軽量モード（この端末に記憶）、?lite=0 で解除
+        //   端末の「データセーバー」設定でも自動で軽量モード
+        // ------------------------------------------------
+        let isLite = false;
+        (function detectLite() {
+            const params = new URLSearchParams(location.search);
+            const q = params.get('lite');
+            try {
+                if (q === '1') localStorage.setItem('fishQuizLite', '1');
+                if (q === '0') localStorage.removeItem('fishQuizLite');
+                isLite = localStorage.getItem('fishQuizLite') === '1';
+            } catch (e) {
+                isLite = (q === '1');
+            }
+            try {
+                if (navigator.connection && navigator.connection.saveData) isLite = true;
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches) isLite = true;
+            } catch (e) {}
+            if (isLite) document.body.classList.add('lite');
+        })();
+
+        function resetToStart() { g2_goScreen('start'); }
+
+        // ------------------------------------------------
+        // 操作がなければ、お店の端末で次のお客さんがすぐ遊べるよう最初の画面に戻す
+        // ------------------------------------------------
+        let idleTimer = null;
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(resetToStart, IDLE_RETURN_MS);
+        }
+        ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
+            window.addEventListener(evt, resetIdleTimer, { passive: true });
+        });
+        resetIdleTimer();
+
+        // ------------------------------------------------
+        // 共通: 背景動画（クロスフェードループ）とオープニング
+        // 【修正4】軽量モード／再生失敗時は静止背景にフォールバック
+        // ------------------------------------------------
+        function disableBgVideo() {
+            const box = document.getElementById('bg-container');
+            if (box) box.classList.add('no-video');
+            ['bg-video-1', 'bg-video-2'].forEach(id => {
+                const v = document.getElementById(id);
+                if (v) { try { v.pause(); } catch (e) {} v.removeAttribute('src'); v.load(); }
+            });
+        }
+
+        function initBackgroundVideo() {
+            const v1 = document.getElementById('bg-video-1');
+            const v2 = document.getElementById('bg-video-2');
+            if (!v1 || !v2) return;
+
+            if (isLite) { disableBgVideo(); return; }
+
+            v1.src = v1.dataset.src;
+            v2.src = v2.dataset.src;
+            v2.preload = 'auto';
+
+            const fadeDuration = 1.5;
+            let activeVideo = v1;
+            let nextVideo = v2;
+            let isSwapping = false;
+            let failed = false;
+
+            const fail = () => { if (failed) return; failed = true; disableBgVideo(); };
+
+            v1.addEventListener('error', fail);
+            v2.addEventListener('error', fail);
+            v1.play().catch(fail);
+
+            // 4秒たっても再生が始まらなければ静止背景にする（iOS Safariの自動再生制限など）
+            setTimeout(() => {
+                if (!failed && (v1.paused || v1.readyState < 2 || v1.currentTime === 0)) fail();
+            }, 4000);
+
+            function handleTimeUpdate(e) {
+                const vid = e.target;
+                if (vid !== activeVideo) return;
+
+                if (vid.duration > 0 && (vid.duration - vid.currentTime <= fadeDuration)) {
+                    if (isSwapping) return;
+                    isSwapping = true;
+
+                    nextVideo.currentTime = 0;
+                    nextVideo.play().catch(() => {});
+                    nextVideo.style.opacity = 1;
+                    activeVideo.style.opacity = 0;
+
+                    setTimeout(() => {
+                        let temp = activeVideo;
+                        activeVideo = nextVideo;
+                        nextVideo = temp;
+                        isSwapping = false;
+                    }, fadeDuration * 1000);
+                }
+            }
+            v1.addEventListener('timeupdate', handleTimeUpdate);
+            v2.addEventListener('timeupdate', handleTimeUpdate);
+
+            // タブが隠れたときは動画を止めて電池を節約
+            document.addEventListener('visibilitychange', () => {
+                if (failed) return;
+                if (document.hidden) { v1.pause(); v2.pause(); }
+                else { activeVideo.play().catch(() => {}); }
+            });
+        }
+
+        function initIntro() {
+            const introContainer = document.getElementById('intro-container');
+            const introVideo = document.getElementById('intro-video');
+            const introLogo = document.getElementById('intro-logo');
+            if (!introContainer) return;
+
+            let introSkipped = false;
+            let introTimeouts = [];
+            let introPhaseTriggered = false;
+
+            const endIntro = () => {
+                if (introSkipped) return;
+                introSkipped = true;
+                introTimeouts.forEach(clearTimeout);
+                introContainer.style.opacity = '0';
+                setTimeout(() => {
+                    introContainer.style.display = 'none';
+                    if (introVideo) { try { introVideo.pause(); } catch (e) {} }
+                }, 1000);
+            };
+
+            // 動画なしでロゴだけ見せて終了する
+            const logoOnly = () => {
+                if (introSkipped || introPhaseTriggered) return;
+                introPhaseTriggered = true;
+                if (introVideo) { try { introVideo.pause(); } catch (e) {} introVideo.style.display = 'none'; }
+                if (introLogo) introLogo.style.opacity = '1';
+                introTimeouts.push(setTimeout(endIntro, 2800));
+            };
+
+            introContainer.addEventListener('click', endIntro);
+            introContainer.addEventListener('touchstart', endIntro, {passive: true});
+
+            if (isLite || !introVideo) {
+                logoOnly();
+                return;
+            }
+
+            introVideo.src = introVideo.dataset.src;
+            introVideo.addEventListener('error', logoOnly);
+            introVideo.play().catch(logoOnly);
+
+            // 3.5秒たっても動画が動かなければロゴだけにする
+            introTimeouts.push(setTimeout(() => {
+                if (!introPhaseTriggered && (introVideo.paused || introVideo.currentTime === 0)) logoOnly();
+            }, 3500));
+
+            // 新しいオープニング動画はロゴの演出まで動画の中に入っているので、
+            // 終わったらそのままゲームへ進む（ロゴ画像は動画が使えないときだけ表示）
+            introVideo.addEventListener('ended', () => {
+                if (!introSkipped && !introPhaseTriggered) {
+                    introPhaseTriggered = true;
+                    endIntro();
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initBackgroundVideo();
+            // Game 2の装飾用の魚を配置
+            g2_initDecorativeFishes();
+            g2_addTapAnimation(document.getElementById('g2-feedbackImg'));
+            initIntro();
+        });
+
+        // ================================================
+        // GAME 2 の ロジック
+        // ================================================
+        const g2_allQuestions = [
+            { text: "たこの あしは 8ほん ある", correct: true, image: "tako.webp", okText: "そのとおり!たこの あしは 8ほんだよ。", ngText: "おしい!たこの あしは 8ほん あるんだよ。" },
+            { text: "いわしは みずのなかで なかまと およぐ", correct: true, image: "iwashi.webp", multiImage: true, showFeedbackImage: true, feedbackImage: "iwashit.webp", okText: "やったね!おおきな さかなに たべられないように、たくさんのおともだちと くっついて およぐんだよ。", ngText: "おしい!おおきな さかなに たべられないように、たくさんのおともだちと くっついて およぐんだよ。" },
+            { text: "あまえびは うまれたときから ずっと おんなのこ", correct: false, image: "amaebi.webp", okText: "すごい!あまえびは さいしょ おとこのこで、あとから おんなのこに かわるんだよ。", ngText: "おしい!あまえびは さいしょ おとこのこなんだよ。" },
+            { text: "うなぎの からだは へびみたいに ながい", correct: true, image: "unagi.webp", showFeedbackImage: true, silhouette: true, okText: "そのとおり! うなぎは にょろにょろと ながい かたちを しているよ。", ngText: "おしい! うなぎは へびのように なが〜い さかななんだよ。" },
+            { text: "ひらめの めは からだの みぎがわに ある", correct: false, image: "hiramekarei.webp", showFeedbackImage: true, showTelop: true, okText: "やったね!めが ひだりに あるのが ひらめ、みぎに あるのが かれい だよ。", ngText: "おしい!めが ひだりに あるのが ひらめ、みぎに あるのが かれい だよ。" },
+            { text: "やりいかの からだは さんかくの かたち", correct: true, image: "yariika.webp", showFeedbackImage: true, feedbackImage: "yariika2.webp", silhouette: true, okText: "そのとおり!やりの ような かたちを しているね。", ngText: "おしい!やりいかは さんかくの かたちを しているんだよ。" },
+            { text: "かつおは およぐのを やめても へいき", correct: false, image: "katsuo.webp", showFeedbackImage: true, feedbackImage: "katsuo_batsu.webp", okText: "すごい!かつおは およぎつづけないと いきが できないんだよ。", ngText: "おしい!かつおは およぎつづけないと いきが できないんだよ。" },
+            { text: "「あじ」というなまえは、<br>たべて「あじがいい」からついた", correct: true, image: "aji.webp", showFeedbackImage: true, okText: "そのとおり!たべると とっても おいしい(あじがいい)から、「あじ」という なまえに なったんだよ。", ngText: "おしい!たべると とっても おいしい(あじがいい)から、「あじ」という なまえに なったんだよ。" }
+        ];
+
+        let g2_questions = [];
+        const g2_maxQuestions = 5;
+
+        let g2_currentIndex = 0;
+        let g2_correctCount = 0;
+
+        function g2_addTapAnimation(el) {
+            if (!el) return;
+            el.addEventListener('click', function() {
+                const src = el.src || '';
+                const isRotate = src.includes('aji') || src.includes('hirame') || src.includes('katsuo') || src.includes('iwashi') || src.includes('unagi');
+                const animClass = isRotate ? 'animate-rotate' : 'animate-bounce';
+                el.classList.remove('animate-bounce', 'animate-rotate');
+                void el.offsetWidth;
+                el.classList.add(animClass);
+            });
+            el.addEventListener('animationend', function() {
+                el.classList.remove('animate-bounce', 'animate-rotate');
+            });
+        }
+
+        function g2_goScreen(name){
+            document.querySelectorAll('#game2-container .screen').forEach(el=>{
+                el.classList.toggle('active', el.dataset.screen === name);
+            });
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        function g2_startQuiz(){
+            g2_currentIndex = 0;
+            g2_correctCount = 0;
+            let shuffled = [...g2_allQuestions].sort(() => 0.5 - Math.random());
+            g2_questions = shuffled.slice(0, g2_maxQuestions);
+
+            g2_renderProgress();
+            g2_renderQuestion();
+            g2_goScreen('quiz');
+        }
+
+        function g2_renderProgress(){
+            const wrap = document.getElementById('g2-qProgress');
+            if (!wrap.querySelector('.q-progress-inner')) {
+                wrap.innerHTML = "";
+                const inner = document.createElement('div');
+                inner.className = 'q-progress-inner';
+                wrap.appendChild(inner);
+                const fish = document.createElement('img');
+                fish.src = 'aji.webp'; fish.className = 'q-progress-fish';
+                wrap.appendChild(fish);
+            }
+            const inner = wrap.querySelector('.q-progress-inner');
+            const fish = wrap.querySelector('.q-progress-fish');
+            const percentage = ((g2_currentIndex + 1) / g2_questions.length) * 100;
+            inner.style.width = percentage + '%';
+            fish.style.left = percentage + '%';
+        }
+
+        function g2_renderQuestion(){
+            const q = g2_questions[g2_currentIndex];
+            document.getElementById('g2-qNum').textContent = (g2_currentIndex + 1) + ' もんめ';
+            document.getElementById('g2-qText').innerHTML = q.text;
+
+            const qImgWrap = document.getElementById('g2-qImgWrap');
+            qImgWrap.innerHTML = '';
+
+            if (q.image) {
+                const imgCount = q.multiImage ? 3 : 1;
+                for (let i = 0; i < imgCount; i++) {
+                    const img = document.createElement('img');
+                    img.src = q.image; img.className = 'q-img'; img.style.display = 'block';
+                    if (q.multiImage) img.classList.add('multi');
+                    if (q.silhouette) img.classList.add('silhouette');
+                    img.alt = 'もんだいの画像';
+                    img.style.setProperty('--rot', '0deg');
+                    g2_addTapAnimation(img);
+                    qImgWrap.appendChild(img);
+                }
+            }
+            g2_renderProgress();
+
+            // 【修正2】「つぎへ」連打で次の問題を誤って答えないよう、○✕を一瞬ロック
+            lockTap(document.querySelectorAll('#game2-container .ans-btn'));
+        }
+
+        function g2_answer(userAnswer){
+            const q = g2_questions[g2_currentIndex];
+            const isCorrect = (userAnswer === q.correct);
+            if (isCorrect) g2_correctCount++;
+
+            const icon = document.getElementById('g2-feedbackIcon');
+            const word = document.getElementById('g2-feedbackWord');
+            const text = document.getElementById('g2-feedbackText');
+            const feedbackImgWrap = document.getElementById('g2-feedbackImgWrap');
+            const feedbackImg = document.getElementById('g2-feedbackImg');
+
+            if (isCorrect){
+                icon.innerHTML = '<circle cx="50" cy="50" r="36" stroke="#2E86AB" stroke-width="9"/>';
+                const okWords = ["やったね!", "すごい!"];
+                word.textContent = okWords[Math.floor(Math.random() * okWords.length)];
+                word.className = "feedback-word ok";
+                text.textContent = q.okText;
+                fxReward(g2_correctCount === g2_questions.length);
+            } else {
+                icon.innerHTML = '<path d="M25 25l50 50M75 25L25 75" stroke="#E8563E" stroke-width="9" stroke-linecap="round"/>';
+                word.textContent = fxCheerWord();
+                word.className = "feedback-word ng";
+                text.textContent = q.ngText.replace(/^おしい[!！]\s*/, '');
+                fxCheer();
+            }
+
+            if (q.showFeedbackImage) {
+                feedbackImg.src = q.feedbackImage || q.image;
+                feedbackImgWrap.style.display = 'inline-block';
+                const telops = feedbackImgWrap.querySelectorAll('.telop');
+                telops.forEach(t => t.style.display = q.showTelop ? 'block' : 'none');
+            } else {
+                feedbackImgWrap.style.display = 'none';
+            }
+
+            const nextBtn = document.getElementById('g2-nextBtn');
+            if (g2_currentIndex === g2_questions.length - 1) {
+                nextBtn.textContent = "けっかをみる";
+            } else {
+                nextBtn.textContent = "つぎへすすむ";
+            }
+            // 【修正2】こたえあわせ画面が出た直後は「つぎへ」を押せない
+            lockTap([nextBtn]);
+            g2_goScreen('feedback');
+        }
+
+        function g2_nextQuestion(){
+            g2_currentIndex++;
+            if (g2_currentIndex < g2_questions.length){
+                g2_renderQuestion();
+                g2_goScreen('quiz');
+            } else {
+                g2_showFinal();
+            }
+        }
+
+        function g2_showFinal(){
+            document.getElementById('g2-finalScore').innerHTML = g2_correctCount + '<span> / ' + g2_questions.length + ' もん</span>';
+            let msg = "";
+            if (g2_correctCount === g2_questions.length){
+                msg = "すごい!ぜんもん せいかい!<br>さかなはかせだね!";
+            } else if (g2_correctCount >= g2_questions.length / 2){
+                msg = "よく できました!<br>また ちょうせんしてね。";
+            } else {
+                msg = "たのしんで もらえたかな?<br>また あそんでね。";
+            }
+            document.getElementById('g2-finalMsg').innerHTML = msg;
+            g2_goScreen('final');
+            if (g2_correctCount === g2_questions.length) fxReward(true);
+            // 【修正2】結果画面でも直後の誤タップを防ぐ
+            lockTap(document.querySelectorAll('#game2-container .final-wrap .big-btn'));
+        }
+
+        function g2_initDecorativeFishes() {
+            // 魚は文字と別の「列」に並べる（白枠の上と下）。位置を%で指定しないので、文字と重ならず枠からもはみ出さない。
+            const layouts = [
+                { selector: '#game2-container .start-wrap',
+                  top: [['aji.webp', -8], ['amaebi.webp', 6], ['hirame.webp', 4]],
+                  bottom: [['katsuo2.webp', 8], ['iwashi.webp', -6], ['tako.webp', -5]] },
+                { selector: '#game2-container .final-wrap',
+                  top: [['aji.webp', -8], ['hirame.webp', 4], ['amaebi.webp', 6]],
+                  bottom: [['iwashi.webp', -6], ['katsuo2.webp', 8], ['tako.webp', -5]] }
+            ];
+            const makeRow = (items) => {
+                const row = document.createElement('div');
+                row.className = 'deco-row';
+                items.forEach(([src, rot]) => {
+                    const img = document.createElement('img');
+                    img.src = src; img.className = 'deco-fish'; img.alt = '';
+                    img.style.setProperty('--rot', rot + 'deg');
+                    img.style.transform = 'rotate(var(--rot))';
+                    g2_addTapAnimation(img);
+                    row.appendChild(img);
+                });
+                return row;
+            };
+            layouts.forEach(l => {
+                const wrap = document.querySelector(l.selector);
+                if (!wrap) return;
+                wrap.insertBefore(makeRow(l.top), wrap.firstChild);
+                wrap.appendChild(makeRow(l.bottom));
+            });
+        }
+
+
+    </script>
+</body>
+</html>

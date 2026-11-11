@@ -1,1 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アンケート</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f7f9fa;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .survey-container {
+      background: #fff;
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .shop-badge {
+      display: inline-block;
+      background: #eef2f6;
+      color: #555;
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .radio-label {
+      font-weight: normal;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.submit-btn {
+      width: 100%;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    button.submit-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
 
+  <div class="survey-container">
+    <h1>ご利用アンケート</h1>
+    <div id="shopInfo" class="shop-badge">店舗コード: 確認中...</div>
+
+    <form id="surveyForm">
+      <!-- 質問1: 年代 -->
+      <div class="form-group">
+        <label for="age">年代を教えてください</label>
+        <select id="age" name="age" required>
+          <option value="">選択してください</option>
+          <option value="10代以下">10代以下</option>
+          <option value="20代">20代</option>
+          <option value="30代">30代</option>
+          <option value="40代">40代</option>
+          <option value="50代以上">50代以上</option>
+        </select>
+      </div>
+
+      <!-- 質問2: 来店頻度 -->
+      <div class="form-group">
+        <label>当店へのご来店頻度は？</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="frequency" value="first" required> 初めて
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="frequency" value="repeat"> 2回目以上
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">送信して次へ進む</button>
+    </form>
+  </div>
+
+  <script>
+    // 1. URLパラメータから店舗IDを取得する関数
+    function getShopId() {
+      const params = new URLSearchParams(window.location.search);
+      // ?shop_id=123456 または ?cd=123456 に対応
+      return params.get('shop_id') || params.get('cd') || '';
+    }
+
+    // 2. デバイスIDの生成・取得関数 (UUIDを発行してlocalStorageに保持)
+    function getOrCreateDeviceId() {
+      let deviceId = localStorage.getItem('device_id');
+      if (!deviceId) {
+        deviceId = 'dev_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
+        localStorage.setItem('device_id', deviceId);
+      }
+      return deviceId;
+    }
+
+    // 画面初期化
+    const currentShopId = getShopId();
+    const deviceId = getOrCreateDeviceId();
+    
+    // 店舗IDをlocalStorageにもバックアップ保存
+    if (currentShopId) {
+      localStorage.setItem('shop_id', currentShopId);
+    }
+
+    // 店舗バッジの表示更新
+    document.getElementById('shopInfo').textContent = currentShopId 
+      ? `店舗コード: ${currentShopId}` 
+      : '店舗コード: 未指定';
+
+    // 3. フォーム送信イベント
+    document.getElementById('surveyForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '送信中...';
+
+      // 回答データの収集
+      const formData = new FormData(e.target);
+      const surveyPayload = {
+        shop_id: currentShopId,
+        device_id: deviceId,
+        age: formData.get('age'),
+        frequency: formData.get('frequency'),
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('【テスト用】アンケート送信データ:', surveyPayload);
+      
+      // ※ここにGoogleスプレッドシートやAPIへのデータ送信コード（fetchなど）が入ります
+      // 今回はテスト遷移の動作確認のため、少し待機して次に進みます
+      
+      try {
+        // routing.json を読み込み
+        const res = await fetch('./routing.json');
+        const routeConfig = await res.json();
+
+        // 該当店舗の設定を探す（見つからなければ default）
+        const target = routeConfig[currentShopId] || routeConfig['default'];
+        
+        // 遷移先URLオブジェクトを生成
+        const nextUrl = new URL(target.url);
+
+        // 店舗IDとデバイスIDをクエリパラメータとして付与
+        if (currentShopId) {
+          nextUrl.searchParams.set('shop_id', currentShopId);
+        }
+        nextUrl.searchParams.set('device_id', deviceId);
+
+        // 画面遷移
+        window.location.href = nextUrl.toString();
+
+      } catch (err) {
+        console.error('ルーティング設定の読み込みに失敗しました:', err);
+        alert('通信エラーが発生しました。トップへ戻ります。');
+        // フォールバック（例: 共通の遊び場などへ）
+        window.location.href = './playground/?shop_id=' + currentShopId;
+      }
+    });
+  </script>
+</body>
+</html>

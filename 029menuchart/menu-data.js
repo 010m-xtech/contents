@@ -25,10 +25,10 @@ const MENU_CONFIG = {
 //   comment  : お店のひとこと（手書きボードの文）
 //   special  : true にすると「限定・おすすめ」の枠に大きく出ます
 //   tags     : 「夏限定」「飲食店限定」など自由に
-//   image    : 瓶の写真（省略できます）。例）"images/enasan.webp"
+//   image    : 瓶の写真（省略できます）。例）"image/enasan.webp"
 //              白い背景の写真がきれいになじみます（背景を切り抜かなくてOK）
 //              瓶が写真のまん中にないときは imagePosition: "60% 50%" のように左右・上下の位置を指定
-//              写真がないときは、images/ の瓶の写真（sake-green など）にラベルを重ねて、名前を書いて見せます
+//              写真がないときは、image/ の瓶の写真（sake-green など）にラベルを重ねて、名前を書いて見せます
 //   color    : 写真がないときの瓶の色
 //                日本酒 … "green"（緑の瓶） / "brown"（茶色の瓶）
 //                ワイン … "red"（赤ワイン） / "white"（白・泡） / "rose"（ロゼ）
@@ -127,7 +127,7 @@ const TODAY_MENU = [
     taste: { aroma: 65, sweetness: 55, acidity: 40, body: 40, bitterness: 15, umami: 60 },
     comment: "洋梨のような穏やかな吟醸香。米の甘みと、中津川の清流のような軽やかな余韻。",
     specs: ["山田錦", "精米歩合 50％", "IWC 受賞"],
-    tags: [], image: "images/恵那山①.webp", imagePosition: "54% 50%", color: "green", label: "#3D5A2A",
+    tags: [], image: "image/enasan-1.webp", imagePosition: "54% 50%", color: "green", label: "#3D5A2A",
     catch: "洋梨のように香る、中津川の清流の1杯",
     keywords: ["洋梨の香り", "米の甘み", "軽やかな余韻"],
     points: [

@@ -21,6 +21,7 @@
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-sizing: border-box;
     }
     h1 {
       font-size: 1.25rem;
@@ -37,34 +38,29 @@
       margin-bottom: 20px;
     }
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
-    label {
+    label.group-title {
       display: block;
       font-weight: bold;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       font-size: 0.95rem;
-    }
-    select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 1rem;
-      background-color: #fff;
     }
     .radio-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+    }
+    .radio-group.inline {
+      flex-direction: row;
+      gap: 16px;
     }
     .radio-label {
-      font-weight: normal;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
     }
     button.submit-btn {
       width: 100%;
@@ -95,44 +91,66 @@
     <div id="shopInfo" class="shop-badge">店舗コード: 確認中...</div>
 
     <form id="surveyForm">
-      <!-- 質問1: 年代 -->
+      <!-- 1. 性別 -->
       <div class="form-group">
-        <label for="age">年代を教えてください</label>
-        <select id="age" name="age" required>
-          <option value="">選択してください</option>
-          <option value="10代以下">10代以下</option>
-          <option value="20代">20代</option>
-          <option value="30代">30代</option>
-          <option value="40代">40代</option>
-          <option value="50代以上">50代以上</option>
-        </select>
-      </div>
-
-      <!-- 質問2: 来店頻度 -->
-      <div class="form-group">
-        <label>当店へのご来店頻度は？</label>
-        <div class="radio-group">
+        <label class="group-title">性別</label>
+        <div class="radio-group inline">
           <label class="radio-label">
-            <input type="radio" name="frequency" value="first" required> 初めて
+            <input type="radio" name="gender" value="男性" required> 男性
           </label>
           <label class="radio-label">
-            <input type="radio" name="frequency" value="repeat"> 2回目以上
+            <input type="radio" name="gender" value="女性" required> 女性
           </label>
         </div>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">送信して次へ進む</button>
+      <!-- 2. 年代 -->
+      <div class="form-group">
+        <label class="group-title">年代</label>
+        <div class="radio-group inline">
+          <label class="radio-label">
+            <input type="radio" name="age" value="35歳未満" required> 35歳未満
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="age" value="35歳以上" required> 35歳以上
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. 関係性 -->
+      <div class="form-group">
+        <label class="group-title">ご来店のお連れ様（関係性）</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="relationship" value="1人" required> 1人
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="relationship" value="家族・親戚" required> 家族・親戚
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="relationship" value="仕事関係" required> 仕事関係
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="relationship" value="友人・知人" required> 友人・知人
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">送信してゲームへ進む</button>
     </form>
   </div>
 
   <script>
-    // 1. URLパラメータから店舗IDを取得
+    // ★先ほどデプロイしたGoogle Apps ScriptのWebアプリURLをここに貼り付けます
+    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx0KxYbBNI0WJOAyiXdgRi8TsN-h5pK0N95u3iFJtmINIX0Ntea8gA7xfI_qBxacagS7A/execc';
+
+    // 1. 店舗ID取得
     function getShopId() {
       const params = new URLSearchParams(window.location.search);
       return params.get('shop_id') || params.get('cd') || '';
     }
 
-    // 2. デバイスIDの生成・取得 (UUIDを発行してlocalStorageに保存)
+    // 2. デバイスIDの生成・取得
     function getOrCreateDeviceId() {
       let deviceId = localStorage.getItem('device_id');
       if (!deviceId) {
@@ -142,28 +160,54 @@
       return deviceId;
     }
 
-    // 3. 目的のURLに device_id クエリパラメータを安全に追加する関数
+    // 3. URLにdevice_idを安全に付与する
     function appendDeviceId(targetUrlString, deviceId) {
       const url = new URL(targetUrlString);
       url.searchParams.set('device_id', deviceId);
       return url.toString();
     }
 
+    // 4. データ送信関数（CORSエラーを回避して送信）
+    async function sendDataToGAS(payload) {
+      try {
+        await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          mode: 'no-cors', // GitHub PagesからGASへ送る際のCORSエラー防止
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('送信エラー:', err);
+      }
+    }
+
+    // 日本時間（YYYY-MM-DD HH:mm:ss）を取得
+    function getFormattedTimestamp() {
+      const d = new Date();
+      return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    }
+
     // 画面初期化
     const currentShopId = getShopId();
     const deviceId = getOrCreateDeviceId();
 
-    // 店舗IDをlocalStorageにも保存
-    if (currentShopId) {
-      localStorage.setItem('shop_id', currentShopId);
-    }
-
-    // 店舗バッジの表示
     document.getElementById('shopInfo').textContent = currentShopId 
       ? `店舗コード: ${currentShopId}` 
       : '店舗コード: 未指定';
 
-    // 4. フォーム送信処理
+    // 画面表示イベント（survey_view）の送信
+    window.addEventListener('DOMContentLoaded', () => {
+      sendDataToGAS({
+        type: 'event',
+        timestamp: getFormattedTimestamp(),
+        shop_id: currentShopId,
+        device_id: deviceId,
+        event: 'survey_view',
+        content_name: 'アンケート画面'
+      });
+    });
+
+    // フォーム送信処理
     document.getElementById('surveyForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
@@ -171,46 +215,56 @@
       submitBtn.disabled = true;
       submitBtn.textContent = '送信中...';
 
-      // 回答データの整形
       const formData = new FormData(e.target);
-      const surveyPayload = {
-        shop_id: currentShopId,
-        device_id: deviceId,
-        age: formData.get('age'),
-        frequency: formData.get('frequency'),
-        timestamp: new Date().toISOString()
-      };
-
-      console.log('【アンケート送信データ】', surveyPayload);
-
-      // ※ここにGoogleスプレッドシート等への送信処理が入ります
+      const timestamp = getFormattedTimestamp();
 
       try {
-        // routing.json の読み込み
+        // 設定JSONを取得
         const res = await fetch('./routing.json');
         const routeConfig = await res.json();
+        const targetConfig = routeConfig[currentShopId] || routeConfig['default'];
 
-        // 該当店舗のURL文字列を取得（見つからなければ default）
-        const targetUrl = routeConfig[currentShopId] || routeConfig['default'];
-
-        if (!targetUrl) {
-          throw new Error('遷移先URLが見つかりません');
+        if (!targetConfig || !targetConfig.url) {
+          throw new Error('遷移先設定が見つかりません');
         }
 
-        // device_id を付与してリダイレクト
+        const targetUrl = targetConfig.url;
+        const targetContentName = targetConfig.name || '不明なコンテンツ';
+
+        // 1. ユーザーデータの送信
+        const userPromise = sendDataToGAS({
+          type: 'user',
+          timestamp: timestamp,
+          shop_id: currentShopId,
+          device_id: deviceId,
+          gender: formData.get('gender'),
+          age: formData.get('age'),
+          relationship: formData.get('relationship')
+        });
+
+        // 2. イベントデータ（survey_submit）の送信
+        const eventPromise = sendDataToGAS({
+          type: 'event',
+          timestamp: timestamp,
+          shop_id: currentShopId,
+          device_id: deviceId,
+          event: 'survey_submit',
+          content_name: targetContentName
+        });
+
+        // 両方の送信を待ってから画面遷移
+        await Promise.all([userPromise, eventPromise]);
+
         const nextUrl = appendDeviceId(targetUrl, deviceId);
         window.location.href = nextUrl;
 
       } catch (err) {
-        console.error('ルーティングに失敗しました:', err);
-        alert('通信エラーが発生しました。設定を確認してください。');
+        console.error('処理エラー:', err);
+        alert('エラーが発生しました。設定をご確認ください。');
         submitBtn.disabled = false;
-        submitBtn.textContent = '送信して次へ進む';
+        submitBtn.textContent = '送信してゲームへ進む';
       }
     });
-  </script>
-</body>
-</html>
   </script>
 </body>
 </html>

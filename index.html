@@ -45,13 +45,14 @@
       margin-bottom: 8px;
       font-size: 0.95rem;
     }
-    select, input[type="text"] {
+    select {
       width: 100%;
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       box-sizing: border-box;
       font-size: 1rem;
+      background-color: #fff;
     }
     .radio-group {
       display: flex;
@@ -80,6 +81,10 @@
     }
     button.submit-btn:hover {
       background-color: #0056b3;
+    }
+    button.submit-btn:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -121,14 +126,13 @@
   </div>
 
   <script>
-    // 1. URLパラメータから店舗IDを取得する関数
+    // 1. URLパラメータから店舗IDを取得
     function getShopId() {
       const params = new URLSearchParams(window.location.search);
-      // ?shop_id=123456 または ?cd=123456 に対応
       return params.get('shop_id') || params.get('cd') || '';
     }
 
-    // 2. デバイスIDの生成・取得関数 (UUIDを発行してlocalStorageに保持)
+    // 2. デバイスIDの生成・取得 (UUIDを発行してlocalStorageに保存)
     function getOrCreateDeviceId() {
       let deviceId = localStorage.getItem('device_id');
       if (!deviceId) {
@@ -138,29 +142,36 @@
       return deviceId;
     }
 
+    // 3. 目的のURLに device_id クエリパラメータを安全に追加する関数
+    function appendDeviceId(targetUrlString, deviceId) {
+      const url = new URL(targetUrlString);
+      url.searchParams.set('device_id', deviceId);
+      return url.toString();
+    }
+
     // 画面初期化
     const currentShopId = getShopId();
     const deviceId = getOrCreateDeviceId();
-    
-    // 店舗IDをlocalStorageにもバックアップ保存
+
+    // 店舗IDをlocalStorageにも保存
     if (currentShopId) {
       localStorage.setItem('shop_id', currentShopId);
     }
 
-    // 店舗バッジの表示更新
+    // 店舗バッジの表示
     document.getElementById('shopInfo').textContent = currentShopId 
       ? `店舗コード: ${currentShopId}` 
       : '店舗コード: 未指定';
 
-    // 3. フォーム送信イベント
+    // 4. フォーム送信処理
     document.getElementById('surveyForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
       submitBtn.textContent = '送信中...';
 
-      // 回答データの収集
+      // 回答データの整形
       const formData = new FormData(e.target);
       const surveyPayload = {
         shop_id: currentShopId,
@@ -170,38 +181,36 @@
         timestamp: new Date().toISOString()
       };
 
-      console.log('【テスト用】アンケート送信データ:', surveyPayload);
-      
-      // ※ここにGoogleスプレッドシートやAPIへのデータ送信コード（fetchなど）が入ります
-      // 今回はテスト遷移の動作確認のため、少し待機して次に進みます
-      
+      console.log('【アンケート送信データ】', surveyPayload);
+
+      // ※ここにGoogleスプレッドシート等への送信処理が入ります
+
       try {
-        // routing.json を読み込み
+        // routing.json の読み込み
         const res = await fetch('./routing.json');
         const routeConfig = await res.json();
 
-        // 該当店舗の設定を探す（見つからなければ default）
-        const target = routeConfig[currentShopId] || routeConfig['default'];
-        
-        // 遷移先URLオブジェクトを生成
-        const nextUrl = new URL(target.url);
+        // 該当店舗のURL文字列を取得（見つからなければ default）
+        const targetUrl = routeConfig[currentShopId] || routeConfig['default'];
 
-        // 店舗IDとデバイスIDをクエリパラメータとして付与
-        if (currentShopId) {
-          nextUrl.searchParams.set('shop_id', currentShopId);
+        if (!targetUrl) {
+          throw new Error('遷移先URLが見つかりません');
         }
-        nextUrl.searchParams.set('device_id', deviceId);
 
-        // 画面遷移
-        window.location.href = nextUrl.toString();
+        // device_id を付与してリダイレクト
+        const nextUrl = appendDeviceId(targetUrl, deviceId);
+        window.location.href = nextUrl;
 
       } catch (err) {
-        console.error('ルーティング設定の読み込みに失敗しました:', err);
-        alert('通信エラーが発生しました。トップへ戻ります。');
-        // フォールバック（例: 共通の遊び場などへ）
-        window.location.href = './playground/?shop_id=' + currentShopId;
+        console.error('ルーティングに失敗しました:', err);
+        alert('通信エラーが発生しました。設定を確認してください。');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '送信して次へ進む';
       }
     });
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>

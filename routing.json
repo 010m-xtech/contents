@@ -1,0 +1,17 @@
+{
+  "default": {
+    "type": "playground",
+    "name": "遊び場",
+    "url": "https://010m-xtech.github.io/contents/000playground/"
+  },
+  "100001": {
+    "type": "direct_game",
+    "name": "あいしょう占い",
+    "url": "https://010m-xtech.github.io/contents/009aishouranai/"
+  },
+  "100002": {
+    "type": "playground",
+    "name": "遊び場",
+    "url": "https://010m-xtech.github.io/contents/000playground/"
+  }
+}

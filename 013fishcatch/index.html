@@ -312,11 +312,7 @@
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js"></script>
   
   <script>
-    // ★GASのウェブアプリURLを貼り付けてください★
-    const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
-
     let storeCd = "000000";
-    let deviceId = localStorage.getItem('device_id') || 'unknown';
 
     function getStoreCdFromUrl() {
       const hash = window.location.hash.replace('#', '').trim();
@@ -325,20 +321,6 @@
       }
     }
     getStoreCdFromUrl();
-
-    function logAccess(actionName) {
-      fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'access_log',
-          store_cd: storeCd,
-          device_id: deviceId,
-          action: actionName
-        })
-      }).catch(err => console.warn("ログ送信失敗:", err));
-    }
 
     const defaultPlayerPath = 'image/000000.png';
     let currentPlayerPath = storeCd !== "000000" ? `image/${storeCd}.png` : defaultPlayerPath;
@@ -697,8 +679,6 @@
     function startGame() {
       audio.init(); 
       resetGame();
-      
-      logAccess("ゲーム開始: お魚キャッチ");
 
       document.getElementById('start-overlay').style.display = 'none';
       document.getElementById('result-overlay').style.display = 'none';
@@ -716,8 +696,6 @@
     function finishGame() {
       gameState = 'FINISHED';
       audio.playFinish();
-      
-      logAccess(`ゲーム終了: お魚キャッチ (${score}匹)`);
 
       let currentHighScore = Number(localStorage.getItem('catch_highscore') || 0);
       let isNewRecord = false;

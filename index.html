@@ -46,12 +46,8 @@
       margin-bottom: 10px;
       font-size: 0.95rem;
     }
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
     .radio-group.inline {
+      display: flex;
       flex-direction: row;
       gap: 16px;
     }
@@ -117,31 +113,12 @@
         </div>
       </div>
 
-      <!-- 3. 関係性 -->
-      <div class="form-group">
-        <label class="group-title">ご来店のお連れ様（関係性）</label>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input type="radio" name="relationship" value="1人" required> 1人
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="relationship" value="家族・親戚" required> 家族・親戚
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="relationship" value="仕事関係" required> 仕事関係
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="relationship" value="友人・知人" required> 友人・知人
-          </label>
-        </div>
-      </div>
-
       <button type="submit" class="submit-btn" id="submitBtn">送信してゲームへ進む</button>
     </form>
   </div>
 
   <script>
-    // ★先ほどデプロイしたGoogle Apps ScriptのWebアプリURLをここに貼り付けます
+    // ★デプロイしたWebアプリURL
     const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec';
 
     // 1. 店舗ID取得
@@ -167,12 +144,12 @@
       return url.toString();
     }
 
-    // 4. データ送信関数（CORSエラーを回避して送信）
+    // 4. データ送信関数
     async function sendDataToGAS(payload) {
       try {
         await fetch(GAS_WEBAPP_URL, {
           method: 'POST',
-          mode: 'no-cors', // GitHub PagesからGASへ送る際のCORSエラー防止
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -181,7 +158,7 @@
       }
     }
 
-    // 日本時間（YYYY-MM-DD HH:mm:ss）を取得
+    // 日本時間（YYYY-MM-DD HH:mm:ss）
     function getFormattedTimestamp() {
       const d = new Date();
       return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
@@ -195,7 +172,7 @@
       ? `店舗コード: ${currentShopId}` 
       : '店舗コード: 未指定';
 
-    // 画面表示イベント（survey_view）の送信
+    // 画面表示イベント（survey_view）
     window.addEventListener('DOMContentLoaded', () => {
       sendDataToGAS({
         type: 'event',
@@ -219,7 +196,6 @@
       const timestamp = getFormattedTimestamp();
 
       try {
-        // 設定JSONを取得
         const res = await fetch('./routing.json');
         const routeConfig = await res.json();
         const targetConfig = routeConfig[currentShopId] || routeConfig['default'];
@@ -231,15 +207,14 @@
         const targetUrl = targetConfig.url;
         const targetContentName = targetConfig.name || '不明なコンテンツ';
 
-        // 1. ユーザーデータの送信
+        // 1. ユーザーデータの送信（性別・年代のみ）
         const userPromise = sendDataToGAS({
           type: 'user',
           timestamp: timestamp,
           shop_id: currentShopId,
           device_id: deviceId,
           gender: formData.get('gender'),
-          age: formData.get('age'),
-          relationship: formData.get('relationship')
+          age: formData.get('age')
         });
 
         // 2. イベントデータ（survey_submit）の送信
@@ -252,7 +227,6 @@
           content_name: targetContentName
         });
 
-        // 両方の送信を待ってから画面遷移
         await Promise.all([userPromise, eventPromise]);
 
         const nextUrl = appendDeviceId(targetUrl, deviceId);

@@ -18,7 +18,7 @@
       background-color: #fafafa;
       color: var(--dark-gray);
       margin: 0;
-      padding: 24px 16px;
+      padding: 16px;
       display: flex;
       justify-content: center;
       box-sizing: border-box;
@@ -28,7 +28,7 @@
       background: #ffffff;
       max-width: 440px;
       width: 100%;
-      padding: 32px 24px;
+      padding: 24px 20px;
       border-radius: 16px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       border: 1px solid #eaeaea;
@@ -39,26 +39,15 @@
       font-size: 1.15rem;
       font-weight: 700;
       line-height: 1.5;
-      margin: 0 0 16px 0;
+      margin: 0 0 24px 0;
       text-align: center;
       color: var(--dark-gray);
-    }
-
-    .shop-badge {
-      display: block;
-      width: fit-content;
-      margin: 0 auto 28px auto;
-      background: #f0f0f0;
-      color: var(--medium-gray);
-      font-size: 0.8rem;
-      padding: 4px 12px;
-      border-radius: 20px;
     }
 
     .section-title {
       font-size: 1rem;
       font-weight: 700;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       color: var(--dark-gray);
     }
 
@@ -67,7 +56,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
     }
 
     /* ラジオボタン自体のポインタを隠す */
@@ -77,19 +66,19 @@
       pointer-events: none;
     }
 
-    /* カード型ボタンの見た目 */
+    /* カード型ボタンの見た目（縦の長さを110pxの150%＝165pxに設定） */
     .choice-card {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 18px 12px;
+      padding: 20px 12px;
       border: 1.5px solid var(--border-gray);
       border-radius: 12px;
       cursor: pointer;
       background: #ffffff;
       transition: all 0.2s ease;
-      min-height: 110px;
+      min-height: 165px;
       box-sizing: border-box;
       user-select: none;
     }
@@ -109,9 +98,9 @@
 
     /* アイコンの枠と画像スタイル */
     .choice-icon {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 10px;
+      width: 56px;
+      height: 56px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -122,7 +111,12 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      pointer-events: none; /* 画像ドラッグ防止 */
+      pointer-events: none;
+    }
+
+    /* 年代アイコン（under35 / over35）のみ80%のサイズに縮小 */
+    .choice-icon img.age-icon {
+      transform: scale(0.8);
     }
 
     .choice-label {
@@ -143,7 +137,7 @@
       font-weight: 700;
       border-radius: 10px;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: 4px;
       transition: background-color 0.2s, transform 0.1s;
     }
 
@@ -166,7 +160,6 @@
 
   <div class="survey-container">
     <h1>サービス向上のため<br>アンケートにご協力ください</h1>
-    <div id="shopInfo" class="shop-badge">店舗コード: 確認中...</div>
 
     <form id="surveyForm">
       <!-- 1. 性別セクション -->
@@ -198,7 +191,7 @@
         <label class="choice-card" onclick="selectCard(this, 'age')">
           <input type="radio" name="age" value="35歳未満" required>
           <div class="choice-icon">
-            <img src="./under35.svg" alt="35歳未満">
+            <img src="./under35.svg" alt="35歳未満" class="age-icon">
           </div>
           <span class="choice-label">35歳未満</span>
         </label>
@@ -207,7 +200,7 @@
         <label class="choice-card" onclick="selectCard(this, 'age')">
           <input type="radio" name="age" value="35歳以上" required>
           <div class="choice-icon">
-            <img src="./over35.svg" alt="35歳以上">
+            <img src="./over35.svg" alt="35歳以上" class="age-icon">
           </div>
           <span class="choice-label">35歳以上</span>
         </label>
@@ -220,7 +213,7 @@
   <script>
     const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec';
 
-    // 1. 店舗ID取得
+    // 1. 店舗ID取得（画面非表示でも裏側でしっかり取得します）
     function getShopId() {
       const params = new URLSearchParams(window.location.search);
       return params.get('shop_id') || params.get('cd') || '';
@@ -277,10 +270,6 @@
     // 初期化
     const currentShopId = getShopId();
     const deviceId = getOrCreateDeviceId();
-
-    document.getElementById('shopInfo').textContent = currentShopId 
-      ? `店舗コード: ${currentShopId}` 
-      : '店舗コード: 未指定';
 
     // 画面表示イベント（survey_view）
     window.addEventListener('DOMContentLoaded', () => {

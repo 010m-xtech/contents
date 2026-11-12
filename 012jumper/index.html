@@ -89,30 +89,14 @@
 <script>
 "use strict";
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycb.../exec";
-
+// URLのハッシュ（#123456）から6桁の店舗コードを取得
 let storeCd = "000000";
-let deviceId = localStorage.getItem('device_id') || 'unknown';
 
 function getStoreCdFromUrl() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash && hash.length === 6) storeCd = hash;
 }
 getStoreCdFromUrl();
-
-function logAccess(actionName) {
-  fetch(GAS_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'access_log',
-      store_cd: storeCd,
-      device_id: deviceId,
-      action: actionName
-    })
-  }).catch(err => console.warn("ログ送信失敗:", err));
-}
 
 const stage = document.getElementById("stage");
 const canvas = document.getElementById("game");
@@ -150,6 +134,7 @@ let logoImgLoaded = false;
 logoImg.onload = () => { logoImgLoaded = true; };
 logoImg.src = 'image/logo.webp';
 
+// 店舗コードに応じたキャラクター画像のパスを設定（見つからない場合は000000.pngを使用）
 const defaultPlayerPath = 'image/000000.png';
 let currentPlayerPath = storeCd !== "000000" ? `image/${storeCd}.png` : defaultPlayerPath;
 
@@ -292,7 +277,6 @@ function press() {
   if (state === STATE.READY) {
     state = STATE.PLAY;
     jumpBtnArea.classList.remove("hidden");
-    logAccess("ゲーム開始: 洞窟脱出大作戦");
     return;
   }
   if (state === STATE.OVER) {
@@ -300,7 +284,6 @@ function press() {
       resetGame();
       state = STATE.PLAY;
       jumpBtnArea.classList.remove("hidden");
-      logAccess("リトライ: 洞窟脱出大作戦");
     }
     return;
   }
@@ -438,8 +421,6 @@ function gameOver() {
       chosenMenu = storeMenus[pickedKey] || menuList[0];
     }
   }
-
-  logAccess(`ゲーム終了: 洞窟脱出大作戦 (${score}m / 総ダイヤ: ${totalDiaCount})`);
 
   if (score > best) {
     best = score;

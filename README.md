@@ -48,3 +48,30 @@ URLパラメータからの店舗ID判定、端末ID（`device_id`）の自動�
     "url": "[https://example.com/portal/#123456](https://example.com/portal/#123456)"
   }
 }
+```
+
+- `url`: 遷移先の完全なURL（`https://...` から記述してください。システム側で自動的に `?device_id=...` が付与されます）
+- `name`: GASへ送信される `content_name` に記録される識別名
+
+---
+
+## よくあるカスタマイズ
+
+| やりたいこと | 編集箇所 / 手順 |
+| :--- | :--- |
+| **店舗ごとの遷移先URL・名称を変更する** | `routing.json` の該当店舗ID（または `default`）の `url` と `name` を編集 |
+| **送信先のGAS URLを変更する** | `index.html` 内の `const GAS_WEBAPP_URL = '...'` を新しいウェブアプリURLに差し替え |
+| **選択肢のアイコンを変更する** | ルートフォルダ内の `user-male.svg`、`user-female.svg`、`under35.svg`、`over35.svg` を差し替え |
+| **年代アイコンの縮小率を変える** | `index.html` の `.choice-icon img.age-icon` の `transform: scale(0.8);` の数値を調整 |
+| **見出しやボタンの文言を変える** | `index.html` 内の `<h1>`、`.section-title`、`#submitBtn` のテキストを編集 |
+
+---
+
+## 注意事項
+
+- **URLパラメータの指定形式について**
+  - 本ページはハッシュ（`#123456`）ではなく、クエリパラメータ（`?shop_id=123456` または `?cd=123456`）から店舗IDを読み取ります。QRコードやリンク発行時は形式にご注意ください。
+- **routing.json のURL記述ルール**
+  - 遷移処理内で `new URL(targetUrlString)` を使用しているため、`routing.json` に記述する `url` は必ず `https://` から始まる完全なURLを指定してください（相対パスだとエラーになります）。
+- **ローカル環境での動作確認**
+  - `routing.json` を `fetch('./routing.json')` で読み込んでいるため、PC上でHTMLファイルを直接ダブルクリック（`file://` プロトコル）するとCORS制限によりエラーになります。動作確認は **GitHub Pages** やローカルWebサーバー上で行ってください。

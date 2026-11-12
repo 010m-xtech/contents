@@ -110,27 +110,58 @@
   </div>
 
   <script>
-    // ★GASのウェブアプリURLを貼り付けてください★
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwmyuny-47n7qqpGLe_EiJr9Hb4VvDIGpFQUyMFDBi8DsvJLDkaMjTVuqawKl4ZKWZP/exec";
+    // GASのウェブアプリURL（アンケート画面と共通）
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec";
 
     let storeCd = "000000";
-    let deviceId = localStorage.getItem('device_id') || 'unknown';
+    let deviceId = "";
 
     window.addEventListener('DOMContentLoaded', () => {
-      getStoreCdFromUrl();
+      initIds();
       loadGameConfig();
-      logAccess("遊び場ページ表示");
+      // 遊び場ページ表示イベント送信
+      sendEventLog('top_view', '');
     });
 
-    // URLハッシュから店舗CDを取得
-    function getStoreCdFromUrl() {
+    // 1. 店舗IDとデバイスIDの初期化・引き継ぎ
+    function initIds() {
+      // ハッシュ(#073810)から店舗CDを取得
       const hash = window.location.hash.replace('#', '').trim();
       if (hash && hash.length === 6) {
         storeCd = hash;
       }
+
+      // URLパラメータ(?device_id=...) または localStorage からデバイスIDを取得
+      const params = new URLSearchParams(window.location.search);
+      const urlDeviceId = params.get('device_id');
+
+      if (urlDeviceId) {
+        deviceId = urlDeviceId;
+        localStorage.setItem('device_id', deviceId);
+      } else {
+        deviceId = localStorage.getItem('device_id');
+        if (!deviceId) {
+          deviceId = 'dev_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
+          localStorage.setItem('device_id', deviceId);
+        }
+      }
     }
 
-    // config.jsonを読み込み、カードを動的生成
+    // 2. 遷移先URLに device_id と 店舗CD(#) を安全に付与する
+    function buildGameUrl(baseUrl, storeCode, devId) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('device_id', devId);
+      url.hash = storeCode;
+      return url.toString();
+    }
+
+    // 3. 日本時間（YYYY/MM/DD HH:mm:ss）を取得
+    function getFormattedTimestamp() {
+      const d = new Date();
+      return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    }
+
+    // 4. config.jsonを読み込み、カードを動的生成
     async function loadGameConfig() {
       const grid = document.getElementById('game-grid');
       try {
@@ -145,17 +176,21 @@
           const card = document.createElement('a');
           card.className = 'game-card';
           card.dataset.title = game.title;
-          // 遷移先にハッシュ（店舗CD）を確実に引き継ぐ
-          const targetUrl = `${game.url}#${storeCd}`;
-          card.href = targetUrl;
+          
+          // 別タブで開く設定（遊び場に戻りやすくし、通信キャンセルも防ぐ）
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+
+          // 遷移先に device_id と #店舗CD を引き継ぐ
+          card.href = buildGameUrl(game.url, storeCd, deviceId);
 
           card.innerHTML = `
             <img class="game-thumbnail" src="${game.thumbnail}" alt="${game.title}" onerror="this.src='thumbnail/default_game1.webp'">
           `;
 
-          // クリック時にGASへアクセスログを送信してから遷移
-          card.addEventListener('click', (e) => {
-            logAccess(`ゲーム選択: ${game.title}`);
+          // タップ時にGASへ game_choice イベントを送信
+          card.addEventListener('click', () => {
+            sendEventLog('game_choice', game.title);
           });
 
           grid.appendChild(card);
@@ -167,18 +202,23 @@
       }
     }
 
-    // GASへアクセスログ（閲覧・選択）を送信
-    function logAccess(actionName) {
+    // 5. GASの event_data シートへイベントログを送信
+    function sendEventLog(eventName, resultValue) {
+      const payload = {
+        type: 'event',
+        timestamp: getFormattedTimestamp(),
+        shop_id: storeCd,
+        device_id: deviceId,
+        event: eventName,
+        content_name: 'あそび場',
+        result: resultValue || ''
+      };
+
       fetch(GAS_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'access_log',
-          store_cd: storeCd,
-          device_id: deviceId,
-          action: actionName
-        })
+        body: JSON.stringify(payload)
       }).catch(err => console.warn("ログ送信失敗:", err));
     }
   </script>

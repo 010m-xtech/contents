@@ -312,6 +312,7 @@
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js"></script>
   
   <script>
+    // URLのハッシュ（#123456）から6桁の店舗コードを取得
     let storeCd = "000000";
 
     function getStoreCdFromUrl() {
@@ -322,6 +323,7 @@
     }
     getStoreCdFromUrl();
 
+    // 店舗コードに応じたキャラクター画像のパスを設定（見つからない場合は000000.pngを使用）
     const defaultPlayerPath = 'image/000000.png';
     let currentPlayerPath = storeCd !== "000000" ? `image/${storeCd}.png` : defaultPlayerPath;
 

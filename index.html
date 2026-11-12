@@ -5,120 +5,242 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アンケート</title>
   <style>
+    :root {
+      --dark-gray: #333333;
+      --medium-gray: #666666;
+      --border-gray: #cccccc;
+      --bg-gray: #f5f5f5;
+      --selected-bg: #ececec;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f7f9fa;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #fafafa;
+      color: var(--dark-gray);
       margin: 0;
-      padding: 20px;
+      padding: 24px 16px;
       display: flex;
       justify-content: center;
-    }
-    .survey-container {
-      background: #fff;
-      max-width: 480px;
-      width: 100%;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       box-sizing: border-box;
     }
+
+    .survey-container {
+      background: #ffffff;
+      max-width: 440px;
+      width: 100%;
+      padding: 32px 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #eaeaea;
+      box-sizing: border-box;
+    }
+
     h1 {
-      font-size: 1.25rem;
-      margin-bottom: 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.5;
+      margin: 0 0 16px 0;
       text-align: center;
+      color: var(--dark-gray);
     }
+
     .shop-badge {
-      display: inline-block;
-      background: #eef2f6;
-      color: #555;
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    .form-group {
-      margin-bottom: 24px;
-    }
-    label.group-title {
       display: block;
-      font-weight: bold;
-      margin-bottom: 10px;
-      font-size: 0.95rem;
+      width: fit-content;
+      margin: 0 auto 28px auto;
+      background: #f0f0f0;
+      color: var(--medium-gray);
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
     }
-    .radio-group.inline {
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--dark-gray);
+    }
+
+    /* 4つのボタンを配置するグリッドレイアウト */
+    .choices-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    /* ラジオボタン自体のポインタを隠す */
+    .choice-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* カード型ボタンの見た目 */
+    .choice-card {
       display: flex;
-      flex-direction: row;
-      gap: 16px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 12px;
+      border: 1.5px solid var(--border-gray);
+      border-radius: 12px;
+      cursor: pointer;
+      background: #ffffff;
+      transition: all 0.2s ease;
+      min-height: 110px;
+      box-sizing: border-box;
+      user-select: none;
     }
-    .radio-label {
+
+    .choice-card:hover {
+      border-color: var(--dark-gray);
+      background-color: #fcfcfc;
+    }
+
+    /* 選択時のアクティブ状態 */
+    .choice-card.selected {
+      border-color: var(--dark-gray);
+      background-color: var(--selected-bg);
+      border-width: 2px;
+      box-shadow: inset 0 0 0 1px var(--dark-gray);
+    }
+
+    /* アイコンのスタイル */
+    .choice-icon {
+      width: 42px;
+      height: 42px;
+      margin-bottom: 10px;
+      color: var(--dark-gray);
       display: flex;
       align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 0.95rem;
+      justify-content: center;
     }
+
+    .choice-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: var(--dark-gray);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .choice-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--dark-gray);
+      text-align: center;
+    }
+
+    /* 送信ボタン（濃いグレー） */
     button.submit-btn {
       width: 100%;
-      background-color: #007bff;
-      color: white;
+      background-color: var(--dark-gray);
+      color: #ffffff;
       border: none;
-      padding: 14px;
+      padding: 16px;
       font-size: 1rem;
-      font-weight: bold;
-      border-radius: 8px;
+      font-weight: 700;
+      border-radius: 10px;
       cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.2s;
+      margin-top: 8px;
+      transition: background-color 0.2s, transform 0.1s;
     }
+
     button.submit-btn:hover {
-      background-color: #0056b3;
+      background-color: #1a1a1a;
     }
+
+    button.submit-btn:active {
+      transform: scale(0.99);
+    }
+
     button.submit-btn:disabled {
-      background-color: #aaa;
+      background-color: #888888;
       cursor: not-allowed;
+      transform: none;
     }
   </style>
 </head>
 <body>
 
   <div class="survey-container">
-    <h1>ご利用アンケート</h1>
+    <h1>サービス向上のため<br>アンケートにご協力ください</h1>
     <div id="shopInfo" class="shop-badge">店舗コード: 確認中...</div>
 
     <form id="surveyForm">
-      <!-- 1. 性別 -->
-      <div class="form-group">
-        <label class="group-title">性別</label>
-        <div class="radio-group inline">
-          <label class="radio-label">
-            <input type="radio" name="gender" value="男性" required> 男性
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="gender" value="女性" required> 女性
-          </label>
-        </div>
+      <!-- 1. 性別セクション -->
+      <div class="section-title">性別</div>
+      <div class="choices-grid">
+        <!-- 男性 -->
+        <label class="choice-card" onclick="selectCard(this, 'gender')">
+          <input type="radio" name="gender" value="男性" required>
+          <div class="choice-icon">
+            <!-- シンプルな男性・人型SVG -->
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="7" r="4"></circle>
+              <path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"></path>
+            </svg>
+          </div>
+          <span class="choice-label">男性</span>
+        </label>
+
+        <!-- 女性 -->
+        <label class="choice-card" onclick="selectCard(this, 'gender')">
+          <input type="radio" name="gender" value="女性" required>
+          <div class="choice-icon">
+            <!-- シンプルな女性・人型SVG -->
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="7" r="4"></circle>
+              <path d="M6 21v-2a6 6 0 0 1 12 0v2"></path>
+              <path d="M8 12c1.5 2 6.5 2 8 0"></path>
+            </svg>
+          </div>
+          <span class="choice-label">女性</span>
+        </label>
       </div>
 
-      <!-- 2. 年代 -->
-      <div class="form-group">
-        <label class="group-title">年代</label>
-        <div class="radio-group inline">
-          <label class="radio-label">
-            <input type="radio" name="age" value="35歳未満" required> 35歳未満
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="age" value="35歳以上" required> 35歳以上
-          </label>
-        </div>
+      <!-- 2. 年代セクション -->
+      <div class="section-title">年代</div>
+      <div class="choices-grid">
+        <!-- 35歳未満 -->
+        <label class="choice-card" onclick="selectCard(this, 'age')">
+          <input type="radio" name="age" value="35歳未満" required>
+          <div class="choice-icon">
+            <!-- 青年・若者モチーフのシンプルSVG -->
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4"></circle>
+              <path d="M6 20v-2a6 6 0 0 1 12 0v2"></path>
+              <path d="M9 4.5c1.5-1 4.5-1 6 0"></path>
+            </svg>
+          </div>
+          <span class="choice-label">35歳未満</span>
+        </label>
+
+        <!-- 35歳以上 -->
+        <label class="choice-card" onclick="selectCard(this, 'age')">
+          <input type="radio" name="age" value="35歳以上" required>
+          <div class="choice-icon">
+            <!-- 落ち着いた大人モチーフのシンプルSVG -->
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4"></circle>
+              <path d="M5 20v-2a7 7 0 0 1 14 0v2"></path>
+              <path d="M10 13l2 2 2-2"></path>
+            </svg>
+          </div>
+          <span class="choice-label">35歳以上</span>
+        </label>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">送信してゲームへ進む</button>
+      <button type="submit" class="submit-btn" id="submitBtn">回答して進む</button>
     </form>
   </div>
 
   <script>
-    // ★デプロイしたWebアプリURL
+    // ★先ほど取得したGoogle Apps ScriptのWebアプリURLを入れてください
     const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec';
 
     // 1. 店舗ID取得
@@ -158,13 +280,24 @@
       }
     }
 
-    // 日本時間（YYYY-MM-DD HH:mm:ss）
+    // 日本時間取得
     function getFormattedTimestamp() {
       const d = new Date();
       return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
     }
 
-    // 画面初期化
+    // カードクリック時に選択状態スタイルを更新するUI制御
+    function selectCard(clickedCard, groupName) {
+      const groupCards = document.querySelectorAll(`input[name="${groupName}"]`);
+      groupCards.forEach(input => {
+        input.closest('.choice-card').classList.remove('selected');
+      });
+      clickedCard.classList.add('selected');
+      const radio = clickedCard.querySelector('input[type="radio"]');
+      radio.checked = true;
+    }
+
+    // 初期化
     const currentShopId = getShopId();
     const deviceId = getOrCreateDeviceId();
 
@@ -207,7 +340,7 @@
         const targetUrl = targetConfig.url;
         const targetContentName = targetConfig.name || '不明なコンテンツ';
 
-        // 1. ユーザーデータの送信（性別・年代のみ）
+        // 1. ユーザーデータ送信
         const userPromise = sendDataToGAS({
           type: 'user',
           timestamp: timestamp,
@@ -217,7 +350,7 @@
           age: formData.get('age')
         });
 
-        // 2. イベントデータ（survey_submit）の送信
+        // 2. イベントデータ（survey_submit）送信
         const eventPromise = sendDataToGAS({
           type: 'event',
           timestamp: timestamp,
@@ -236,7 +369,7 @@
         console.error('処理エラー:', err);
         alert('エラーが発生しました。設定をご確認ください。');
         submitBtn.disabled = false;
-        submitBtn.textContent = '送信してゲームへ進む';
+        submitBtn.textContent = '回答して進む';
       }
     });
   </script>

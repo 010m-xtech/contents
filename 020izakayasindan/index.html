@@ -194,10 +194,10 @@
       display: block;
     }
 
-    /* ★ 人数入力画面（2列×6行レイアウト） */
+    /* 人数入力画面（2列レイアウト） */
     .count-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr); /* 2列並び */
+      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
       max-height: 380px;
       overflow-y: auto;
@@ -228,7 +228,7 @@
       font-weight: 700;
       text-align: center;
       line-height: 1.2;
-      height: 2.4em; /* 2行分の高さを確保 */
+      height: 2.4em;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -292,7 +292,7 @@
       letter-spacing: 0.05em;
     }
 
-    /* ★ 注文誘導ブロック（お店向けプロモーションエリア） */
+    /* 注文誘導ブロック（お店向けプロモーションエリア） */
     .order-promo-box {
       background: #18181b;
       color: #ffffff;
@@ -371,7 +371,7 @@
     <button class="btn btn-secondary" onclick="resetQuiz()">もう一度診断する</button>
   </div>
 
-  <!-- 4. 人数入力画面（2列×6行グリッド） -->
+  <!-- 4. 人数入力画面 -->
   <div id="screen-group-input" class="card hidden">
     <h2>テーブルのメンバー構成</h2>
     <p class="desc" style="margin-bottom:12px;">メニューの人数を入力してください</p>
@@ -457,17 +457,39 @@
 </div>
 
 <script>
-  // メニュー表示順
-  const menuDisplayOrder = [
+  // 基本の表示順（店舗に存在するキーのみ自動で抽出されます）
+  const baseMenuOrder = [
     "01", "09", "10", "05", "12", "03", "08", "02", "07", "04", "06", "11"
   ];
 
+  // URL末尾のハッシュ（#123456）から6桁の店舗コードを取得
+  let storeCd = "000000";
+  function getStoreCdFromUrl() {
+    const hash = window.location.hash.replace('#', '').trim();
+    if (hash && hash.length === 6) {
+      storeCd = hash;
+    }
+  }
+  getStoreCdFromUrl();
+
   let questions = [];
-  let results = {};
+  let results = {};       // 該当店舗用に構築された最終的なメニュー＆性格データ
+  let activeMenuKeys = []; // 該当店舗に存在するメニューIDの並び順リスト
   let currentQ = 0;
   let scores = {};
   let groupCounts = {};
   let myResultType = "";
+
+  // 画像パス生成（店舗画像がなければ000000フォルダの画像へフォールバック）
+  function getMenuImagePath(key) {
+    return `images/${storeCd}/${key}.webp`;
+  }
+  function handleImageError(imgEl, key) {
+    const fallbackPath = `images/000000/${key}.webp`;
+    if (!imgEl.src.endsWith(fallbackPath)) {
+      imgEl.src = fallbackPath;
+    }
+  }
 
   window.addEventListener('DOMContentLoaded', async () => {
     const startBtn = document.getElementById('btn-start');
@@ -479,11 +501,32 @@
       const data = await response.json();
       
       questions = data.questions || [];
-      results = data.results || {};
+      const baseResults = data.baseResults || {};
+      const stores = data.stores || {};
 
-      Object.keys(results).forEach(key => {
-        scores[key] = 0;
-        groupCounts[key] = 0;
+      // 指定された店舗コードのデータがなければデフォルト(000000)を使用
+      if (!stores[storeCd]) {
+        storeCd = "000000";
+      }
+      const storeMenus = stores[storeCd] || {};
+
+      // 該当店舗に登録されているメニューだけを組み立てる
+      Object.keys(storeMenus).forEach(key => {
+        if (baseResults[key]) {
+          results[key] = {
+            title: storeMenus[key],
+            catch: baseResults[key].catch,
+            desc: baseResults[key].desc
+          };
+          scores[key] = 0;
+          groupCounts[key] = 0;
+        }
+      });
+
+      // 表示順リストの作成（baseMenuOrderの順をベースに、それ以外のキーがあれば末尾に追加）
+      activeMenuKeys = baseMenuOrder.filter(k => results[k]);
+      Object.keys(results).forEach(k => {
+        if (!activeMenuKeys.includes(k)) activeMenuKeys.push(k);
       });
 
       startBtn.disabled = false;
@@ -521,7 +564,7 @@
   }
 
   function startDiagnosis() {
-    if (questions.length === 0) return;
+    if (questions.length === 0 || activeMenuKeys.length === 0) return;
     Object.keys(scores).forEach(key => scores[key] = 0);
     currentQ = 0;
     switchScreen('screen-top', 'screen-quiz');
@@ -548,7 +591,10 @@
   }
 
   function selectOption(type) {
-    if (scores[type] !== undefined) scores[type]++;
+    // 該当店舗に存在するメニューIDの場合のみ加算（未登録IDはスキップ）
+    if (scores[type] !== undefined) {
+      scores[type]++;
+    }
     currentQ++;
 
     if (currentQ < questions.length) {
@@ -559,8 +605,9 @@
   }
 
   function getFinalResult(scores) {
+    const keys = Object.keys(scores);
     const maxScore = Math.max(...Object.values(scores));
-    const topTypes = Object.keys(scores).filter(key => scores[key] === maxScore);
+    const topTypes = keys.filter(key => scores[key] === maxScore);
     return topTypes[Math.floor(Math.random() * topTypes.length)];
   }
 
@@ -571,10 +618,11 @@
     document.getElementById('result-type').innerText = res.title;
     document.getElementById('result-catch').innerText = res.catch;
     document.getElementById('result-desc').innerText = res.desc;
-    document.getElementById('promo-menu-name').innerText = res.title; // 注文誘導プロモ欄
+    document.getElementById('promo-menu-name').innerText = res.title;
     
     const imgElement = document.getElementById('result-img');
-    imgElement.src = `images/${myResultType}.webp`;
+    imgElement.onerror = () => handleImageError(imgElement, myResultType);
+    imgElement.src = getMenuImagePath(myResultType);
     imgElement.alt = res.title;
 
     switchScreen('screen-quiz', 'screen-result');
@@ -582,7 +630,9 @@
 
   function goToGroupInput() {
     Object.keys(groupCounts).forEach(key => groupCounts[key] = 0);
-    if(myResultType) groupCounts[myResultType] = 1;
+    if (myResultType && groupCounts[myResultType] !== undefined) {
+      groupCounts[myResultType] = 1;
+    }
 
     renderCountList();
     switchScreen('screen-result', 'screen-group-input');
@@ -592,21 +642,19 @@
     switchScreen('screen-group-input', 'screen-result');
   }
 
-  // ★ 2列6行の画像付きカード描画関数
   function renderCountList() {
     const listContainer = document.getElementById('count-list');
     listContainer.innerHTML = '';
     let total = 0;
 
-    menuDisplayOrder.forEach(key => {
-      if (!results[key]) return;
+    activeMenuKeys.forEach(key => {
       const count = groupCounts[key];
       total += count;
 
       const card = document.createElement('div');
       card.className = 'count-card';
       card.innerHTML = `
-        <img src="images/${key}.webp" alt="${results[key].title}" class="count-card-img">
+        <img src="${getMenuImagePath(key)}" onerror="handleImageError(this, '${key}')" alt="${results[key].title}" class="count-card-img">
         <div class="count-card-name">${results[key].title}</div>
         <div class="count-controls">
           <button class="btn-circle" onclick="changeCount('${key}', -1)" aria-label="減らす">-</button>
@@ -630,8 +678,8 @@
 
   function execGroupDiagnosis() {
     let activeMembers = [];
-    Object.keys(groupCounts).forEach(key => {
-      for(let i=0; i < groupCounts[key]; i++) activeMembers.push(key);
+    activeMenuKeys.forEach(key => {
+      for (let i = 0; i < groupCounts[key]; i++) activeMembers.push(key);
     });
 
     if (activeMembers.length === 2) {

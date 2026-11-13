@@ -473,7 +473,7 @@
   getStoreCdFromUrl();
 
   let questions = [];
-  let results = {};       // 該当店舗用に構築された最終的なメニュー＆性格データ
+  let results = {};        // 該当店舗用に構築された最終的なメニュー＆性格データ
   let activeMenuKeys = []; // 該当店舗に存在するメニューIDの並び順リスト
   let currentQ = 0;
   let scores = {};
@@ -496,13 +496,21 @@
     const errorMsg = document.getElementById('loading-error');
 
     try {
-      const response = await fetch('data.json');
-      if (!response.ok) throw new Error('Network response was not ok');
-      const data = await response.json();
+      // 共通データ(data.json)と店舗別メニュー(stores.json)を同時に読み込む
+      const [dataRes, storesRes] = await Promise.all([
+        fetch('data.json'),
+        fetch('stores.json')
+      ]);
+
+      if (!dataRes.ok || !storesRes.ok) {
+        throw new Error('JSONファイルの読み込みに失敗しました');
+      }
+
+      const data = await dataRes.json();
+      const stores = await storesRes.json();
       
       questions = data.questions || [];
       const baseResults = data.baseResults || {};
-      const stores = data.stores || {};
 
       // 指定された店舗コードのデータがなければデフォルト(000000)を使用
       if (!stores[storeCd]) {
@@ -523,7 +531,7 @@
         }
       });
 
-      // 表示順リストの作成（baseMenuOrderの順をベースに、それ以外のキーがあれば末尾に追加）
+      // 表示順リストの作成
       activeMenuKeys = baseMenuOrder.filter(k => results[k]);
       Object.keys(results).forEach(k => {
         if (!activeMenuKeys.includes(k)) activeMenuKeys.push(k);
@@ -591,7 +599,6 @@
   }
 
   function selectOption(type) {
-    // 該当店舗に存在するメニューIDの場合のみ加算（未登録IDはスキップ）
     if (scores[type] !== undefined) {
       scores[type]++;
     }

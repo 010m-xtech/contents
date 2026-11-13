@@ -1,1 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>まちがい探し</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
 
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      overflow: hidden;
+      touch-action: none;
+      background: #1a1512;
+      font-family: 'Mochiy Pop One', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      max-width: 520px;
+      background: #000;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    }
+
+    #game-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    #game-container canvas {
+      display: block;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    /* プレイ中の上部HUD */
+    #ui-layer {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .hud-badge {
+      background: rgba(0, 0, 0, 0.75);
+      border: 2px solid #ffb300;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 16px;
+      text-shadow: 1px 1px 2px #000;
+    }
+    #retry-top-btn {
+      pointer-events: auto;
+      padding: 6px 14px;
+      font-size: 14px;
+      background: #ff4757;
+      border: 2px solid #fff;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* スタート画面（添付イラスト top.webp を背景に表示） */
+    #start-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: #f5ebd6 url('image/top.webp') center center / cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-start;
+      padding: 30px 24px 55px 24px;
+    }
+
+    .start-sub-note {
+      background: rgba(255, 255, 255, 0.92);
+      border: 3px solid #5d4037;
+      color: #3e2723;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+
+    .main-btn {
+      padding: 16px 36px;
+      font-size: 22px;
+      font-family: 'Mochiy Pop One', sans-serif;
+      color: #fff;
+      background: linear-gradient(180deg, #ff6b6b 0%, #ee5253 100%);
+      border: 4px solid #fff;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #b33939, 0 10px 20px rgba(0,0,0,0.4);
+      transition: transform 0.1s;
+    }
+    .main-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #b33939, 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .main-btn:disabled {
+      background: #999;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .sub-btn {
+      padding: 12px 28px;
+      font-size: 18px;
+      font-family: 'Mochiy Pop One', sans-serif;
+      color: #3e2723;
+      background: #ffeaa7;
+      border: 3px solid #fff;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #d4ac0d, 0 8px 15px rgba(0,0,0,0.3);
+      margin-top: 14px;
+    }
+
+    /* リザルト画面 */
+    #result-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      padding: 20px;
+      text-align: center;
+    }
+    #result-title {
+      color: #fff;
+      font-size: 26px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+      white-space: pre-wrap;
+      text-shadow: 0 3px 10px rgba(0,0,0,0.8);
+    }
+
+    /* 座標取得ツール（?edit=1 のときだけ表示） */
+    #editor-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(20, 20, 20, 0.92);
+      color: #00e676;
+      z-index: 500;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      border-bottom: 2px solid #00e676;
+    }
+    #editor-output {
+      width: 100%;
+      height: 75px;
+      background: #000;
+      color: #fff;
+      border: 1px solid #555;
+      margin-top: 6px;
+      padding: 4px;
+      font-size: 11px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-wrapper">
+    <div id="game-container"></div>
+
+    <!-- プレイ中UI -->
+    <div id="ui-layer" style="display:none;">
+      <div class="hud-badge" id="found-hud">みつけた！ 0 / 5</div>
+      <button id="retry-top-btn" style="display:none;">つぎの問題へ</button>
+    </div>
+
+    <!-- スタート画面 -->
+    <div id="start-overlay">
+      <div class="start-sub-note">👇 下の写真の間違いをタッチしてね！</div>
+      <button id="start-btn" class="main-btn" disabled>よみこみ中...</button>
+    </div>
+
+    <!-- リザルト画面 -->
+    <div id="result-overlay">
+      <h1 id="result-title"></h1>
+      <button id="answer-btn" class="sub-btn" style="display:none;">答え合わせを見る</button>
+      <button id="retry-btn" class="main-btn" style="margin-top: 16px;">もういちど遊ぶ</button>
+    </div>
+
+    <!-- 座標取得ツール（管理用） -->
+    <div id="editor-panel" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span>🛠 座標取得モード（下の写真をタップ）</span>
+        <div>
+          <button onclick="switchEditorStage(-1)" style="padding:2px 6px;">◀前</button>
+          <span id="editor-stage-label">1組目</span>
+          <button onclick="switchEditorStage(1)" style="padding:2px 6px;">次▶</button>
+          <button onclick="clearEditorPoints()" style="padding:2px 6px; background:#ff5252; color:#fff; border:none;">クリア</button>
+        </div>
+      </div>
+      <textarea id="editor-output" readonly placeholder="下の画像の間違い箇所をタップすると、ここにJSON用の座標が出力されます"></textarea>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.0/p5.min.js"></script>
+  <script>
+    // URLパラメータとハッシュの解析
+    const urlParams = new URLSearchParams(window.location.search);
+    const isEditMode = urlParams.get('edit') === '1';
+
+    let storeCd = "000000";
+    function getStoreCdFromUrl() {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash && hash.length === 6) {
+        storeCd = hash;
+      }
+    }
+    getStoreCdFromUrl();
+
+    // 音声システム
+    class SynthAudio {
+      constructor() { this.ctx = null; }
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      }
+      play(freq, endFreq, duration, type = 'square', vol = 0.2) {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      }
+      playTimeUp() {
+        this.play(600, 400, 0.3, 'square', 0.2);
+        setTimeout(() => this.play(600, 400, 0.8, 'square', 0.2), 400);
+      }
+      playCorrect() {
+        this.play(800, 1200, 0.1, 'sine', 0.15);
+        setTimeout(() => this.play(1200, 1600, 0.15, 'sine', 0.15), 100);
+      }
+      playMiss() {
+        this.play(160, 120, 0.12, 'sawtooth', 0.1);
+      }
+      playClear() {
+        this.play(523, 659, 0.15, 'sine', 0.2);
+        setTimeout(() => this.play(659, 784, 0.15, 'sine', 0.2), 150);
+        setTimeout(() => this.play(784, 1046, 0.4, 'sine', 0.25), 300);
+      }
+    }
+    const audio = new SynthAudio();
+
+    let gameState = 'LOADING';
+    let stagesList = [];      // 該当店舗の全ステージ配列
+    let currentStageIdx = -1; // 現在プレイ中のステージ番号
+    let img1 = null;
+    let img2 = null;
+    let differences = [];
+    let foundDiffs = [];
+    let missEffects = [];     // お手つき（×印）エフェクト用
+
+    const TIME_LIMIT = 45;
+    let timeLeft = TIME_LIMIT;
+    let timerStartTime = 0;
+    let p5Instance = null;
+
+    // 座標取得ツール用変数
+    let editorPoints = [];
+
+    window.switchEditorStage = (delta) => {
+      if (stagesList.length === 0) return;
+      currentStageIdx = (currentStageIdx + delta + stagesList.length) % stagesList.length;
+      editorPoints = [];
+      updateEditorOutput();
+      loadStage(currentStageIdx, false);
+    };
+
+    window.clearEditorPoints = () => {
+      editorPoints = [];
+      updateEditorOutput();
+    };
+
+    function updateEditorOutput() {
+      document.getElementById('editor-stage-label').innerText = `${currentStageIdx + 1}組目 / ${stagesList.length}組`;
+      const jsonStr = JSON.stringify(editorPoints, null, 2);
+      document.getElementById('editor-output').value = `"diffs": ${jsonStr}`;
+    }
+
+    // ステージデータの読み込み
+    async function initGameData() {
+      try {
+        const res = await fetch('stages.json');
+        if (!res.ok) throw new Error('stages.jsonの読み込みに失敗');
+        const allStores = await res.json();
+
+        // 該当店舗のデータがなければ000000を使用
+        if (!allStores[storeCd] || allStores[storeCd].length === 0) {
+          storeCd = "000000";
+        }
+        stagesList = allStores[storeCd];
+
+        // 最初のステージを準備（エディットモードなら1組目から、通常はランダム）
+        const firstIdx = isEditMode ? 0 : Math.floor(Math.random() * stagesList.length);
+        loadStage(firstIdx, true);
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('start-btn').innerText = 'エラーが発生しました';
+      }
+    }
+
+    function loadStage(index, isFirstLoad) {
+      currentStageIdx = index;
+      const stage = stagesList[currentStageIdx];
+      differences = stage.diffs || [];
+      foundDiffs = differences.map(() => false);
+      missEffects = [];
+
+      const path1 = `image/${storeCd}/${stage.img1}`;
+      const path2 = `image/${storeCd}/${stage.img2}`;
+
+      let loadedCount = 0;
+      const onImgLoaded = () => {
+        loadedCount++;
+        if (loadedCount === 2) {
+          if (isEditMode) {
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('editor-panel').style.display = 'block';
+            updateEditorOutput();
+            gameState = 'EDITING';
+          } else if (isFirstLoad) {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.innerText = 'スタート！';
+            gameState = 'WAITING';
+          } else {
+            startPlay();
+          }
+        }
+      };
+
+      img1 = p5Instance.loadImage(path1, onImgLoaded, () => {
+        img1 = p5Instance.loadImage(`image/000000/${stage.img1}`, onImgLoaded);
+      });
+      img2 = p5Instance.loadImage(path2, onImgLoaded, () => {
+        img2 = p5Instance.loadImage(`image/000000/${stage.img2}`, onImgLoaded);
+      });
+    }
+
+    function startPlay() {
+      document.getElementById('start-overlay').style.display = 'none';
+      document.getElementById('result-overlay').style.display = 'none';
+      document.getElementById('ui-layer').style.display = 'flex';
+      document.getElementById('retry-top-btn').style.display = 'none';
+
+      foundDiffs = differences.map(() => false);
+      missEffects = [];
+      timeLeft = TIME_LIMIT;
+      timerStartTime = p5Instance.millis();
+      gameState = 'PLAYING';
+      updateUI();
+    }
+
+    function nextRandomStage() {
+      if (stagesList.length <= 1) {
+        startPlay();
+        return;
+      }
+      // 前回と違う問題を優先して選ぶ
+      let nextIdx = currentStageIdx;
+      while (nextIdx === currentStageIdx) {
+        nextIdx = Math.floor(Math.random() * stagesList.length);
+      }
+      loadStage(nextIdx, false);
+    }
+
+    function updateUI() {
+      const hud = document.getElementById('found-hud');
+      if (gameState === 'ANSWER_VIEW') {
+        hud.innerText = '答え合わせ中';
+      } else {
+        const foundCount = foundDiffs.filter(f => f).length;
+        hud.innerText = `みつけた！ ${foundCount} / ${differences.length}`;
+      }
+    }
+
+    // p5.js スケッチ
+    const sketch = (p) => {
+      p5Instance = p;
+
+      p.setup = () => {
+        const wrapper = document.getElementById('game-wrapper');
+        const canvas = p.createCanvas(wrapper.clientWidth, wrapper.clientHeight);
+        canvas.parent('game-container');
+        p.imageMode(p.CENTER);
+
+        initGameData();
+
+        canvas.elt.addEventListener('pointerdown', (e) => {
+          const rect = canvas.elt.getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+
+          let box2 = { x: 0, y: p.height / 2, w: p.width, h: p.height / 2 };
+          let bounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
+          if (!bounds2) return;
+
+          // 下の画像内がタッチされたか
+          if (mx >= bounds2.x && mx <= bounds2.x + bounds2.w &&
+              my >= bounds2.y && my <= bounds2.y + bounds2.h) {
+
+            // ★管理用：座標取得モードの処理
+            if (gameState === 'EDITING') {
+              const normX = Number(((mx - bounds2.x) / bounds2.w).toFixed(3));
+              const normY = Number(((my - bounds2.y) / bounds2.h).toFixed(3));
+              editorPoints.push({ x: normX, y: normY, r: 0.07 });
+              updateEditorOutput();
+              audio.playCorrect();
+              return;
+            }
+
+            if (gameState !== 'PLAYING') return;
+
+            let hitAny = false;
+            for (let i = 0; i < differences.length; i++) {
+              if (foundDiffs[i]) continue;
+              let diff = differences[i];
+
+              let targetX = bounds2.x + diff.x * bounds2.w;
+              let targetY = bounds2.y + diff.y * bounds2.h;
+              let targetR = (diff.r || 0.07) * Math.max(bounds2.w, bounds2.h);
+
+              if (p.dist(mx, my, targetX, targetY) <= targetR) {
+                foundDiffs[i] = true;
+                hitAny = true;
+                updateUI();
+                audio.playCorrect();
+                checkClear();
+                break;
+              }
+            }
+
+            // ハズレ場所をタップしたときの軽いフィードバック（ペナルティなし）
+            if (!hitAny) {
+              missEffects.push({ x: mx, y: my, life: 25 });
+              audio.playMiss();
+            }
+          }
+        });
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+          audio.init();
+          startPlay();
+        });
+
+        document.getElementById('retry-btn').addEventListener('click', () => {
+          audio.init();
+          nextRandomStage();
+        });
+
+        document.getElementById('retry-top-btn').addEventListener('click', () => {
+          audio.init();
+          nextRandomStage();
+        });
+
+        document.getElementById('answer-btn').addEventListener('click', () => {
+          document.getElementById('result-overlay').style.display = 'none';
+          foundDiffs = differences.map(() => true);
+          gameState = 'ANSWER_VIEW';
+          document.getElementById('retry-top-btn').style.display = 'block';
+          updateUI();
+        });
+      };
+
+      function checkClear() {
+        let foundCount = foundDiffs.filter(f => f).length;
+        if (foundCount === differences.length) {
+          gameState = 'CLEAR';
+          audio.playClear();
+          setTimeout(() => {
+            document.getElementById('result-title').innerText = '🎉 素晴らしい！ 🎉\n全部見つけられたね！';
+            document.getElementById('answer-btn').style.display = 'none';
+            document.getElementById('result-overlay').style.display = 'flex';
+          }, 800);
+        }
+      }
+
+      p.windowResized = () => {
+        const wrapper = document.getElementById('game-wrapper');
+        if (wrapper) {
+          p.resizeCanvas(wrapper.clientWidth, wrapper.clientHeight);
+        }
+      };
+
+      function calculateImageBounds(img, boxX, boxY, boxW, boxH) {
+        if (!img || !img.width) return null;
+        const imgRatio = img.width / img.height;
+        const boxRatio = boxW / boxH;
+        let drawW, drawH;
+        if (imgRatio > boxRatio) {
+          drawW = boxW;
+          drawH = boxW / imgRatio;
+        } else {
+          drawH = boxH;
+          drawW = boxH * imgRatio;
+        }
+        const drawX = boxX + (boxW - drawW) / 2;
+        const drawY = boxY + (boxH - drawH) / 2;
+        return { x: drawX, y: drawY, w: drawW, h: drawH };
+      }
+
+      p.draw = () => {
+        p.background(15);
+
+        let box1 = { x: 0, y: 0, w: p.width, h: p.height / 2 };
+        let box2 = { x: 0, y: p.height / 2, w: p.width, h: p.height / 2 };
+
+        let bounds1 = calculateImageBounds(img1, box1.x, box1.y, box1.w, box1.h);
+        let bounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
+
+        // 上画像
+        if (img1 && bounds1) {
+          p.image(img1, bounds1.x + bounds1.w / 2, bounds1.y + bounds1.h / 2, bounds1.w, bounds1.h);
+        }
+
+        // 下画像
+        if (img2 && bounds2) {
+          p.image(img2, bounds2.x + bounds2.w / 2, bounds2.y + bounds2.h / 2, bounds2.w, bounds2.h);
+        }
+
+        // 正解の赤丸描画
+        p.noFill();
+        p.stroke(255, 50, 50);
+        p.strokeWeight(5);
+        for (let i = 0; i < differences.length; i++) {
+          if (foundDiffs[i]) {
+            if (bounds1) {
+              let cx1 = bounds1.x + differences[i].x * bounds1.w;
+              let cy1 = bounds1.y + differences[i].y * bounds1.h;
+              let cr1 = (differences[i].r || 0.07) * Math.max(bounds1.w, bounds1.h) * 2;
+              p.circle(cx1, cy1, cr1);
+            }
+            if (bounds2) {
+              let cx2 = bounds2.x + differences[i].x * bounds2.w;
+              let cy2 = bounds2.y + differences[i].y * bounds2.h;
+              let cr2 = (differences[i].r || 0.07) * Math.max(bounds2.w, bounds2.h) * 2;
+              p.circle(cx2, cy2, cr2);
+            }
+          }
+        }
+
+        // エディットモード中の仮マーカー表示
+        if (gameState === 'EDITING' && bounds2) {
+          p.noFill();
+          p.stroke(0, 230, 118);
+          p.strokeWeight(4);
+          editorPoints.forEach((pt, idx) => {
+            let cx = bounds2.x + pt.x * bounds2.w;
+            let cy = bounds2.y + pt.y * bounds2.h;
+            let cr = pt.r * Math.max(bounds2.w, bounds2.h) * 2;
+            p.circle(cx, cy, cr);
+            p.fill(0, 230, 118);
+            p.noStroke();
+            p.textSize(16);
+            p.text(idx + 1, cx, cy);
+            p.noFill();
+            p.stroke(0, 230, 118);
+          });
+        }
+
+        // ハズレタップ時の「×」エフェクト
+        for (let i = missEffects.length - 1; i >= 0; i--) {
+          let m = missEffects[i];
+          p.push();
+          p.stroke(255, 255, 255, m.life * 10);
+          p.strokeWeight(4);
+          p.line(m.x - 10, m.y - 10, m.x + 10, m.y + 10);
+          p.line(m.x + 10, m.y - 10, m.x - 10, m.y + 10);
+          p.pop();
+          m.life--;
+          if (m.life <= 0) missEffects.splice(i, 1);
+        }
+
+        // 中央区切り線
+        p.stroke(60);
+        p.strokeWeight(4);
+        p.line(0, p.height / 2, p.width, p.height / 2);
+
+        // タイマー処理
+        if (gameState === 'PLAYING') {
+          let elapsed = (p.millis() - timerStartTime) / 1000;
+          timeLeft = Math.max(0, TIME_LIMIT - elapsed);
+
+          if (timeLeft === 0) {
+            gameState = 'TIMEUP';
+            audio.playTimeUp();
+            setTimeout(() => {
+              document.getElementById('result-title').innerText = 'タイムアップ！残念…\n答え合わせは下のボタンから！';
+              document.getElementById('answer-btn').style.display = 'block';
+              document.getElementById('result-overlay').style.display = 'flex';
+            }, 800);
+          }
+        }
+
+        // 中央タイマーバッジ
+        if (gameState !== 'WAITING' && gameState !== 'LOADING' && gameState !== 'EDITING') {
+          p.push();
+          p.translate(p.width / 2, p.height / 2);
+          p.fill(0, 0, 0, 200);
+          p.stroke(255, 179, 0);
+          p.strokeWeight(3);
+          p.rectMode(p.CENTER);
+          p.rect(0, 0, 96, 46, 23);
+
+          p.noStroke();
+          p.fill(255);
+          p.textSize(26);
+          p.textAlign(p.CENTER, p.CENTER);
+
+          if (timeLeft <= 10 && timeLeft > 0 && gameState === 'PLAYING') {
+            if (Math.floor(p.millis() / 250) % 2 === 0) {
+              p.fill(255, 71, 87);
+            }
+          }
+          p.text(Math.ceil(timeLeft), 0, 1);
+          p.pop();
+        }
+      };
+    };
+
+    new p5(sketch);
+  </script>
+</body>
+</html>

@@ -1,1 +1,1865 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>速達生 鮮度の旅</title>
+<!-- Google Fonts（見出し：Dela Gothic One ／ 本文：Zen Kaku Gothic New ／ 数字：Oswald） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Yomogi&family=Oswald:wght@500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ==================================================================
+   ▼ 色（動画の世界観：夜空・金色のビール・白い泡・冷たい鮮度の水色・速達の赤） ▼
+   ================================================================== */
+:root {
+    --night: #07080f;  --night2: #121424;
+    --gold: #ffc53d;   --gold2: #ffe08a;  --amber: #e88a10;
+    --foam: #fffaf0;   --fresh: #6fd6ff;  --red: #e5322d;
+    --ink: #1d1b22;    --paper: #fffdf6;  --line: #e8c3b8;
+    --vino: #e5322d; --oro: #ffc53d; --inchiostro: #1d1b22;   /* 旧デザインの名前（JSの文字色で使用） */
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overscroll-behavior: none; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+body { position: fixed; inset: 0; }
+#s-drive, #s-movie { touch-action: none; }
+img, canvas { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+body { background: var(--night); color: #fff; font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif; font-weight: 500; overflow: hidden; height: 100dvh; }
+button { font-family: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.num { font-family: 'Oswald', sans-serif; }
+.jp-phrase { word-break: keep-all; overflow-wrap: anywhere; }
+
+/* ▼ 背景：夜空に立ちのぼる金色の泡 ▼ */
+.ambience { position: fixed; inset: 0; pointer-events: none; overflow: hidden;
+    background: radial-gradient(80% 50% at 50% 110%, rgba(232,138,16,.35), transparent 70%), radial-gradient(60% 40% at 80% 0%, rgba(111,214,255,.10), transparent 70%), linear-gradient(#0b0c18, #07080f); }
+.ambience i { position: absolute; bottom: -20px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(255,210,110,.5) 40%, rgba(255,197,61,.1) 70%); animation: rise linear infinite; opacity: .7; }
+@keyframes rise { from { transform: translateY(0) translateX(0); } 50% { transform: translateY(-55vh) translateX(10px); } to { transform: translateY(-110vh) translateX(-6px); opacity: 0; } }
+
+/* ▼ 画面の切り替え ▼ */
+#app { position: relative; z-index: 1; width: 100%; max-width: 440px; height: 100%; margin: 0 auto; }
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; overflow-x: hidden; }
+.screen.active { display: flex; animation: fadeIn .55s ease both; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ▼ ボタン ▼ */
+.btn-vino { display: block; width: 100%; padding: 16px 10px; border-radius: 999px; font-size: 18px; font-weight: 900; letter-spacing: .12em; color: #2a1600;
+    background: linear-gradient(180deg, #ffe58f, var(--gold) 45%, var(--amber)); box-shadow: 0 8px 24px rgba(255,170,30,.45), inset 0 2px 0 rgba(255,255,255,.6), inset 0 -3px 0 rgba(150,70,0,.35); transition: transform .1s, filter .15s; }
+.btn-vino:active { transform: translateY(2px) scale(.99); }
+.btn-vino:disabled { filter: grayscale(.7) brightness(.6); }
+.btn-ghost { padding: 10px 18px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.35); font-size: 14px; font-weight: 700; letter-spacing: .12em; color: #fff; background: rgba(255,255,255,.06); }
+.sub-row { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
+.stamp-red { display: inline-flex; align-items: center; justify-content: center; border: 3px solid var(--red); color: var(--red); border-radius: 50%; font-family: 'Dela Gothic One', sans-serif; }
+
+/* ==================================================================
+   ▼ 0. トップ ▼
+   ================================================================== */
+#s-opening { padding: 0; justify-content: flex-start; }
+.hero { position: relative; width: 100%; min-height: 100dvh; flex: none; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding: 0 20px 92px; }
+.hero > .hero-bg { position: absolute; z-index: 0; left: 0; right: 0; top: 0; height: 58%; overflow: hidden; background: 62% 100%/cover no-repeat;
+    -webkit-mask-image: linear-gradient(#000 62%, rgba(0,0,0,.6) 80%, transparent); mask-image: linear-gradient(#000 62%, rgba(0,0,0,.6) 80%, transparent); }   /* 景色と文字の境目を、ふわっと */
+.hero-bg canvas { position: absolute; bottom: 17%; width: 64%; left: -80%; animation: heroDrive 9s infinite; filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); }
+@keyframes heroDrive {   /* 左から走ってきて、まん中で少し止まり、右へ走りぬける */
+    0% { left: -80%; animation-timing-function: cubic-bezier(.2,.6,.35,1); }
+    30% { left: 18%; animation-timing-function: ease-in-out; }
+    68% { left: 18%; animation-timing-function: cubic-bezier(.6,0,.9,.5); }
+    100% { left: 115%; }
+}
+.hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,8,15,.5) 0%, rgba(7,8,15,0) 14%, rgba(7,8,15,0) 50%, rgba(7,8,15,.85) 64%, rgba(7,8,15,.95) 85%, var(--night)); }
+.hero > * { position: relative; z-index: 1; }
+.hero-badge { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; letter-spacing: .2em; }
+.hero-badge .stamp-red { width: 46px; height: 46px; font-family: 'Zen Kaku Gothic New', sans-serif; font-weight: 900; font-size: 15px; letter-spacing: -.02em; background: rgba(255,255,255,.95); transform: rotate(-12deg); }
+.hero-kicker { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: .3em; color: var(--fresh); text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.hero-title { margin: 6px 0 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 42px; line-height: 1.1; letter-spacing: .02em; text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 4px 24px rgba(0,0,0,.8); }
+.hero-title .g { color: var(--gold); -webkit-text-stroke: 1px #7a3a00; text-shadow: 0 3px 0 #7a3a00, 0 0 28px rgba(0,0,0,.9); }
+.hero-days { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0 2px; }
+.hero-days .big { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 56px; line-height: .85; color: #fff; text-shadow: 0 0 30px rgba(255,197,61,.6); }
+.hero-days .big small { font-size: 30px; }
+.hero-days .lab { font-size: 13px; font-weight: 900; line-height: 1.4; padding-bottom: 2px; }
+.hero-days .lab b { display: block; font-size: 18px; color: var(--gold); }
+.hero-lead { margin: 6px 0 0; font-size: 13.5px; line-height: 1.7; color: #eef0ff; }
+.scroll-hint { margin-top: 18px; font-size: 12px; letter-spacing: .25em; color: rgba(255,255,255,.75); text-align: center; animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(5px); } }
+.h-in { opacity: 0; animation: hIn .9s cubic-bezier(.2,.8,.3,1) var(--d, 0s) forwards; }
+@keyframes hIn { from { opacity: 0; transform: translateY(24px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* お届け伝票 */
+.slip-wrap { width: 100%; padding: 8px 16px 0; }
+.slip { position: relative; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 18px 16px 16px; box-shadow: 0 24px 50px -10px rgba(0,0,0,.7); transform: rotate(-1deg);
+    background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(229,50,45,.08) 27px 28px); }
+.slip::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 8px; background: radial-gradient(circle at 6px 8px, transparent 5px, var(--paper) 5.5px) repeat-x; background-size: 12px 8px; }
+.slip-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--red); padding-bottom: 8px; }
+.slip-head h2 { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 20px; letter-spacing: .1em; color: var(--red); }
+.slip-head small { font-size: 10px; font-weight: 700; color: #8a7f78; letter-spacing: .1em; }
+.slip dl { margin: 10px 0 0; display: grid; grid-template-columns: 6.2em 1fr; border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; }
+.slip dt, .slip dd { margin: 0; padding: 8px 10px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+.slip dt { background: #fff1ec; color: #b33a2f; font-weight: 900; font-size: 12px; letter-spacing: .08em; }
+.slip dd { font-weight: 700; }
+.slip dd b { color: var(--red); font-size: 16px; }
+.slip dl > :nth-last-child(-n+2) { border-bottom: 0; }
+.slip-route { margin-top: 12px; }
+.slip-route p { margin: 0 0 6px; font-size: 12px; font-weight: 900; color: #b33a2f; letter-spacing: .1em; }
+.season-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.chip-s { position: relative; padding: 9px 0; border-radius: 8px; font-size: 14px; font-weight: 900; color: var(--ink); border: 1.5px solid #d9cfc7; background: #fff; transition: .15s; }
+.chip-s.wide { grid-column: 1 / -1; font-size: 15px; }
+.chip-s small { position: absolute; top: -8px; right: 6px; font-size: 9px; padding: 1px 6px; border-radius: 999px; background: var(--ink); color: #fff; }
+.chip-s.wide small { background: var(--red); }
+.chip-s[aria-pressed="true"] { border-color: var(--red); background: #fff1ec; box-shadow: 0 0 0 1.5px var(--red); color: var(--red); }
+.slip-stamps { position: absolute; right: 12px; top: 54px; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.slip-stamps .stamp-red { width: 64px; height: 64px; font-size: 20px; transform: rotate(14deg) scale(2); opacity: 0; background: rgba(255,253,246,.6); }
+.slip-stamps .stamp-red.press { animation: stampIn .4s cubic-bezier(.3,1.6,.5,1) forwards; }
+.slip-stamps .cold { padding: 2px 6px; border: 2px solid #2a8fd8; color: #2a8fd8; font-size: 11px; font-weight: 900; border-radius: 3px; transform: rotate(-6deg); opacity: 0; }
+.slip-stamps .cold.press { animation: stampIn2 .35s ease-out .25s forwards; }
+@keyframes stampIn { to { transform: rotate(14deg) scale(1); opacity: .92; } }
+@keyframes stampIn2 { from { transform: rotate(-6deg) scale(1.6); } to { transform: rotate(-6deg) scale(1); opacity: .9; } }
+.op-start { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 14px 16px max(14px, env(safe-area-inset-bottom)); }
+#s-opening { overflow: hidden; }
+.hero { height: 100%; min-height: 0; padding-bottom: 104px; }
+/* アンケート・季節えらび */
+.qa { width: 100%; padding: 8px 4px 20px; }
+.qa-kicker { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: .3em; color: var(--fresh); text-align: center; }
+.qa-title { margin: 6px 0 18px; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 26px; line-height: 1.4; text-align: center; }
+.q { margin-bottom: 16px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+.q-lab { margin: 0 0 10px; font-size: 15px; font-weight: 900; line-height: 1.5; }
+.q-lab span { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; background: var(--gold); color: #2a1600; font-family: 'Oswald', sans-serif; font-size: 13px; }
+.q-lab small { font-size: 12px; color: #9aa0b8; }
+.q-lab .q-note { display: block; margin-top: 4px; font-size: 12.5px; color: var(--gold2); }
+.q-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.q-opts button { padding: 14px 0; border-radius: 12px; font-size: 16px; font-weight: 900; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.05); transition: .15s; }
+.q-opts button[aria-pressed="true"] { border-color: var(--gold); background: rgba(255,197,61,.18); color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); }
+.q textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.25); background: rgba(0,0,0,.3); color: #fff; font: inherit; font-size: 16px; resize: none; }
+.q textarea:focus { outline: none; border-color: var(--gold); }
+.season-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.season-card { position: relative; height: 160px; border-radius: 16px; overflow: hidden; display: block; padding: 0; border: 1.5px solid rgba(255,255,255,.25); background: #222; transition: transform .15s; box-shadow: 0 10px 24px -8px rgba(0,0,0,.7); }
+.sc-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sc-txt { position: absolute; left: 10px; top: 8px; text-align: left; display: flex; flex-direction: column; }
+.season-card:active { transform: scale(.97); }
+.season-card b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 28px; line-height: 1.1; text-shadow: 0 2px 8px rgba(0,0,0,.7); }
+.season-card small { font-size: 11px; font-weight: 900; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+.season-card .now { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 999px; background: var(--gold); color: #2a1600; }
+/* 名所の写真がふわっと浮かぶ */
+.pop { position: absolute; z-index: 2; left: 50%; top: 9%; width: min(90%, 380px); text-align: center; pointer-events: none;
+    opacity: 0; transform: translate(-50%, 18px) scale(.94); filter: blur(6px); transition: opacity 1.4s ease, transform 1.6s ease, filter 1.4s ease; }
+.pop.show { opacity: 1; transform: translate(-50%, 0) scale(1); filter: blur(0); animation: popFloat 5s ease-in-out 1.6s infinite; }
+@keyframes popFloat { 50% { transform: translate(-50%, -7px) scale(1.01); } }
+.pop::before { content: ''; position: absolute; left: -12%; right: -12%; top: -6%; height: 92%; border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,250,235,.85) 0%, rgba(255,240,210,.45) 45%, rgba(255,240,210,0) 72%); filter: blur(4px); }
+.pop img { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; opacity: .96;
+    filter: sepia(.18) saturate(.95) brightness(1.06) contrast(.96);
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, rgba(0,0,0,.7) 78%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, rgba(0,0,0,.7) 78%, transparent 100%); }
+.pop p { position: relative; margin: -12px 0 0; font-family: 'Yomogi', 'Zen Kaku Gothic New', sans-serif; font-size: 22px; letter-spacing: .08em; color: #fff; text-shadow: 0 0 8px rgba(0,0,0,.8), 0 2px 4px rgba(0,0,0,.6); }
+.pop small { display: block; font-size: 8px; color: rgba(255,255,255,.8); margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+.pop-tag[hidden] { display: none; }
+.pop-tag { display: inline-block; margin-bottom: -4px; position: relative; z-index: 1; padding: 3px 10px; border-radius: 999px; background: rgba(229,50,45,.92); color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 3px 8px rgba(0,0,0,.3); }
+/* ショート動画風の左右タップ */
+.nav-edge { position: absolute; top: 50%; z-index: 2; width: 34px; height: 34px; margin-top: -60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: rgba(255,255,255,.85); background: rgba(0,0,0,.25); pointer-events: none; }
+.nav-edge.l { left: 8px; } .nav-edge.r { right: 8px; }
+.stats .wide { grid-column: 1 / -1; }
+.stats .wide b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 18px; color: var(--amber); }
+.op-note { margin: 8px 0 0; font-size: 11px; color: #9aa0b8; letter-spacing: .1em; text-align: center; }
+
+/* ▼ 1. 動画 ▼ */
+#s-movie { padding: 0; background: #000; }
+#movie { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.movie-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 20px max(84px, calc(env(safe-area-inset-bottom) + 70px)); text-align: center; background: linear-gradient(to top, rgba(0,0,0,.7), transparent); opacity: 0; transform: translateY(12px); transition: opacity .8s, transform .8s; pointer-events: none; }
+.movie-cap.show { opacity: 1; transform: none; }
+.movie-cap p { margin: 0 0 6px; font-size: 13px; font-weight: 900; letter-spacing: .3em; color: var(--fresh); }
+.movie-cap p b { font-size: 18px; color: #fff; }
+.movie-cap h2 { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 28px; line-height: 1.4; letter-spacing: .06em; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
+.movie-btn { position: absolute; z-index: 2; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .15em; border: 1px solid rgba(255,255,255,.45); background: rgba(0,0,0,.35); }
+.movie-btn.skip { right: 14px; bottom: max(20px, env(safe-area-inset-bottom)); }
+.movie-btn.sound { left: 14px; bottom: max(20px, env(safe-area-inset-bottom)); }
+.flash { position: absolute; inset: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity .8s ease-out; background: radial-gradient(circle at 50% 50%, #fffdf4 0%, #ffe9b0 40%, #ffc53d 75%, #c97a10 100%); }
+.flash.on { opacity: 1; transition: opacity .4s ease-in; }
+
+/* ▼ 2. 旅 ▼ */
+#s-drive { padding: 0; justify-content: flex-start; overflow: hidden; }
+#sceneCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hud { position: absolute; left: 0; right: 0; top: 0; z-index: 3; padding: max(10px, env(safe-area-inset-top)) 14px 26px; background: linear-gradient(rgba(7,8,15,.65), transparent); pointer-events: none; }
+.segs { display: flex; gap: 4px; }
+.segs div { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.3); overflow: hidden; }
+.segs div i { display: block; height: 100%; width: 0; background: var(--gold); }
+.hud-title { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.hud-title p { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: .1em; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.hud-title p span { font-size: 12px; color: var(--gold2); margin-left: 3px; }
+.chip { font-size: 11px; font-weight: 900; letter-spacing: .1em; padding: 4px 10px; border-radius: 999px; background: rgba(7,8,15,.6); border: 1px solid rgba(255,197,61,.7); color: var(--gold); }
+.clock { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+.clock b { font-family: 'Oswald', sans-serif; font-size: 22px; color: var(--fresh); letter-spacing: .02em; }
+.clock em { font-style: normal; margin-left: auto; color: var(--gold2); }
+.fresh-lab { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.85); margin: 4px 0 4px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+.fresh-lab b { color: var(--fresh); }
+.fresh { position: relative; height: 5px; border-radius: 5px; background: rgba(255,255,255,.3); }
+.fresh i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: linear-gradient(90deg, var(--fresh), #e8f7ff); box-shadow: 0 0 8px rgba(111,214,255,.8); }
+.fresh em { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px rgba(111,214,255,.9); }
+.cap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 70px 16px max(14px, env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(7,8,15,.94), rgba(7,8,15,.6) 60%, transparent); }
+.cap .lab { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; }
+.cap .num { font-family: 'Oswald', sans-serif; color: var(--gold); font-size: 26px; line-height: 1; }
+.cap .place { font-size: 13px; font-weight: 700; letter-spacing: .2em; color: #e8eaf6; }
+.cap h2 { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 24px; line-height: 1.4; letter-spacing: .03em; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+.cap p.txt { margin: 5px 0 0; font-size: 15px; line-height: 1.75; color: #eceef8; }
+#capBody { min-height: 150px; }
+.memo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 8px 0 0; padding: 7px 10px; font-size: 13px; line-height: 1.6; color: #fff3d6; border-left: 3px solid var(--gold); background: rgba(255,197,61,.12); border-radius: 0 8px 8px 0; }
+.memo span:first-child { font-size: 10px; font-weight: 900; letter-spacing: .2em; color: var(--gold); }
+.memo b { font-family: 'Oswald', sans-serif; color: var(--gold); font-size: 16px; }
+.cap-in { animation: capIn .55s ease both; }
+@keyframes capIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.story-btn { padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; letter-spacing: .12em; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); }
+.story-btn:disabled { opacity: .3; }
+.story-btn.primary { background: linear-gradient(180deg, #ffe58f, var(--gold) 45%, var(--amber)); color: #2a1600; border-color: transparent; font-weight: 900; }
+.controls .hint { margin-left: auto; font-size: 11px; letter-spacing: .1em; color: rgba(255,255,255,.6); }
+.honk { position: absolute; z-index: 4; max-width: 72vw; padding: 7px 13px; border-radius: 16px; background: #fff; color: var(--ink); font-weight: 900; font-size: 14px; line-height: 1.4; pointer-events: none; opacity: 0; transform: translate(-50%, 6px) scale(.8); transition: opacity .25s, transform .3s cubic-bezier(.3,1.6,.5,1); box-shadow: 0 6px 14px rgba(0,0,0,.35); white-space: nowrap; border: 2px solid var(--gold); }
+.honk::after { content: ''; position: absolute; left: 22%; bottom: -8px; border: 8px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.honk.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.intro { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; background: rgba(7,8,15,.45); transition: opacity .7s; pointer-events: none; }
+.intro.hide { opacity: 0; }
+.intro .t { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-size: 34px; letter-spacing: .08em; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.intro .s { font-size: 15px; font-weight: 700; letter-spacing: .1em; color: var(--gold2); margin-top: 10px; line-height: 1.9; }
+
+/* ▼ 3. 注ぐ ▼ */
+#s-pour { padding: max(8px, env(safe-area-inset-top)) 14px max(8px, env(safe-area-inset-bottom)); overflow: hidden; }
+#s-pour .qa-kicker { display: none; }
+#s-pour .btn-vino { padding: 13px 10px; font-size: 16px; }
+#s-pour .sub-row { margin-top: 6px; }
+#s-pour .btn-ghost { padding: 8px 14px; }
+.pour-wrap { width: 100%; max-width: 420px; margin: auto 0; text-align: center; }
+.pour-title { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 21px; letter-spacing: .04em; }
+.pour-title span { color: var(--gold); }
+.pour-sub { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: #c9cde0; }
+.steps { list-style: none; display: flex; justify-content: center; align-items: center; margin: 8px 0 8px; padding: 0; }
+.steps li { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: #8f94a8; }
+.steps li + li::before { content: ''; width: 18px; height: 2px; margin: 0 6px; background: rgba(255,255,255,.2); border-radius: 2px; }
+.steps li b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-family: 'Oswald', sans-serif; font-size: 12px; border: 1.5px solid rgba(255,255,255,.3); }
+.steps li.on { color: #fff; } .steps li.on b { background: var(--gold); border-color: var(--gold); color: #2a1600; box-shadow: 0 0 12px rgba(255,197,61,.6); }
+.steps li.done { color: var(--gold); } .steps li.done b { border-color: var(--gold); color: var(--gold); } .steps li.done + li::before, .steps li.on::before { background: var(--gold); }
+.pour-stage { position: relative; width: 100%; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px -12px rgba(0,0,0,.85), 0 0 0 1px rgba(255,197,61,.25); }
+#pourCanvas { display: block; width: 100%; touch-action: none; }
+.pour-card { margin-top: 8px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+.pour-msg { min-height: 44px; margin: 0 0 8px; font-size: 13.5px; font-weight: 700; line-height: 1.65; text-align: center; color: #eef0f8; }
+.pour-msg b { display: block; font-size: 16px; font-weight: 900; color: #fff; }
+.pour-msg em { font-style: normal; color: var(--gold); font-weight: 900; }
+#pourActions { width: 100%; }
+.judge { display: flex; align-items: center; gap: 12px; text-align: left; }
+.rank-badge { flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-family: 'Oswald', sans-serif; font-size: 34px; font-weight: 700; color: #2a1600; animation: rankIn .7s cubic-bezier(.3,1.6,.5,1) both; box-shadow: 0 0 18px rgba(255,255,255,.35); }
+.rb-S { background: conic-gradient(#ff6ec4, #ffd36b, #7dff9b, #5ed6ff, #b68cff, #ff6ec4); color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.rb-A { background: radial-gradient(circle at 35% 30%, #fff3b0, #f0c35a 50%, #a87a1c); }
+.rb-B { background: radial-gradient(circle at 35% 30%, #ffffff, #cfd6de 50%, #8a929b); }
+.rb-C { background: #f4f4f8; }
+@keyframes rankIn { from { transform: scale(0) rotate(-180deg); } to { transform: none; } }
+.judge-txt small { display: block; font-size: 11px; color: #c9cde0; font-weight: 700; }
+.judge-txt em { display: block; font-size: 16px; }
+#pourActions .btn-ghost { width: 100%; }
+.hold-btn { user-select: none; -webkit-user-select: none; touch-action: none; }
+.hold-btn.holding { filter: brightness(1.12); transform: translateY(2px) scale(.98); }
+
+/* ▼ 4. 乾杯（お届け完了） ▼ */
+#s-cheers { padding: 0; justify-content: flex-start; }
+.ch-bg { position: absolute; inset: 0; background: center/cover no-repeat; }
+.ch-inner { position: relative; z-index: 1; width: 100%; padding: max(18px, env(safe-area-inset-top)) 16px 24px; text-align: center; }
+.ch-kicker { margin: 0; font-size: 13px; font-weight: 900; letter-spacing: .3em; color: var(--fresh); }
+.ch-title { margin: 4px 0 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 34px; letter-spacing: .04em; text-shadow: 0 2px 0 rgba(0,0,0,.6), 0 0 18px rgba(0,0,0,.9); }
+.ch-kicker { text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+.ch-stage { position: relative; height: min(64vh, 520px); margin: 6px -16px 0; cursor: pointer; user-select: none; }
+.ch-stage canvas { position: absolute; bottom: 0; width: 74%; left: 13%; transform-origin: 50% 90%; transition: transform .5s cubic-bezier(.3,1.4,.5,1); filter: drop-shadow(0 20px 30px rgba(0,0,0,.6)); }
+#chMate { left: auto; right: -80%; width: 60%; transform: scaleX(-1); opacity: .95; transition: right .5s cubic-bezier(.3,1.2,.5,1), transform .5s; }
+.ch-stage.clink #chJug { transform: translateX(-12%) rotate(10deg); }
+.ch-stage.clink #chMate { right: -10%; transform: scaleX(-1) rotate(10deg); }
+.ch-tap { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); padding: 7px 16px; border-radius: 999px; font-size: 14px; font-weight: 900; background: rgba(7,8,15,.6); border: 1.5px solid var(--gold); color: var(--gold); white-space: nowrap; animation: bob 1.4s ease-in-out infinite; }
+.ch-stage.clink .ch-tap { opacity: 0; }
+.kanpai { position: absolute; left: 50%; top: 18%; transform: translate(-50%, 0) scale(.3); font-family: 'Dela Gothic One', sans-serif; font-size: 52px; color: #fff; text-shadow: 0 0 20px rgba(255,197,61,.9), 0 4px 0 var(--amber); opacity: 0; pointer-events: none; white-space: nowrap; }
+.ch-stage.clink .kanpai { animation: kanpai .9s cubic-bezier(.3,1.6,.5,1) .35s forwards; }
+@keyframes kanpai { to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.spark { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff6c8; box-shadow: 0 0 10px #ffd76a; pointer-events: none; opacity: 0; }
+.ch-stage.clink .spark { animation: spark .8s ease-out .45s forwards; }
+@keyframes spark { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.3); } }
+.receipt { position: relative; margin: 10px 0 0; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 16px 14px 14px; text-align: left; box-shadow: 0 20px 40px -10px rgba(0,0,0,.7); }
+.receipt h3 { margin: 0 0 8px; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 17px; color: var(--red); letter-spacing: .1em; border-bottom: 2px solid var(--red); padding-bottom: 6px; }
+.receipt .stamp-red { position: absolute; right: 12px; top: 8px; width: 74px; height: 74px; font-size: 13px; line-height: 1.2; text-align: center; transform: rotate(12deg); background: rgba(255,253,246,.7); }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.stats div { border: 1.5px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.stats small { display: block; font-size: 10px; font-weight: 900; letter-spacing: .1em; color: #b33a2f; }
+.stats b { font-family: 'Oswald', sans-serif; font-size: 22px; }
+.stats b.rank { color: var(--red); }
+.msg-paper { font-size: 13.5px; line-height: 1.85; margin: 10px 0 0; }
+.ch-actions { margin-top: 16px; }
+
+/* ▼ 5. マイカード（S：レインボー／A：ゴールド／B：シルバー／C：ホワイト） ▼ */
+#s-card { padding-top: max(16px, env(safe-area-inset-top)); }
+.card-wrap { width: 100%; text-align: center; }
+.mycard { position: relative; width: min(78vw, 320px); aspect-ratio: 630 / 880; margin: 0 auto; border-radius: 4.4%/3.2%; touch-action: none;
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); box-shadow: 0 30px 60px -15px rgba(0,0,0,.85), 0 0 46px var(--glow, rgba(255,197,61,.3)); }
+.mycard canvas { width: 100%; height: 100%; display: block; border-radius: inherit; }
+.foil, .glare, .sweep { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    /* 写真の部分（カードの左右 7%・上 14.5%・高さ 41.8%）には、光をかけない */
+    -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000); mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+    -webkit-mask-size: 100% 100%, 86.1% 41.9%; mask-size: 100% 100%, 86.1% 41.9%;
+    -webkit-mask-position: 0 0, 50% 25%; mask-position: 0 0, 50% 25%;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-composite: xor; mask-composite: exclude; }
+.foil { mix-blend-mode: color-dodge; opacity: .5; background-size: 300% 300%; background-position: var(--px, 50%) var(--py, 50%); }
+.r-S .foil { background-image: repeating-linear-gradient(115deg, #ff6ec4 0%, #ffd36b 6%, #7dff9b 12%, #5ed6ff 18%, #b68cff 24%, #ff6ec4 30%); opacity: .5; }
+.r-S .foil::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background-image: radial-gradient(circle, rgba(255,255,255,.95) 0 1px, transparent 1.6px); background-size: 16px 16px; background-position: var(--px, 50%) var(--py, 50%); opacity: .6; }
+.r-A .foil { background-image: linear-gradient(115deg, transparent 28%, rgba(255,210,100,.9) 43%, rgba(255,255,235,1) 50%, rgba(255,185,50,.9) 57%, transparent 72%); }
+.r-B .foil { background-image: linear-gradient(115deg, transparent 28%, rgba(190,205,225,.85) 43%, rgba(255,255,255,1) 50%, rgba(160,175,195,.85) 57%, transparent 72%); }
+.r-C .foil { background-image: linear-gradient(115deg, transparent 32%, rgba(255,255,255,.7) 50%, transparent 68%); opacity: .3; }
+.glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255,255,255,.5), transparent 45%); mix-blend-mode: overlay; }
+.r-S { --glow: rgba(190,140,255,.5); } .r-A { --glow: rgba(255,197,61,.5); } .r-B { --glow: rgba(205,220,240,.35); } .r-C { --glow: rgba(255,255,255,.2); }
+.card-rarity { margin: 14px 0 2px; font-family: 'Oswald', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: .45em; padding-left: .45em; }
+.card-actions { max-width: 340px; margin: 14px auto 10px; display: grid; gap: 10px; }
+.photo-btn { display: block; cursor: pointer; padding: 13px 16px; text-align: center; }
+
+/* ▼ カオハメ ▼ */
+#s-kao { padding-top: max(16px, env(safe-area-inset-top)); }
+#s-kao .qa, #s-card .card-wrap { margin: auto 0; }
+.kao-wrap { border-radius: 14px; overflow: hidden; box-shadow: 0 18px 40px -10px rgba(0,0,0,.8), 0 0 0 2px rgba(255,197,61,.5); }
+#kaoCv { display: block; width: 100%; touch-action: none; cursor: grab; }
+.kao-zoom { display: flex; align-items: center; gap: 10px; margin: 12px 4px 0; font-size: 12px; font-weight: 900; color: #c9cde0; }
+.kao-zoom input { flex: 1; accent-color: var(--gold); }
+
+/* ▼ S・A・B の「きらーん」 ▼ */
+.card-stage { position: relative; perspective: 1000px; }
+.card-stage.reveal { animation: cardIn 1.1s cubic-bezier(.2,.9,.3,1.15) both; }
+@keyframes cardIn { 0% { transform: rotateY(180deg) scale(.6); opacity: 0; } 55% { opacity: 1; } 100% { transform: rotateY(0) scale(1); } }
+.sweep { overflow: hidden; }
+.sweep::before { content: ''; position: absolute; top: -20%; bottom: -20%; width: 38%; left: -60%; transform: skewX(-22deg);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.0) 20%, rgba(255,255,255,.95) 50%, rgba(255,255,255,0) 80%, transparent); mix-blend-mode: overlay; opacity: 0; }
+.r-S .sweep::before, .r-A .sweep::before, .r-B .sweep::before { animation: sweep 3.4s ease-in-out 1.2s infinite; }
+.r-S .sweep::before { background: linear-gradient(90deg, transparent, #ff6ec4 25%, #fff 45%, #5ed6ff 60%, #b68cff 75%, transparent); mix-blend-mode: color-dodge; }
+.r-A .sweep::before { background: linear-gradient(90deg, transparent, rgba(255,215,110,.7) 30%, #fffbe8 50%, rgba(255,190,60,.7) 70%, transparent); mix-blend-mode: color-dodge; }
+@keyframes sweep { 0% { left: -60%; opacity: 0; } 8% { opacity: 1; } 38% { left: 120%; opacity: 1; } 39%, 100% { left: 120%; opacity: 0; } }
+.stars { position: absolute; inset: 0; pointer-events: none; }
+.stars i { position: absolute; width: var(--s, 14px); height: var(--s, 14px); margin: calc(var(--s, 14px) / -2); background: #fff;
+    clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); filter: drop-shadow(0 0 4px var(--c, #fff)); opacity: 0; animation: twinkle2 var(--t, 2.4s) ease-in-out var(--d, 0s) infinite; }
+@keyframes twinkle2 { 0%, 100% { opacity: 0; transform: scale(.2) rotate(0); } 45% { opacity: 1; transform: scale(1) rotate(45deg); } 60% { opacity: .9; transform: scale(.8) rotate(60deg); } }
+.burst { position: absolute; left: 50%; top: 45%; width: 10px; height: 10px; margin: -5px; border-radius: 50%; pointer-events: none; opacity: 0; }
+.card-stage.reveal .burst { animation: burst 1.2s ease-out .65s both; }
+@keyframes burst { 0% { opacity: .95; box-shadow: 0 0 0 0 var(--bc, #fff), 0 0 60px 30px var(--bc, #fff); } 100% { opacity: 0; box-shadow: 0 0 0 220px rgba(255,255,255,0), 0 0 160px 120px rgba(255,255,255,0); } }
+.card-rarity.shine { background: linear-gradient(90deg, var(--rc1), #fff, var(--rc2), #fff, var(--rc1)); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: rareText 3s linear infinite; }
+@keyframes rareText { to { background-position: 300% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01s !important; animation-delay: 0s !important; transition-duration: .01s !important; }
+}
+</style>
+</head>
+<body>
+<div class="ambience" aria-hidden="true" id="ambience"></div>
+
+<div id="app">
+
+    <!-- ▼ 0. トップ（動画を背景に、コンセプトを大きく） ▼ -->
+    <section class="screen active" id="s-opening">
+        <div class="hero">
+            <div class="hero-bg" id="heroBg" aria-hidden="true"><canvas id="heroTruck"></canvas></div>
+            <div class="hero-badge h-in" style="--d:.2s"><span class="stamp-red">速達</span>速達生ビール</div>
+            <p class="hero-kicker h-in" style="--d:.4s">FRESH BEER EXPRESS</p>
+            <h1 class="hero-title h-in" style="--d:.6s"><span class="g">速達生便。</span></h1>
+            <div class="hero-days h-in" style="--d:.9s">
+                <span class="big">2<small>〜</small>3</span>
+                <span class="lab">工場を出てから<b>日以内</b></span>
+            </div>
+            <p class="hero-lead jp-phrase h-in" style="--d:1.1s">できたての生ビールを、<wbr>寄り道せずにお店まで。<br>その旅を、いっしょに走ろう。</p>
+        </div>
+
+        <div class="op-start">
+            <button class="btn-vino" id="btnStart">▶ 出発進行！</button>
+        </div>
+    </section>
+
+    <!-- ▼ 0-2. アンケート ▼ -->
+    <section class="screen" id="s-survey">
+        <div class="qa">
+            <p class="qa-kicker">QUESTIONNAIRE</p>
+            <h2 class="qa-title">出発の前に、<br>ちょっとだけ教えてね</h2>
+            <div class="q">
+                <p class="q-lab"><span>Q1</span>性別</p>
+                <div class="q-opts" data-q="gender"><button data-v="男性">男性</button><button data-v="女性">女性</button></div>
+            </div>
+            <div class="q">
+                <p class="q-lab"><span>Q2</span>年代</p>
+                <div class="q-opts" data-q="age"><button data-v="35歳以下">35歳以下</button><button data-v="35歳以上">35歳以上</button></div>
+            </div>
+            <div class="q">
+                <p class="q-lab"><span>Q3</span>ビールを飲んだ方は感想を教えてください。<small class="q-note">💬 コメントは最後のマイカードに反映されるよ！</small></p>
+                <textarea id="qComment" maxlength="100" rows="2" placeholder="例：美味しい！！"></textarea>
+            </div>
+            <button class="btn-vino" id="btnSurvey" disabled>次へ ›</button>
+            <p class="op-note" id="surveyNote">Q1〜Q3 に答えると進めます</p>
+        </div>
+    </section>
+
+    <!-- ▼ 0-3. 季節えらび（えらぶと出発の動画へ） ▼ -->
+    <section class="screen" id="s-route">
+        <div class="qa">
+            <p class="qa-kicker">SELECT SEASON</p>
+            <h2 class="qa-title">どの季節を<br>走る？</h2>
+            <div class="season-grid" id="seasonList"></div>
+            <p class="op-note">※ えらぶと出発の動画が流れます（音が出ます）</p>
+        </div>
+    </section>
+
+    <!-- ▼ 1. 動画（工場出荷 → 速達便が出発） ▼ -->
+    <section class="screen" id="s-movie" aria-label="出発の動画">
+        <video id="movie" playsinline preload="auto" src="image/sokunamatabi.mp4"></video>
+        <div class="movie-cap" id="movieCap">
+            <p>工場出荷 <b>2〜3日以内</b></p>
+            <h2>できたての生ビール、<br>お店へ出発！</h2>
+        </div>
+        <button class="movie-btn sound" id="btnSound" hidden>🔈 音を出す</button>
+        <button class="movie-btn skip" id="btnSkip">スキップ ›</button>
+    </section>
+
+    <img src="image/truck.webp" alt="" id="shipTruck" hidden>
+    <!-- ▼ 2. お店へ向かう旅 ▼ -->
+    <section class="screen" id="s-drive" aria-label="トラックが走る風景">
+        <canvas id="sceneCanvas" aria-hidden="true"></canvas>
+        <div class="hud">
+            <div class="segs" id="segs"></div>
+            <div class="hud-title"><p>速達生ビール<span>配達中</span></p><span class="chip" id="chip">四季めぐり</span></div>
+        </div>
+        <div class="honk" id="honk"></div>
+        <div class="pop" id="pop" aria-hidden="true"><span class="pop-tag" id="popTag" hidden></span><img id="popImg" alt=""><p id="popCap"></p><small id="popCredit"></small></div>
+        <div class="nav-edge l" aria-hidden="true">‹</div><div class="nav-edge r" aria-hidden="true">›</div>
+        <div class="cap">
+            <div id="capBody" aria-live="polite"></div>
+            <div class="controls">
+                <button class="story-btn" id="btnPrev" hidden>‹ 戻る</button>
+                <button class="story-btn primary" id="btnNext" hidden>お店に入る ›</button>
+                <span class="hint" id="navHint">◀ 戻る ／ 進む ▶　トラックをタップで加速！</span>
+            </div>
+        </div>
+        <div class="intro" id="intro">
+            <p class="t">出発進行！</p>
+            <p class="s jp-phrase">右をタップで進む／左で戻る<br>トラックをタップすると加速＆ジャンプ！</p>
+        </div>
+    </section>
+
+    <!-- ▼ 3. お店で注ぐ ▼ -->
+    <section class="screen" id="s-pour">
+        <div class="pour-wrap">
+            <p class="qa-kicker">LAST STEP</p>
+            <h2 class="pour-title">おいしい一杯に<span>チャレンジ！</span></h2>
+            <p class="pour-sub jp-phrase" id="pourSub">お店に到着！ 最後の仕上げは、あなたの手で。</p>
+            <ol class="steps" id="pourSteps"><li><b>1</b>注ぐ</li><li><b>2</b>泡をのせる</li><li><b>3</b>すり切る</li></ol>
+            <div class="pour-stage">
+                <canvas id="pourCanvas" aria-label="ジョッキにビールを注ぐ様子"></canvas>
+            </div>
+            <div class="pour-card">
+                <p class="pour-msg jp-phrase" id="pourMsg"></p>
+                <div id="pourActions"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ▼ 4. 乾杯（お届け完了） ▼ -->
+    <section class="screen" id="s-cheers">
+        <div class="ch-bg" id="chBg"></div>
+        <div class="ch-inner">
+            <p class="ch-kicker">DELIVERED!</p>
+            <h2 class="ch-title" id="chTitle">お届け完了</h2>
+            <div class="ch-stage" id="chStage" role="button" aria-label="タップで乾杯">
+                <canvas id="chMate" aria-hidden="true"></canvas>
+                <canvas id="chJug" aria-hidden="true"></canvas>
+                <span class="ch-tap">🍺 タップで乾杯！</span>
+                <span class="kanpai">カンパイ！</span>
+            </div>
+            <div class="receipt">
+                <span class="stamp-red">お届け<br>完了</span>
+                <h3>受領書</h3>
+                <div class="stats">
+                    <div class="wide"><small>あなたがつくった一杯</small><b id="chName">黄金バランスのごくごくビール</b></div>
+                    <div><small>配達ルート</small><b id="chSeason">春ルート</b></div>
+                    <div><small>注ぎ方ランク</small><b class="rank" id="chRank">S</b></div>
+                </div>
+                <p class="msg-paper jp-phrase" id="chMsg"></p>
+            </div>
+            <div class="ch-actions">
+                <button class="btn-vino" data-go="kao">📸 カオハメ写真をとる</button>
+                <div class="sub-row"><button class="btn-ghost" data-go="route">別の季節で</button><button class="btn-ghost" data-go="opening">トップへ</button></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ▼ 4-2. カオハメ写真 ▼ -->
+    <section class="screen" id="s-kao">
+        <div class="qa">
+            <p class="qa-kicker">PHOTO</p>
+            <h2 class="qa-title" style="margin-bottom:4px">記念撮影もできるよ！</h2>
+            <p class="pour-sub" style="margin-bottom:14px;text-align:center">お店の前で、自分の一杯と記念にパチリ。</p>
+            <div class="kao-wrap"><canvas id="kaoCv" aria-label="カオハメ写真"></canvas></div>
+            <div class="kao-zoom" id="kaoZoomRow" hidden><span>小</span><input type="range" id="kaoZoom" min="0.6" max="3" step="0.01" value="1.1" aria-label="顔の大きさ"><span>大</span></div>
+            <p class="op-note" id="kaoNote">「写真を撮る」で、顔の部分に自分が入ります</p>
+            <div class="card-actions">
+                <label class="btn-vino photo-btn">📸 写真を撮る<input type="file" accept="image/*" capture="user" id="kaoCam" hidden></label>
+                <button class="btn-vino" id="kaoDone" hidden>この写真でカードにする ›</button>
+                <button class="btn-ghost" data-go="card" id="kaoSkip">写真なしでカードにする ›</button>
+                <p class="op-note">※ 写真はこの端末の中だけで使い、どこにも送信しません</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ▼ 5. マイカード ▼ -->
+    <section class="screen" id="s-card">
+        <div class="card-wrap">
+            <p class="qa-kicker">MY CARD</p>
+            <h2 class="qa-title" style="margin:4px 0 14px">マイカードができた！</h2>
+            <div class="card-stage" id="cardStage"><div class="mycard" id="myCard"><canvas id="cardCv" aria-label="マイカード"></canvas><div class="foil"></div><div class="glare"></div><div class="sweep"></div><div class="stars" id="cardStars"></div></div><div class="burst" id="cardBurst"></div></div>
+            <p class="card-rarity" id="cardRarity">RAINBOW</p>
+            <p class="op-note" style="margin-top:0">指でなぞると、カードがキラッと光るよ</p>
+            <div class="card-actions">
+                <button class="btn-ghost" data-go="kao">📸 記念撮影をとりなおす</button>
+                <button class="btn-vino" id="cardSave">💾 カードを画像で保存</button>
+                <div class="sub-row"><button class="btn-ghost" data-go="route">別の季節で</button><button class="btn-ghost" data-go="opening">トップへ</button></div>
+                <p class="op-note">※ 写真はこの端末の中だけで使い、どこにも送信しません</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="flash" id="flash" aria-hidden="true"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const IMG_DIR = 'image/';     // 背景画像と動画を置くフォルダ
+const SHOP_NAME = 'トン・ガリアーノ';
+
+// ==================================================================
+// ▼ 季節ごとの景色（名所は入れず、仮の景色です。あとで差し替えOK） ▼
+//   sky … 空の色［上, 下］ / mtn … 山［遠く, 近く］ / ground … 地面［手前, 奥］
+//   night … 暗さ 0〜1 / side … 道の奥に並ぶもの / front … 手前に並ぶもの（数字は出やすさ）
+//   weather … 舞うものの量（1秒あたり）/ road … 道路の色
+// ==================================================================
+const SEASONS = {
+  haru: { jp: '春', it: 'Primavera', weatherType: 'petal', msg: '桜の花びらといっしょに、春の一杯をどうぞ。',
+    front: { nanohana: 3, grass: 3, none: 3 },
+    stops: [
+      { place: '桜並木の道', title: '桜並木を走る', text: '花びらがひらひら。春の風といっしょに出発！',
+        sky: ['#8fc7ee', '#f8e4ec'], mtn: ['#b7c4dc', '#93b48a'], ground: ['#9cc77e', '#c6dca2'], night: 0, sun: [0.78, 0.13, '#fff6d8'], clouds: 'soft',
+        side: { sakura: 7, pole: 1, none: 1 }, weather: 9 },
+      { place: '菜の花の土手', title: '一面の菜の花', text: '黄色いじゅうたんの中を、まっすぐお店へ。',
+        sky: ['#6fb8ec', '#e6f3fb'], mtn: ['#aebfd8', '#86ad7d'], ground: ['#b2d06a', '#d8e48a'], night: 0, sun: [0.3, 0.1, '#fffbe8'], clouds: 'soft',
+        side: { nanohana: 6, sakura: 2, pole: 1 }, weather: 3 },
+      { place: '春の夕暮れ', title: 'ほんのり春の夕暮れ', text: 'お店はもうすぐ。鮮度はそのまま。',
+        sky: ['#6c78b8', '#f6b49a'], mtn: ['#8e86b0', '#6f7f78'], ground: ['#7f9f6e', '#a6a98a'], night: 0.32, sun: [0.7, 0.3, '#ffd2a8'], clouds: 'soft',
+        side: { sakura: 5, pole: 2, house: 2 }, weather: 5 }
+    ] },
+  natsu: { jp: '夏', it: 'Estate', weatherType: 'rain', msg: '夏の夜空の下で、冷たい一杯をぐいっと。',
+    front: { himawari: 2, grass: 4, none: 3 },
+    stops: [
+      { place: '入道雲の田んぼ道', title: '夏の青空と入道雲', text: '青々とした田んぼの中を、冷たいまま運ぶよ。',
+        sky: ['#2f8fe0', '#c4e8ff'], mtn: ['#7fa7cf', '#3f7f4a'], ground: ['#4f9a3c', '#7dbb55'], night: 0, sun: [0.82, 0.1, '#fffef0'], clouds: 'cumulus',
+        side: { green: 4, himawari: 4, pole: 2 }, weather: 0 },
+      { place: '夕立', title: '夕立だ！', text: '急などしゃぶり。でもビールは冷えたまま。',
+        sky: ['#55606d', '#9aa5ad'], mtn: ['#6c7884', '#3f5a48'], ground: ['#3d7a34', '#5d8b4c'], night: 0.18, sun: null, clouds: 'dark',
+        side: { green: 5, pole: 2, none: 1 }, weather: 80 },
+      { place: '夏の夜', title: '花火があがる夏の夜', text: '雨あがり。遠くで花火の音がするよ。',
+        sky: ['#0f1838', '#3c3160'], mtn: ['#20264a', '#18233a'], ground: ['#1f3a2c', '#28403a'], night: 0.72, sun: null, moon: true, stars: true, fireworks: true, clouds: null,
+        side: { green: 3, house: 3, pole: 2 }, weather: 0 }
+    ] },
+  aki: { jp: '秋', it: 'Autunno', weatherType: 'leaf', msg: '紅葉を思い出しながら、実りの秋の一杯を。',
+    front: { susuki: 4, grass: 1, none: 3 },
+    stops: [
+      { place: '紅葉の峠道', title: '真っ赤な紅葉の峠道', text: '赤や黄色の葉っぱが、くるくる舞っているよ。',
+        sky: ['#78b4e6', '#f3e6cf'], mtn: ['#c48a5c', '#a8492c'], ground: ['#a28838', '#c2a256'], night: 0, sun: [0.22, 0.12, '#fff4d8'], clouds: 'soft',
+        side: { momiji: 7, pole: 1, none: 1 }, weather: 5 },
+      { place: 'すすき野原', title: '金色のすすき野原', text: '風にゆれる穂のあいだを、ゆっくり安全運転。',
+        sky: ['#8cc2ea', '#f6ecd4'], mtn: ['#b99a78', '#8f7a4a'], ground: ['#c4a356', '#dcc283'], night: 0, sun: [0.75, 0.12, '#fff4d8'], clouds: 'soft',
+        side: { susuki: 6, momiji: 2, none: 1 }, weather: 2 },
+      { place: '秋の夕焼け', title: '夕焼け空の帰り道', text: 'お店の灯りが見えてきたよ。',
+        sky: ['#7b4a8f', '#f8b46a'], mtn: ['#8a4a5a', '#5a3a3a'], ground: ['#8a6a3a', '#b0864a'], night: 0.3, sun: [0.5, 0.28, '#ffcf80'], clouds: 'soft',
+        side: { momiji: 5, house: 2, pole: 2 }, weather: 3 }
+    ] },
+  fuyu: { jp: '冬', it: 'Inverno', weatherType: 'snow', msg: '雪の道をこえてきた、キリッと冷たい一杯を。',
+    front: { mound: 3, none: 3 },
+    stops: [
+      { place: '雪の山道', title: 'しんしんと雪の山道', text: '雪がどんどん降ってくる。安全運転でね。',
+        sky: ['#b5c3d4', '#e9eef3'], mtn: ['#e8eef4', '#c7d3de'], ground: ['#eef3f7', '#dfe7ee'], night: 0.05, sun: null, clouds: 'snowy', road: '#7c8189',
+        side: { sugi: 7, pole: 1, none: 1 }, weather: 34 },
+      { place: '雪の田園', title: '一面の雪景色', text: '雪がやんで青空に。きらきらまぶしいね。',
+        sky: ['#8fbde8', '#eaf3fa'], mtn: ['#f2f6fa', '#d6e2ec'], ground: ['#f4f8fb', '#e4edf4'], night: 0, sun: [0.8, 0.12, '#ffffff'], clouds: 'soft', road: '#80858d',
+        side: { sugi: 4, house: 2, pole: 2, none: 1 }, weather: 4 },
+      { place: '灯りの町', title: '雪の町に灯りがともる', text: 'あたたかい灯りの中へ。お店はもうすぐ。',
+        sky: ['#1c2448', '#5c5a8c'], mtn: ['#3a4068', '#2c3354'], ground: ['#cfd8e6', '#aab6cc'], night: 0.6, sun: null, moon: true, stars: true, clouds: null, road: '#6a6f78',
+        side: { house: 6, sugi: 2, pole: 2 }, weather: 14 }
+    ] }
+};
+const SEASON_ORDER = ['haru', 'natsu', 'aki', 'fuyu'];
+// ==================================================================
+// ▼ お店ごとの設定（shops/お店のID/shop.js）を読みこみます ▼
+//   URL の最後に ?shop=お店のID をつけると、そのお店の設定で動きます。
+//   （つけないときは DEFAULT_SHOP_ID のお店）くわしくは 使い方.txt
+// ==================================================================
+const DEFAULT_SHOP_ID = 'tongallianookazaki';
+const SHOP_ID = (new URLSearchParams(location.search).get('shop') || DEFAULT_SHOP_ID).replace(/[^a-zA-Z0-9_-]/g, '') || DEFAULT_SHOP_ID;
+const SHOP_DIR = 'shops/' + SHOP_ID + '/';
+// shop.js が読めないときに使う、かわりの設定（トン・ガリアーノ）
+const FALLBACK_SHOP = {
+    name: 'トン・ガリアーノ',
+    stops: [
+        { bg: 'nagoya', name: '出発', title: '速達生ビール、配達中！', text: 'できたての生ビールを積んで出発！ 工場出荷から2〜3日以内にお届けします。' },
+        { bg: 'tokyo' },
+        { spot: 'okazaki', photos: [{ photo: 'okazakijo.webp', caption: '岡崎城', credit: 'Evelyn-rose / Wikimedia Commons（CC0）' }] },
+        { bg: 'yokohama' }, { bg: 'fuji' },
+        { bg: 'tsumago', name: '乙川の桜', title: '乙川の桜', text: '岡崎の春をいろどる、川ぞいの桜並木。',
+          photos: [{ photo: 'otogawa.webp', caption: '乙川の桜', credit: 'Evelyn-rose / Wikimedia Commons（CC0）' }] },
+        { bg: 'kyoto' }, { bg: 'shirakawa' }
+    ],
+    goal: { bg: 'tg', logo: true, title: 'トン・ガリアーノに到着！', text: 'ナポリピッツァとワインのお店に、鮮度そのままでお届け。ここからは、おいしく注ぐ番です。' }
+};
+let SHOP = FALLBACK_SHOP;
+// 背景に使える景色（image フォルダの「キー_季節.webp」）。road … 道路の高さ（上から0〜1）／focus … ゴールで止まる位置（お店の入口）
+const BG = {
+    kyoto: { road: 0.9 }, fuji: { road: 0.92 }, okazaki: { road: 0.88 }, tsumago: { road: 0.77 }, shirakawa: { road: 0.87 },
+    tokyo: { road: 0.86 }, yokohama: { road: 0.84 }, nagoya: { road: 0.85 },
+    tg: { road: 0.88, focus: 0.5 }, izakaya: { road: 0.88, focus: 0.51 }
+};
+
+// ==================================================================
+// ▼ 名所の背景画像（ジオラマ風の画像を、同じ構図で季節ごとに4枚） ▼
+//   img  … 季節ごとの画像ファイル（このフォルダに置く）。無い画像はイラストの景色で表示します
+//   road … 画像の中の道路の高さ（上から 0〜1）。トラックがここを走ります
+//   title / text … 季節ごとの見出しと文
+//   memo … 季節ごとの「歴史メモ」［年や数字, 説明］
+// ==================================================================
+const SPOTS = {
+  fuji: { name: '富士山', road: 0.92,
+    img:   { haru: 'fuji_haru.webp', natsu: 'fuji_natsu.webp', aki: 'fuji_aki.webp', fuyu: 'fuji_fuyu.webp' },
+    title: { haru: '桜と富士山', natsu: '青空の富士山', aki: '紅葉と富士山', fuyu: '雪化粧の富士山' },
+    text:  { haru: '桜の向こうに、雪をかぶった富士山。', natsu: '湖の向こうに、夏の富士山がくっきり。', aki: '色づいた木々と、富士山の共演。', fuyu: '空気がすんで、いちばんくっきり見える季節。' },
+    memo:  { haru:  ['2013年', '世界文化遺産に登録。正式名は「富士山－信仰の対象と芸術の源泉」。'],
+             natsu: ['3,776m', '日本でいちばん高い山。昔から信仰の山として登られてきた。'],
+             aki:   ['1830年代', '葛飾北斎が『冨嶽三十六景』に、いろいろな場所から見た富士山を描いた。'],
+             fuyu:  ['1707年', '宝永の大噴火。いまのところ、これが最後の噴火。'] } },
+  kyoto: { name: '京都・東山', road: 0.9,
+    img:   { haru: 'kyoto_haru.webp', natsu: 'kyoto_natsu.webp', aki: 'kyoto_aki.webp', fuyu: 'kyoto_fuyu.webp' },
+    title: { haru: '桜の八坂の塔', natsu: '青もみじの東山', aki: '紅葉の京都・東山', fuyu: '雪化粧の八坂の塔' },
+    text:  { haru: '石畳の坂道に、桜がはらはら。古都の春を走るよ。', natsu: '緑の山と、町家の格子がすずしげ。', aki: '五重塔のまわりが、赤や黄色に色づいた。', fuyu: 'うっすら雪化粧。しんとした古都の朝。' },
+    memo:  { haru:  ['1440年', 'いまの八坂の塔（法観寺の五重塔）は、室町幕府の将軍・足利義教が建て直したもの。'],
+             natsu: ['7月', '1か月つづく八坂神社の祇園祭。はじまりは869年の御霊会とされる。'],
+             aki:   ['約46m', '八坂の塔の高さ。東山の町並みのシンボル。'],
+             fuyu:  ['1976年', '産寧坂のあたりが、古い町並みを守る「重要伝統的建造物群保存地区」に選ばれた。'] } },
+  tsumago: { name: '妻籠宿', road: 0.77,
+    img:   { haru: 'tsumago_haru.webp', natsu: 'tsumago_natsu.webp', aki: 'tsumago_aki.webp', fuyu: 'tsumago_fuyu.webp' },
+    title: { haru: '宿場町・妻籠宿の春', natsu: '緑の木曽路', aki: '紅葉の中山道', fuyu: '雪の宿場町' },
+    text:  { haru: '江戸時代の家並みが、今もそのまま残る町。', natsu: '山の緑がまぶしい、木曽の谷をぬけていくよ。', aki: '山が赤や黄色に色づいて、宿場町を包む。', fuyu: '木の家々に雪がつもって、まるで昔話の世界。' },
+    memo:  { haru:  ['江戸時代', '江戸と京都を結ぶ中山道の宿場町として、旅人でにぎわった。'],
+             natsu: ['1976年', '全国で最初に選ばれた「重要伝統的建造物群保存地区」のひとつ。'],
+             aki:   ['三原則', '「売らない・貸さない・こわさない」。住民が力を合わせて町並みを守ってきた。'],
+             fuyu:  ['格子と出梁', '木の格子戸や、2階がせり出した昔ながらの家が並ぶ。'] } },
+  shirakawa: { name: '白川郷', road: 0.87,
+    img:   { haru: 'shirakawa_haru.webp', natsu: 'shirakawa_natsu.webp', aki: 'shirakawa_aki.webp', fuyu: 'shirakawa_fuyu.webp' },
+    title: { haru: '春の白川郷', natsu: '田んぼが青い白川郷', aki: '実りの秋の白川郷', fuyu: '雪の合掌造り' },
+    text:  { haru: '山あいの村に、遅い春がやってきた。', natsu: '青い田んぼと、大きなかやぶき屋根。', aki: '稲刈りが終わって、山は紅葉。', fuyu: '屋根にどっさり雪。白川郷がいちばん白川郷らしい季節。' },
+    memo:  { haru:  ['1995年', '「白川郷・五箇山の合掌造り集落」として世界遺産に登録。'],
+             natsu: ['合掌造り', '手を合わせたような急な屋根は、たくさんの雪を落とすための工夫。'],
+             aki:   ['結（ゆい）', 'かやぶき屋根のふき替えは、村の人たちが力を合わせて行ってきた。'],
+             fuyu:  ['豪雪地帯', '冬は雪が深く積もる。急な屋根が、家を雪の重さから守る。'] } },
+  okazaki: { name: '岡崎城', road: 0.88,
+    img:   { haru: 'okazaki_haru.webp', natsu: 'okazaki_natsu.webp', aki: 'okazaki_aki.webp', fuyu: 'okazaki_fuyu.webp' },
+    title: { haru: '桜の岡崎城', natsu: '夏の岡崎城', aki: '秋の岡崎城', fuyu: '冬の岡崎城' },
+    text:  { haru: '地元・岡崎に帰ってきた！ お店はもうすぐ。', natsu: '地元・岡崎に帰ってきた！ お店はもうすぐ。', aki: '地元・岡崎に帰ってきた！ お店はもうすぐ。', fuyu: '地元・岡崎に帰ってきた！ お店はもうすぐ。' },
+    memo:  { haru:  ['さくら名所', '城のまわりの岡崎公園は「日本さくら名所100選」のひとつ。'],
+             natsu: ['1542年', '徳川家康が、この岡崎城で生まれた。'],
+             aki:   ['八丁味噌', '岡崎城から西へ八丁（約870m）の村で作られたことが名前の由来。'],
+             fuyu:  ['1959年', 'いまの天守が、昔の姿をもとに復元された。'] } },
+  // ---- 現代の街並み ----
+  tokyo: { name: '東京スカイツリー', road: 0.86,
+    img:   { haru: 'tokyo_haru.webp', natsu: 'tokyo_natsu.webp', aki: 'tokyo_aki.webp', fuyu: 'tokyo_fuyu.webp' },
+    title: { haru: '桜と東京スカイツリー', natsu: '夏空の東京スカイツリー', aki: '秋の隅田川', fuyu: '冬の東京スカイツリー' },
+    text:  { haru: '隅田川の桜の向こうに、634mのタワー。', natsu: '川風が気持ちいい、夏の東京。', aki: '川ぞいの木々が色づいて、街もおしゃれに。', fuyu: '澄んだ冬の空に、タワーがくっきり。' },
+    memo:  { haru:  ['2012年', '東京スカイツリーが開業。自立式の電波塔として世界一の高さ。'],
+             natsu: ['1733年', '隅田川花火大会のはじまりとされる「両国の川開き」が行われた。'],
+             aki:   ['634m', '高さは「むさし」。このあたりが昔、武蔵の国だったことから。'],
+             fuyu:  ['1958年', '東京タワー（333m）が完成。スカイツリーができるまで東京の電波を送っていた。'] } },
+  yokohama: { name: '横浜みなとみらい', road: 0.84,
+    img:   { haru: 'yokohama_haru.webp', natsu: 'yokohama_natsu.webp', aki: 'yokohama_aki.webp', fuyu: 'yokohama_fuyu.webp' },
+    title: { haru: '春の港町・横浜', natsu: '夏の横浜港', aki: '秋のみなとみらい', fuyu: '冬のみなとみらい' },
+    text:  { haru: '観覧車と高いビル、桜の港町。', natsu: '青い海と空。港の風が気持ちいい。', aki: '街路樹が色づいて、港町がしっとり。', fuyu: '冷たい空気に、港の景色がきらり。' },
+    memo:  { haru:  ['1859年', '横浜港が開港。ここから外国との貿易がさかんになった。'],
+             natsu: ['1872年', '日本で最初の鉄道が、新橋と横浜のあいだで開業。'],
+             aki:   ['赤レンガ倉庫', '明治の終わりから大正のはじめ（1911年・1913年）に建てられた港の倉庫。'],
+             fuyu:  ['1993年', '横浜ランドマークタワーが開業。高さ296m。'] } },
+  nagoya: { name: '名古屋・久屋大通', road: 0.85,
+    img:   { haru: 'nagoya_haru.webp', natsu: 'nagoya_natsu.webp', aki: 'nagoya_aki.webp', fuyu: 'nagoya_fuyu.webp' },
+    title: { haru: '桜の久屋大通', natsu: '夏の名古屋', aki: '秋の久屋大通', fuyu: '冬の名古屋' },
+    text:  { haru: '愛知に入ったよ。テレビ塔の足もとに桜並木。', natsu: '緑がまぶしい、名古屋のまん中の公園。', aki: 'いちょうや紅葉で、大通りが色とりどり。', fuyu: '冬の名古屋。お店まであと少し！' },
+    memo:  { haru:  ['1954年', '名古屋テレビ塔が完成。日本で最初の集約電波塔。'],
+             natsu: ['1610年', '徳川家康の命令で、名古屋城づくりが始まった。'],
+             aki:   ['名古屋めし', '味噌かつ・ひつまぶし・手羽先。八丁味噌などの豆みそが、名古屋の味を支える。'],
+             fuyu:  ['2022年', 'テレビ塔が、電波塔として初めて国の重要文化財になった。'] } }
+};
+const PHOTO_H = 0.6;    // 景色の画像を、画面の高さの何割で表示するか（小さいほど、景色を広く見せる）
+const PHOTO_TOP = 0.07; // 景色を画面の上から何割の位置に表示するか
+const SPOT_IMG = {};
+function loadBg(key) {   // 景色の画像（4季節）を、使うときだけ読みこむ
+    if (!BG[key]) return null;
+    if (SPOT_IMG[key]) return SPOT_IMG[key];
+    SPOT_IMG[key] = {};
+    SEASON_ORDER.forEach(k => {
+        const im = new Image(); im.ok = false;
+        im.onload = () => { im.ok = true; im.bottomColor = sampleBottom(im); };
+        im.src = IMG_DIR + key + '_' + k + '.webp'; SPOT_IMG[key][k] = im;
+    });
+    return SPOT_IMG[key];
+}
+loadBg('fuji');   // 季節えらびのボタンで使う
+function sampleBottom(im) {   // 画像のいちばん下の色（画像の下のすき間をこの色でうめる）
+    try {
+        const c = document.createElement('canvas'); c.width = 16; c.height = 4;
+        const x = c.getContext('2d'); x.drawImage(im, 0, im.naturalHeight * .95, im.naturalWidth, im.naturalHeight * .05, 0, 0, 16, 4);
+        const d = x.getImageData(0, 0, 16, 4).data; let r = 0, g = 0, b = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+        const n = d.length / 4; return `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`;
+    } catch (e) { return '#3b3d3f'; }
+}
+const bySeason = (v, k) => v && typeof v === 'object' && !Array.isArray(v) ? v[k] : v;   // 季節ごとに書いてあれば、その季節の分
+const photoUrl = (p) => /^(https?:|\/|\.\.\/)/.test(p) ? p : SHOP_DIR + p;            // 写真はお店のフォルダから
+function shopStop(k, d) {   // shop.js の1か所ぶんを、走るための形に
+    const sp = (d.spot && SPOTS[d.spot]) || {}, bg = d.bg || (BG[d.spot] ? d.spot : 'tsumago'), imgs = loadBg(bg) || {};
+    return { ...SEASONS[k].stops[k === 'fuyu' ? 1 : 0], s: k, bg, im: imgs[k], road: (BG[bg] || {}).road || 0.88, focus: (BG[bg] || {}).focus,
+        place: d.name || sp.name || '',   // 景色だけ（bg だけ）の所は、紹介文なしで「配達中」の文に
+        title: bySeason(d.title, k) || (sp.title && sp.title[k]) || d.name || '速達生ビール、配達中！',
+        text: bySeason(d.text, k) || (sp.text && sp.text[k]) || (d.name || d.spot ? '' : 'できたての生ビールを積んで、お店へ向かっています。トラックをタップすると加速！'),
+        memo: bySeason(d.memo, k) || (sp.memo && sp.memo[k]) || null,
+        pops: [...(d.photo ? [{ photo: d.photo, credit: d.credit, tencho: d.tencho }] : []), ...(d.photos || [])]
+            .map(p => ({ src: photoUrl(p.photo), credit: p.credit || '', caption: p.caption || '', tag: '' })) };
+}
+function goalStop(k) {   // 最後に着くお店
+    const g = SHOP.goal || {}, bg = g.bg || 'tg', imgs = loadBg(bg) || {};
+    return { ...SEASONS[k].stops[2], s: k, arrive: true, bg, im: imgs[k], road: (BG[bg] || {}).road || 0.88, focus: (BG[bg] || {}).focus || 0.5,
+        sign: !!g.logo, memo: null, place: 'ゴール',
+        title: bySeason(g.title, k) || SHOP.name + 'に到着！', text: bySeason(g.text, k) || '鮮度そのままでお届け。ここからは、おいしく注ぐ番です。',
+        pop: g.photo ? { src: photoUrl(g.photo), credit: g.credit || '' } : null, pops: g.photo ? [{ src: photoUrl(g.photo), credit: g.credit || '', caption: SHOP.name }] : [] };
+}
+const STOP_MS = 8000;        // 1つの景色を走る時間（すぎると自動で次へ）
+// ▼ アンケートの送り先（Google Apps Script のURL）。空のままだと送信しません ▼
+const GAS_URL = '';
+
+const $ = (id) => document.getElementById(id);
+// 画面が拡大・ドラッグで動かないように固定（ピンチ・ダブルタップの拡大を止める）
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouch = 0;
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouch < 320 && !e.target.closest('input, textarea')) e.preventDefault(); lastTouch = now; }, { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const LEAF_COLORS = ['#d9452b', '#e8742a', '#f0b42a', '#b8321f'];
+
+let mode = currentSeason();   // 選んだ季節（haru / natsu / aki / fuyu）
+let honks = 0;
+let pourResult = {};
+const survey = { gender: '', age: '', comment: '' };
+
+function currentSeason() {
+    const m = new Date().getMonth() + 1;
+    return m >= 3 && m <= 5 ? 'haru' : m >= 6 && m <= 8 ? 'natsu' : m >= 9 && m <= 11 ? 'aki' : 'fuyu';
+}
+function buildStops() { return [...(SHOP.stops || []).map(d => shopStop(mode, d)), goalStop(mode)]; }
+// shop.js を読みこむ（読めなければ FALLBACK_SHOP のまま）
+function applyShop() {
+    (SHOP.stops || []).forEach(d => loadBg(d.bg || d.spot)); loadBg((SHOP.goal || {}).bg || 'tg');
+    document.title = '速達生便。｜' + SHOP.name;
+}
+(function loadShop() {
+    const sc = document.createElement('script'); sc.src = SHOP_DIR + 'shop.js';
+    sc.onload = () => { if (window.SHOP_DATA && window.SHOP_DATA.stops) SHOP = window.SHOP_DATA; applyShop(); };
+    sc.onerror = applyShop;
+    document.head.appendChild(sc);
+})();
+
+// ---------------- 画面の切り替え ----------------
+function show(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + name));
+    if (name !== 'drive') Drive.stop();
+    if (name !== 'pour') Pour.stop();
+    if (name !== 'movie' && typeof Movie !== 'undefined') Movie.stop();
+    if (name === 'route') renderSeasons();
+    if (name !== 'cheers') Cheers.stop();
+    if (name === 'drive') Drive.start();
+    if (name === 'pour') Pour.start();
+    if (name === 'cheers') renderCheers();
+    if (name === 'card') MyCard.start(); else if (typeof MyCard !== 'undefined') MyCard.stop();
+    if (name === 'kao') Kao.start();
+}
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (b) show(b.dataset.go);
+});
+
+// ---------------- 季節えらび ----------------
+function renderSeasons() {   // 季節えらび：富士山の季節の画像に、トラックを重ねたボタン
+    const now = currentSeason();
+    $('seasonList').innerHTML = SEASON_ORDER.map(k => `<button class="season-card" data-mode="${k}">
+        <canvas class="sc-img" data-k="${k}"></canvas>
+        <span class="sc-txt"><b>${SEASONS[k].jp}</b></span>
+        ${k === now ? '<span class="now">いまの季節</span>' : ''}</button>`).join('');
+    requestAnimationFrame(() => document.querySelectorAll('.sc-img').forEach(paintSeasonCard));
+}
+function paintSeasonCard(cv) {
+    const k = cv.dataset.k, im = SPOT_IMG.fuji && SPOT_IMG.fuji[k], tr = $('shipTruck');
+    const w = cv.clientWidth, h = cv.clientHeight, d = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0);
+    if (!im || !im.ok || !tr.complete) {   // 画像がまだなら、読みこみ後にもう一度
+        const st = SEASONS[k].stops[0], g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, st.sky[0]); g.addColorStop(1, st.ground[0]);
+        c.fillStyle = g; c.fillRect(0, 0, w, h);
+        if (im && !im.ok) im.addEventListener('load', () => paintSeasonCard(cv), { once: true });
+        if (!tr.complete) tr.addEventListener('load', () => paintSeasonCard(cv), { once: true });
+        return;
+    }
+    // 富士山が入るように、画像の右寄りを切りとる（道路が下に入る高さで）
+    const nh = im.naturalHeight, sh = nh * 0.62, sw = sh * (w / h), sx = clamp(im.naturalWidth * 0.62 - sw / 2, 0, im.naturalWidth - sw), sy = nh * 0.36;
+    c.drawImage(im, sx, sy, sw, sh, 0, 0, w, h);
+    const g = c.createLinearGradient(0, 0, 0, h * .5); g.addColorStop(0, 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0, 0, w, h * .5);
+    const roadY = ((SPOTS.fuji.road * nh) - sy) / sh * h, tw = w * 0.62, th = tw * 178 / 436;
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(w * .08 + tw / 2, roadY, tw * .46, 3, 0, 0, 7); c.fill();
+    c.drawImage(tr, w * .08, roadY - th, tw, th);
+}
+$('seasonList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mode]');
+    if (!b) return;
+    mode = b.dataset.mode;
+    sendSurvey();
+    Movie.start();
+});
+
+// ---------------- アンケート ----------------
+document.querySelectorAll('.q-opts').forEach(g => g.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    survey[g.dataset.q] = b.dataset.v;
+    g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    checkSurvey();
+}));
+function checkSurvey() {   // Q1〜Q3 すべてに答えると「次へ」
+    const ok = survey.gender && survey.age && $('qComment').value.trim().length > 0;
+    $('btnSurvey').disabled = !ok; $('surveyNote').textContent = ok ? 'ありがとう！ 季節をえらんで出発しよう' : 'Q1〜Q3 に答えると進めます';
+}
+$('qComment').addEventListener('input', checkSurvey);
+$('btnSurvey').addEventListener('click', () => { survey.comment = $('qComment').value.trim().slice(0, 100); show('route'); });
+function sendSurvey() {   // GAS_URL を入れると、スプレッドシートに送ります
+    if (!GAS_URL) return;
+    const ua = navigator.userAgent, device = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : 'その他';
+    try {
+        fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, keepalive: true,
+            body: JSON.stringify({ app: 'sokutatubin', event: 'survey', time: new Date().toISOString(), gender: survey.gender, age: survey.age, comment: survey.comment, season: SEASONS[mode].jp, device }) }).catch(() => {});
+    } catch (e) {}
+}
+
+// ---------------- トップの演出 ----------------
+(function topFx() {
+    // 背景に立ちのぼる金色の泡
+    const amb = $('ambience');
+    for (let k = 0; k < 22; k++) {
+        const b = document.createElement('i'), sz = rand(4, 14);
+        b.style.cssText = `left:${rand(0, 100)}%;width:${sz}px;height:${sz}px;animation-duration:${rand(7, 16)}s;animation-delay:${-rand(0, 16)}s`;
+        amb.appendChild(b);
+    }
+})();
+function heroVideo() {   // トップの背景：今の季節の富士山の景色を、トラックが走りぬける（動画は使わない）
+    const k = currentSeason();
+    $('heroBg').style.backgroundImage = `url(${IMG_DIR}fuji_${k}.webp)`;
+    const tr = $('shipTruck'), cv = $('heroTruck');
+    const paint = () => { cv.width = 640; cv.height = Math.round(640 * 178 / 436); cv.getContext('2d').drawImage(truckRight(tr), 0, 0, cv.width, cv.height); };
+    if (tr.complete && tr.naturalWidth) paint(); else tr.addEventListener('load', paint, { once: true });
+}
+heroVideo();
+
+// ---------------- 動画 → お店へ向かう旅 ----------------
+const Movie = (() => {
+    const v = $('movie');
+    let going = false, guard = 0;
+    function start() {
+        going = false;
+        show('movie');
+        $('movieCap').classList.remove('show'); $('btnSound').hidden = true;
+        try { v.currentTime = 0; } catch (e) {}
+        v.muted = false;
+        const p = v.play();
+        if (p && p.catch) p.catch(() => {   // 音つきで再生できないときは、音なしで再生
+            v.muted = true; $('btnSound').hidden = false;
+            v.play().catch(() => goJourney());
+        });
+        setTimeout(() => $('movieCap').classList.add('show'), 700);
+        clearTimeout(guard);
+        guard = setTimeout(() => { if (v.paused && !going) goJourney(); }, 4000);   // 動画が読めないときは旅へ
+    }
+    function goJourney() {
+        if (going) return; going = true;
+        clearTimeout(guard);
+        const f = $('flash');
+        f.classList.add('on');   // 動画の最後の光にあわせて、まぶしく光ってから旅へ
+        setTimeout(() => { v.pause(); show('drive'); setTimeout(() => f.classList.remove('on'), 80); }, 420);
+    }
+    v.addEventListener('ended', goJourney);
+    v.addEventListener('error', () => { if ($('s-movie').classList.contains('active')) goJourney(); });
+    v.addEventListener('timeupdate', () => { if (v.duration && v.duration - v.currentTime < 1.6) $('movieCap').classList.remove('show'); });
+    $('btnSkip').addEventListener('click', goJourney);
+    $('btnSound').addEventListener('click', () => { v.muted = false; $('btnSound').hidden = true; });
+    return { start, stop() { v.pause(); } };
+})();
+$('btnStart').addEventListener('click', () => show('survey'));
+
+// ==================================================================
+// ▼ 風景（横から見た道を、トラックが左へ走る） ▼
+//   奥の山・丘・木・道・手前の草花が、ちがう速さで流れて奥行きが出ます。
+//   景色が変わると、新しい季節の木や花が左から入ってきて、色もゆっくり移りかわります。
+// ==================================================================
+// ==================================================================
+// ▼ 旅の背景：季節ごとの画像を横につなげた「1本の長い景色」をトラックが走る ▼
+//   画像と画像のつなぎ目は、ふわっと重ねてなじませます。
+//   右タップで次の景色へ（早送り）、左タップで前の景色へ。
+// ==================================================================
+const LOGO_PIG = new Image(); LOGO_PIG.src = 'image/tg_logo_pig.webp';
+const LOGO_TXT = new Image(); LOGO_TXT.src = 'image/tg_logo_text_light.webp';
+const OVERLAP = 0.24;     // 画像どうしを重ねる幅（画像の横はばに対する割合）。広いほどなめらかにつながる
+const HOLD_S = 3;
+const LEG_S = 7.5;          // 出発→1か所目→2か所目→お店、どの区間も同じ時間（秒）で走る。景色の並びとは関係なし
+const EASE_A = 0.06, EASE_B = 0.14;   // 走り出し・止まる前の、ゆっくりの長さ（区間の割合）
+function legEase(u) {   // 区間の進み具合（0〜1）→ 道のりの割合。走り出しと止まる前だけゆっくり、あとは一定の速さ
+    const A = 1 - EASE_A / 2 - EASE_B / 2;
+    if (u <= 0) return 0; if (u >= 1) return 1;
+    if (u < EASE_A) return (u * u / (2 * EASE_A)) / A;
+    if (u <= 1 - EASE_B) return (EASE_A / 2 + (u - EASE_A)) / A;
+    return (EASE_A / 2 + (1 - EASE_B - EASE_A) + (EASE_B * EASE_B - (1 - u) * (1 - u)) / (2 * EASE_B)) / A;
+}
+const BOOST = 2;          // トラックを押したときの速さ（ふだんの何倍か）。押しつづけると約半分の時間で着く         // 名所で立ち止まる時間（秒）。右タップですぐ出発
+const CRUISE_RATE = 0.65;  // ふだんの流れる速さ（1秒に、景色の高さの何倍ぶん進むか）。景色の大きさが変わっても、1枚を走る時間は同じ
+function featherLeft(im) {   // 画像の左はしを透明にぼかした版（右どなりから、前の画像に重ねるため）
+    if (im.fe) return im.fe;
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    x.globalCompositeOperation = 'destination-in';
+    const g = x.createLinearGradient(0, 0, c.width, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(OVERLAP, '#000'); g.addColorStop(1, '#000');
+    x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);   // 1回で塗る（2回に分けると先に塗った部分が消える）
+    return (im.fe = c);
+}
+function placeholder(st) {   // 画像がまだ無いときの、かわりの景色（季節の色＋道路。お店ならお店の形）
+    const c = document.createElement('canvas'); c.width = 1600; c.height = 808;
+    const x = c.getContext('2d'), base = SEASONS[st.s].stops[0];
+    const sky = x.createLinearGradient(0, 0, 0, 520); sky.addColorStop(0, base.sky[0]); sky.addColorStop(1, base.sky[1]);
+    x.fillStyle = sky; x.fillRect(0, 0, 1600, 808);
+    x.fillStyle = base.mtn[0]; x.beginPath(); x.moveTo(0, 520);
+    for (let k = 0; k <= 1600; k += 20) x.lineTo(k, 420 - 90 * (0.5 + 0.3 * Math.sin(k / 170) + 0.2 * Math.sin(k / 63)));
+    x.lineTo(1600, 520); x.fill();
+    x.fillStyle = base.ground[0]; x.fillRect(0, 500, 1600, 308);
+    if (st.sign) {   // お店（窓の灯り・3色の日よけ）
+        x.fillStyle = '#f2e6d0'; x.fillRect(500, 230, 600, 440);
+        x.fillStyle = '#3a2a22'; x.fillRect(480, 215, 640, 26);
+        for (let k = 0; k < 12; k++) { x.fillStyle = ['#2f6b3f', '#f6efe2', '#b3332b'][k % 3]; x.fillRect(500 + k * 50, 400, 51, 50); }
+        x.fillStyle = '#ffce82'; x.fillRect(540, 480, 300, 170); x.fillStyle = '#1f3a2c'; x.fillRect(880, 470, 180, 200);
+    }
+    x.fillStyle = '#5b5f66'; x.fillRect(0, 660, 1600, 110);
+    x.fillStyle = '#f4f1e8'; for (let k = 0; k < 1600; k += 120) x.fillRect(k, 712, 70, 6);
+    c.naturalWidth = 1600; c.naturalHeight = 808; c.ok = true; c.bottomColor = base.ground[0];
+    return c;
+}
+// 右向きのトラック：絵を左右反転し、荷台の広告だけ元の向きで貼りなおす（文字が鏡文字にならないように）
+function truckRight(im) {
+    if (im.rt) return im.rt;
+    const w = im.naturalWidth, h = im.naturalHeight, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d');
+    x.save(); x.translate(w, 0); x.scale(-1, 1); x.drawImage(im, 0, 0); x.restore();
+    const a = 0.33, b = 0.945, t = 0.06, bt = 0.70;   // 広告の範囲（元の絵での割合）
+    x.drawImage(im, w * a, h * t, w * (b - a), h * (bt - t), w * (1 - b), h * t, w * (b - a), h * (bt - t));
+    return (im.rt = c);
+}
+class StripScene {   // トラックは左から右へ走り、景色は左へ流れる（次の景色は右から来る）
+    constructor(cv) {
+        this.cv = cv; this.ctx = cv.getContext('2d'); this.truck = $('shipTruck');
+        this.parts = []; this.puffs = []; this.t = 0; this.jump = 0; this.speed = 0; this.pan = 0; this.goto = null; this.segs = []; this.puffT = 0; this.arrived = false; this.boost = 0;
+    }
+    resize(w, h) {
+        const d = Math.min(2, window.devicePixelRatio || 1);
+        this.cv.width = Math.round(w * d); this.cv.height = Math.round(h * d); this.ctx.setTransform(d, 0, 0, d, 0, 0);
+        this.W = w; this.H = h; this.ih = Math.max(h * PHOTO_H, w / 1.98); this.cruise = this.ih * CRUISE_RATE; this.y0 = Math.round(h * PHOTO_TOP);
+        this.TW = Math.min(w * 0.42, this.ih * 0.52); this.TH = this.TW * 178 / 436;
+        if (this.stops) this.layout();
+    }
+    imgOf(seg) { const im = seg.st.im; return im && im.ok ? im : (seg.ph || (seg.ph = placeholder(seg.st))); }
+    layout() {
+        const keep = this.segs.length;
+        let u = 0;
+        this.segs = this.stops.map(st => {
+            const seg = { st, start: u }; const im = this.imgOf(seg);
+            seg.w = this.ih * im.naturalWidth / im.naturalHeight; u += seg.w * (1 - OVERLAP); return seg;
+        });
+        const g = this.segs[this.segs.length - 1];
+        this.goalPan = g.start + g.w * (g.st.focus || 0.5);   // ゴールのお店の入口が、画面のまん中に来る位置
+        if (!keep) this.pan = this.segs[0].start + this.W / 2;
+    }
+    setRoute(stops) {
+        this.stops = stops; this.segs = []; this.layout(); this.arrived = false; this.goto = null; this.speed = this.cruise; this.parts = []; this.puffs = []; this.boost = 0;
+        // 名所（思い出の写真がある所）では、景色のまん中でトラックが止まる
+        // 止まる所は、道のり全体を等分した位置に（背景はずっと同じ速さで流れ、止まる間かくも同じになる）
+        const ps = this.segs.map((sg, i) => sg.st.arrive || !(sg.st.pops && sg.st.pops.length) ? -1 : i).filter(i => i >= 0);
+        const s0 = this.segs[0].start + this.W / 2, D = this.goalPan - s0;
+        this.holds = ps.map((i, k) => ({ i, pan: s0 + D * (k + 1) / (ps.length + 1), done: false }));
+        this.holdT = 0; this.leg = 0; this.legT = 0; this.isHold = false; this.after = null;
+    }
+    startPan() { return this.segs[0].start + this.W / 2; }
+    stopPans() { return [...(this.holds || []).filter(Boolean).map(h => h.pan), this.goalPan]; }   // 上のバーに出す「止まる所」
+    holding() { return this.isHold && this.goto == null; }
+    release() { if (!this.isHold) return; this.isHold = false; this.holdT = 0; this.leg++; this.legT = 0; }   // 立ち止まりをおわって、また走り出す
+    stopIndex() { return Math.min(this.leg, this.stopPans().length - 1); }
+    stopProgress(k) { return k < this.leg ? 1 : k > this.leg ? 0 : (this.isHold || this.arrived ? 1 : legEase(Math.min(1, this.legT / LEG_S))); }
+    fastForward() { if (!this.isHold && !this.arrived) this.legT = Math.max(this.legT, LEG_S * 0.8); }   // 右タップ：次の止まる所の手前まで早送り
+    backStop() {   // 左タップ：1つ前の止まる所へもどる
+        const p = this.stopPans(), b = this.leg - 1;
+        this.goto = b < 0 ? this.startPan() : p[b];
+        this.after = b < 0 ? { leg: 0, legT: 0, isHold: false } : { leg: b, legT: LEG_S, isHold: true };
+        this.arrived = false;
+    }
+    index() {   // いま画面のまん中にある景色の番号
+        let k = 0;
+        this.segs.forEach((sg, i) => { if (this.pan >= sg.start + sg.w * OVERLAP * 0.5) k = i; });
+        return k;
+    }
+    progress(i) { const sg = this.segs[i], nx = this.segs[i + 1]; if (!nx) return this.arrived ? 1 : clamp((this.pan - sg.start) / (this.goalPan - sg.start), 0, 1); return clamp((this.pan - sg.start) / (nx.start - sg.start), 0, 1); }
+    gotoIndex(i) { const sg = this.segs[clamp(i, 0, this.segs.length - 1)]; this.goto = i <= 0 ? this.segs[0].start + this.W / 2 : Math.min(this.goalPan, sg.start + sg.w * OVERLAP * 0.5 + 40); this.arrived = false; }
+    dash() { this.boost = 2.5; this.jump = 1; if (this.isHold) this.release(); }   // 止まっているときに押すと、すぐ出発   // トラックを押したら、ジャンプして加速
+    update(dt) {
+        this.t += dt; this.boost = Math.max(0, this.boost - dt);
+        if (this.goto != null) {   // 巻きもどし
+            const dist = this.goto - this.pan;
+            this.speed = Math.sign(dist) * clamp(Math.abs(dist) * 3.2, 80, 1600);
+            this.pan += this.speed * dt;
+            if (Math.abs(dist) < 4 || Math.sign(this.goto - this.pan) !== Math.sign(dist)) { this.pan = this.goto; this.goto = null; this.speed = 0; if (this.after) { Object.assign(this, this.after); this.holdT = 0; this.after = null; } }
+        } else if (this.arrived) this.speed = 0;
+        else if (this.isHold) {   // 名所で立ち止まる
+            this.speed = 0; this.holdT += dt;
+            if (this.holdT >= HOLD_S) this.release();
+        } else {   // 区間ごとに同じ時間で走る（押すと速く）
+            const p = this.stopPans(), from = this.leg === 0 ? this.startPan() : p[this.leg - 1], to = p[this.leg];
+            this.legT += dt * (this.boost > 0 ? BOOST : 1);
+            const u = Math.min(1, this.legT / LEG_S), np = from + (to - from) * legEase(u);
+            this.speed = dt > 0 ? (np - this.pan) / dt : 0; this.pan = np;
+            if (u >= 1) { if (this.leg >= p.length - 1) { this.arrived = true; this.speed = 0; } else { this.isHold = true; this.holdT = 0; } }
+        }
+        // 舞うもの（春：花びら／秋：落ち葉／冬：雪）… 景色といっしょに左へ流れる
+        const wt = { haru: 'petal', aki: 'leaf', fuyu: 'snow' }[this.stops[0].s];
+        if (wt && Math.random() < dt * 7) {
+            const p = { type: wt, x: rand(0, this.W + 40), y: rand(-30, this.ih * .3), r: rand(0, 6.28), vr: rand(-3, 3), vy: rand(30, 70), vx: rand(-25, 10), s: wt === 'snow' ? rand(1.3, 3.2) : rand(3, 6), c: wt === 'leaf' ? pick(LEAF_COLORS) : pick(['#f7bfd0', '#fbd6e0', '#f3a6bb']) };
+            this.parts.push(p);
+        }
+        this.parts.forEach(p => { p.x += (p.vx - this.speed * 0.9) * dt; p.y += p.vy * dt; p.r += p.vr * dt; });
+        this.parts = this.parts.filter(p => p.y < this.H && p.x > -40 && p.x < this.W + 60);
+        // 排気のけむり（トラックの後ろ＝左へ）
+        this.puffT -= dt;
+        if (Math.abs(this.speed) > 20 && this.puffT <= 0) { this.puffT = this.boost > 0 ? 0.05 : 0.12; const tr = this.truckRect(); this.puffs.push({ x: tr.x + tr.w * 0.02, y: tr.y + tr.h * 0.86, r: 3, a: .45 }); }
+        this.puffs.forEach(p => { p.x -= (40 + Math.abs(this.speed) * 0.4) * dt; p.y -= 12 * dt; p.r += 14 * dt; p.a -= 0.5 * dt; });
+        this.puffs = this.puffs.filter(p => p.a > 0);
+        this.jump = Math.max(0, this.jump - dt * 1.8);
+    }
+    roadAt(sx) {   // 画面の横位置 sx での道路の高さ（つなぎ目では2枚の画像の間をなめらかに）
+        const u = this.pan + (sx - this.W / 2);
+        for (let i = this.segs.length - 1; i >= 0; i--) {
+            const sg = this.segs[i];
+            if (u >= sg.start || i === 0) {
+                const r = (sg.st.road || 0.88) * this.ih, pv = this.segs[i - 1];
+                if (pv && u < pv.start + pv.w) { const tt = clamp((pv.start + pv.w - u) / (pv.w * OVERLAP), 0, 1); return this.y0 + r * (1 - tt) + (pv.st.road || 0.88) * this.ih * tt; }
+                return this.y0 + r;
+            }
+        }
+        return this.y0 + 0.88 * this.ih;
+    }
+    truckRect() {
+        const bob = Math.abs(this.speed) > 5 ? Math.sin(this.t * 22) * 0.8 : 0, jump = this.jump > 0 ? Math.sin(this.jump * Math.PI) * 34 : 0;
+        const x = this.W * 0.48 - this.TW / 2, base = this.roadAt(x + this.TW / 2);
+        return { x, y: base - this.TH + bob - jump, w: this.TW, h: this.TH, base };
+    }
+    draw() {
+        const c = this.ctx, W = this.W, H = this.H, ih = this.ih;
+        c.fillStyle = '#07080f'; c.fillRect(0, 0, W, H);
+        let bottom = '#3b3d3f';
+        this.segs.forEach((sg, i) => {   // 左（前の景色）から順に描き、右の画像を上に重ねる
+            const xl = W / 2 + sg.start - this.pan, xr = xl + sg.w;
+            if (xr < 0 || xl > W) return;
+            const im = this.imgOf(sg);
+            const src = i === 0 ? im : featherLeft(im), y0 = this.y0;
+            c.drawImage(src, 0, 0, src.width, src.height * 0.02, xl, 0, sg.w, y0 + 1);   // 上のすき間は、景色の上の端を引きのばして
+            c.drawImage(src, xl, y0, sg.w, ih);
+            if (xl < W / 2 && xr > W / 2) bottom = im.bottomColor || bottom;
+            if (sg.st.sign && LOGO_TXT.complete && LOGO_TXT.naturalWidth) {   // トン・ガリアーノの看板（本物のロゴを重ねる）
+                const cx = xl + sg.w * (sg.st.focus || 0.5), sw = Math.min(W * 0.62, 260), sh = sw * 0.36, sy = this.y0 + ih * 0.2;
+                c.fillStyle = 'rgba(31,58,44,.94)'; c.beginPath(); c.roundRect(cx - sw / 2, sy, sw, sh, 10); c.fill();
+                c.strokeStyle = '#c8a45c'; c.lineWidth = 2; c.stroke();
+                const lh = sh * 0.78; c.drawImage(LOGO_PIG, cx - sw / 2 + 10, sy + (sh - lh) / 2, lh, lh);
+                const tw = sw - lh - 30, th = tw * LOGO_TXT.naturalHeight / LOGO_TXT.naturalWidth;
+                c.drawImage(LOGO_TXT, cx - sw / 2 + lh + 18, sy + (sh - th) / 2, tw, th);
+            }
+        });
+        // 景色の下：景色を上下反転してぼかした「映りこみ」で、文字の所までなめらかにつなぐ
+        const top = this.y0 + ih, gap = H - top;
+        if (gap > 0) {
+            const dpr = this.cv.width / W, rh = Math.min(gap, top), sm = this.refl || (this.refl = document.createElement('canvas'));
+            sm.width = Math.max(1, Math.round(W / 7)); sm.height = Math.max(1, Math.round(gap / 7));
+            const x = sm.getContext('2d'); x.save(); x.translate(0, sm.height); x.scale(1, -1);
+            x.drawImage(this.cv, 0, (top - rh) * dpr, W * dpr, rh * dpr, 0, sm.height - sm.height * rh / gap, sm.width, sm.height * rh / gap); x.restore();
+            c.fillStyle = bottom; c.fillRect(0, top - 1, W, gap + 1);
+            c.imageSmoothingEnabled = true; c.drawImage(sm, 0, top - 1, W, gap + 1);   // 小さく描いてから広げる＝ふんわりぼける
+            const fade = c.createLinearGradient(0, top - 14, 0, H);
+            fade.addColorStop(0, 'rgba(7,8,15,0)'); fade.addColorStop(14 / (gap + 14), 'rgba(7,8,15,.18)');
+            fade.addColorStop(.45, 'rgba(7,8,15,.55)'); fade.addColorStop(1, 'rgba(7,8,15,.92)');
+            c.fillStyle = fade; c.fillRect(0, top - 14, W, gap + 14);
+        }
+        const tr = this.truckRect();
+        const sl = this.jump > 0 ? 1 - Math.sin(this.jump * Math.PI) * .4 : 1;   // ジャンプ中は影が小さく
+        c.fillStyle = 'rgba(0,0,0,.32)'; c.beginPath(); c.ellipse(tr.x + tr.w / 2, tr.base + 1, tr.w * .48 * sl, 5 * sl, 0, 0, 7); c.fill();
+        if (this.boost > 0) {   // 加速中のスピード線
+            c.strokeStyle = `rgba(255,255,255,${Math.min(1, this.boost) * .8})`; c.lineCap = 'round';
+            for (let k = 0; k < 5; k++) { const y = tr.y + tr.h * (0.2 + k * 0.16), l = 40 + ((this.t * 400 + k * 53) % 60); c.lineWidth = 2.5; c.beginPath(); c.moveTo(tr.x - 8 - l, y); c.lineTo(tr.x - 8, y); c.stroke(); }
+        }
+        this.puffs.forEach(p => { c.fillStyle = `rgba(230,230,230,${p.a})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); });
+        if (this.truck.complete && this.truck.naturalWidth) {   // 右向きのトラック（広告の文字はそのまま）
+            c.save(); c.translate(tr.x, tr.y);
+            if (this.jump > 0) { c.translate(tr.w / 2, tr.h); c.rotate(-Math.sin(this.jump * Math.PI) * 0.06); c.translate(-tr.w / 2, -tr.h); }
+            c.drawImage(truckRight(this.truck), 0, 0, tr.w, tr.h); c.restore();
+        }
+        this.parts.forEach(p => {
+            if (p.type === 'snow') { c.fillStyle = 'rgba(255,255,255,.95)'; c.beginPath(); c.arc(p.x, p.y, p.s, 0, 7); c.fill(); }
+            else { c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.c; c.beginPath(); c.ellipse(0, 0, p.s, p.s * .6, 0, 0, 7); c.fill(); c.restore(); }
+        });
+    }
+}
+
+// ---------------- ② 旅：画面の動き ----------------
+const Drive = (() => {
+    const cv = $('sceneCanvas'), scene = new StripScene(cv);
+    let running = false, raf = 0, last = 0, stops = [], idx = -1, introUntil = 0, honkTimer = 0;
+    function size() { const r = $('s-drive').getBoundingClientRect(); scene.resize(r.width, r.height); }
+    let capKey = '';
+    const RUN = { place: '', title: '速達生ビール、配達中！', text: 'できたての生ビールを積んで、お店へ向かっています。トラックをタップすると加速！' };
+    function caption(i) {
+        idx = i;
+        // 文は「走っている」「止まっている（名所）」「到着」で切りかえる（背景の景色とは関係なし）
+        const s = scene.isHold ? stops[scene.holds[scene.leg].i] : scene.arrived ? stops[stops.length - 1] : (scene.leg === 0 && !scene.isHold ? stops[0] : RUN);
+        const key = s.place + '|' + s.title;
+        if (key === capKey) return;   // 景色が変わっても、同じ文ならそのまま
+        capKey = key;
+        $('capBody').innerHTML = `<div class="cap-in">
+            ${s.place ? `<p class="lab"><span class="place">${s.place}</span></p>` : ''}
+            <h2 class="jp-phrase">${s.title}</h2>
+            <p class="txt jp-phrase">${s.text}</p>
+            ${s.memo ? `<p class="memo"><span>歴史メモ</span><b>${s.memo[0]}</b><span class="jp-phrase">${s.memo[1]}</span></p>` : ''}</div>`;
+    }
+    let popTimer = 0, popKey = null;
+    function showPops(i) {   // 名所の思い出を、1枚ずつふわっと（複数あれば順番に）
+        const pop = $('pop'), list = stops[i].pops || [];
+        clearTimeout(popTimer); pop.classList.remove('show');
+        let n = 0;
+        const one = () => {
+            if (!list.length || popKey === null) return;
+            const p = list[n % list.length];
+            $('popImg').src = p.src; $('popCap').textContent = p.caption || (stops[i].arrive ? SHOP.name : stops[i].place);
+            $('popTag').textContent = p.tag || ''; $('popTag').hidden = !p.tag; $('popCredit').textContent = p.credit ? '写真：' + p.credit : '';
+            pop.classList.add('show');
+            if (list.length > 1) popTimer = setTimeout(() => { pop.classList.remove('show'); n++; popTimer = setTimeout(one, 900); }, 3400);
+        };
+        popTimer = setTimeout(one, 500);
+    }
+    // ときどき出る吹き出し
+    const LINES = ['工場出荷2〜3日以内にビール届けます！', '新鮮なビール運んでいるよ！', '速達生配達中！'];
+    let bubbleT = 3, bubbleOn = 0, lineN = 0;
+    function bubble(dt) {
+        const h = $('honk');
+        if (bubbleOn > 0) { bubbleOn -= dt; if (bubbleOn <= 0) h.classList.remove('show'); }
+        else if (!scene.arrived && (bubbleT -= dt) <= 0) { h.textContent = LINES[lineN++ % LINES.length]; h.classList.add('show'); bubbleOn = 2.8; bubbleT = rand(7, 10); }
+        const tr = scene.truckRect(); h.style.left = (tr.x + tr.w * 0.62) + 'px'; h.style.top = (tr.y - 50) + 'px';
+    }
+    function frame(t) {
+        if (!running) return;
+        const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+        bubble(dt);
+        if (performance.now() > introUntil || scene.goto != null) scene.update(dt);
+        const i = scene.index(); caption(i);
+        // 思い出の写真は、トラックが止まったときに出す
+        const hk = scene.isHold ? scene.leg : scene.arrived ? 'goal' : null;
+        if (hk !== popKey) { popKey = hk; if (hk === null) { clearTimeout(popTimer); $('pop').classList.remove('show'); } else showPops(hk === 'goal' ? stops.length - 1 : scene.holds[hk].i); }
+        const si = scene.stopIndex(); scene.stopPans().forEach((_, k) => { const el = $('seg' + k); if (el) el.style.width = (k < si ? 100 : k > si ? 0 : scene.stopProgress(k) * 100) + '%'; });
+        const arrived = scene.arrived;
+        $('btnNext').hidden = !arrived; $('navHint').hidden = arrived;
+        scene.draw();
+        raf = requestAnimationFrame(frame);
+    }
+    function next() { if (scene.arrived) show('pour'); else if (scene.holding()) scene.release(); else scene.fastForward(); }
+    function prev() { scene.backStop(); }
+    $('btnNext').addEventListener('click', next);
+    // ショート動画のように：右をタップで進む／左で戻る。トラックをタップするとジャンプして加速
+    $('s-drive').addEventListener('click', (e) => {
+        if (!running || e.target.closest('button')) return;
+        const r = $('s-drive').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, tr = scene.truckRect();
+        if (x > tr.x - 10 && x < tr.x + tr.w + 10 && y > tr.y - 30 && y < tr.y + tr.h + 10) {
+            if (!scene.arrived) { scene.dash(); honks++; if (navigator.vibrate) try { navigator.vibrate(30); } catch (_) {} }
+            return;
+        }
+        if (x < r.width * 0.35) prev(); else next();
+    });
+    window.addEventListener('resize', () => { if (running) size(); });
+    return {
+        start() {
+            stops = buildStops(); honks = 0; idx = -1; popKey = null; capKey = ''; capKey = ''; bubbleT = 3; bubbleOn = 0; $('honk').classList.remove('show');
+            $('chip').textContent = SEASONS[mode].jp + 'ルート';
+            requestAnimationFrame(() => {
+                size(); scene.setRoute(stops);
+                $('segs').innerHTML = scene.stopPans().map((_, k) => `<div><i id="seg${k}"></i></div>`).join('');   // 上のバーは、止まる所だけ
+                const intro = $('intro'); intro.classList.remove('hide');
+                introUntil = performance.now() + 1600;
+                setTimeout(() => intro.classList.add('hide'), 1600);
+                running = true; last = performance.now(); raf = requestAnimationFrame(frame);
+            });
+        },
+        stop() { running = false; cancelAnimationFrame(raf); clearTimeout(popTimer); },
+        lastStop() { return stops[stops.length - 1]; }
+    };
+})();
+
+// ==================================================================
+// ▼ ③ 注ぐ：リアル寄りのジョッキ（洗う → 長押しで注ぐ → 長押しで泡をのせる） ▼
+//   ガラスの映りこみ・冷えた水滴・立ちのぼる気泡・きめ細かな泡を描きます。
+// ==================================================================
+class PourView {
+    constructor(cv, opts = {}) {
+        this.cv = cv; this.ctx = cv.getContext('2d'); this.hero = !!opts.hero;   // hero … 乾杯画面用（背景なしで大きく描く）
+        this.b = 0; this.f = 0; this.chill = 0; this.mode = null; this.t = 0; this.shine = 0; this.guide = false;
+        this.scrapeP = null; this.scrapeAuto = false; this.bits = [];   // すり切り（へらの位置 0〜1）
+        this.bubbles = Array.from({ length: 70 }, () => this.newBubble(true));
+        this.foamDots = Array.from({ length: 170 }, () => ({ u: rand(-1, 1), v: Math.random(), r: rand(.6, 2.4) }));
+        this.drops = Array.from({ length: 75 }, () => ({ u: rand(-.92, .92), v: rand(.05, .97), r: rand(.6, 2.6), slide: Math.random() < .12 ? rand(4, 12) : 0 }));
+        this.water = [];
+        this.bokeh = Array.from({ length: 9 }, () => ({ x: Math.random(), y: rand(.05, .5), r: rand(14, 40), a: rand(.12, .35) }));
+        this.grain = Array.from({ length: 14 }, () => ({ y: Math.random(), a: rand(.03, .09), k: rand(.01, .04), p: rand(0, 6) }));
+    }
+    newBubble(init) { return { u: rand(-.85, .85), y: init ? Math.random() : 0, v: rand(.18, .42), r: rand(.6, 1.6), w: rand(0, 6) }; }
+    resize() {
+        const w = this.cv.clientWidth || this.fixedW || 300, fit = this.hero ? Infinity : Math.max(240, window.innerHeight - 330), h = Math.round(Math.min(w * (this.hero ? 1.25 : 1.3), fit)) /* 注ぐ画面は、スクロールなしで1画面に */, d = Math.min(this.hero ? 3 : 2, window.devicePixelRatio || 1);
+        if (this.cv.clientWidth) this.cv.style.height = h + 'px';
+        this.cv.width = Math.round(w * d); this.cv.height = Math.round(h * d);
+        this.ctx.setTransform(d, 0, 0, d, 0, 0);
+        this.W = w; this.H = h;
+        const R = this.hero ? Math.min(w, h / 1.25) * 0.3 : Math.min(w * 0.25, h * 0.185);   // 注ぐ画面のジョッキは、画面に入るいちばん大きいサイズ
+        const g = { cx: w * (this.hero ? 0.42 : 0.45), R, ry: R * 0.2, gB: h * (this.hero ? 0.95 : 0.9) };
+        g.gT = g.gB - R * 2.7; g.bt = R * 0.3; g.inBot = g.gB - g.bt; g.Ri = R - 3.5; g.Hi = g.inBot - g.gT; g.ny = g.gT - R * 0.95;
+        this.g = g;
+    }
+    level(fr) { return this.g.inBot - fr * this.g.Hi; }
+    // 円柱の中身の形（上は奥側の半円、下は手前のカーブ）
+    bodyPath(yTop, yBot, Rr, ry) {
+        const c = this.ctx, cx = this.g.cx;
+        c.beginPath();
+        c.moveTo(cx - Rr, yTop); c.lineTo(cx - Rr, yBot);
+        c.ellipse(cx, yBot, Rr, ry, 0, Math.PI, 0, true);
+        c.lineTo(cx + Rr, yTop);
+        c.ellipse(cx, yTop, Rr, ry, 0, 0, Math.PI, true);
+        c.closePath();
+    }
+    chrome(x0, y0, x1, y1) {
+        const g = this.ctx.createLinearGradient(x0, y0, x1, y1);
+        g.addColorStop(0, '#4b5258'); g.addColorStop(.22, '#c9d0d6'); g.addColorStop(.38, '#ffffff'); g.addColorStop(.55, '#8d959c'); g.addColorStop(.78, '#dfe5ea'); g.addColorStop(1, '#3f454b');
+        return g;
+    }
+    update(dt) {
+        this.t += dt;
+        if (this.mode === 'beer') { this.b = Math.min(1.08, this.b + dt * 0.26); this.f = Math.min(0.5, this.f + dt * 0.045); }
+        if (this.mode === 'foam') { this.f = Math.min(0.7, this.f + dt * 0.19); }
+        if (this.b + this.f > 1.14) this.f = Math.max(0, 1.14 - this.b);
+        this.bubbles.forEach(b => { b.y += b.v * dt * (this.mode === 'beer' ? 1.8 : 1); if (b.y > 1) Object.assign(b, this.newBubble(false)); });
+        this.water.forEach(p => { p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.a -= dt * 1.2; });
+        this.water = this.water.filter(p => p.a > 0);
+        this.shine = Math.max(0, this.shine - dt * 0.5);
+        if (this.scrapeP != null) {
+            if (this.scrapeAuto) this.scrapeP = Math.min(1, this.scrapeP + dt / 1.1);
+            const g = this.g, xp = g.cx - g.R * 1.25 + this.scrapeP * g.R * 2.6;
+            if (this.scrapeP > 0.05 && this.scrapeP < 1 && this.b + this.f > 1.0 && Math.random() < .5)   // すり切った泡がこぼれる
+                this.bits.push({ x: Math.min(xp, g.cx + g.R + 4), y: g.gT - 2, vx: rand(10, 50), vy: rand(-20, 10), r: rand(2, 5), a: 1 });
+            if (this.scrapeP >= 1 && !this.scraped) {   // すり切り完了：ふちから上の泡がなくなる
+                this.scraped = true;
+                this.b = Math.min(1, this.b); this.f = Math.max(0, Math.min(this.f, 1.0 - this.b));
+            }
+        }
+        this.bits.forEach(p => { p.vy += 500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.a -= dt * .8; });
+        this.bits = this.bits.filter(p => p.a > 0 && p.y < this.H);
+    }
+    startWash() {
+        const g = this.g;
+        for (let k = 0; k < 70; k++) this.water.push({ x: g.cx + rand(-g.R, g.R), y: g.gT + rand(-30, g.Hi * .6), vx: rand(-60, 60), vy: rand(-220, 40), r: rand(1, 2.6), a: rand(.6, 1) });
+        this.shine = 1;
+    }
+    draw() {
+        const c = this.ctx, W = this.W, H = this.H, g = this.g, cx = g.cx, R = g.R, ry = g.ry;
+        if (this.hero) {   // 乾杯画面：背景なし。足もとに影だけ
+            c.clearRect(0, 0, W, H);
+            const sg = c.createRadialGradient(cx + 6, g.gB - ry * .3, 2, cx + 6, g.gB - ry * .3, R * 1.3);
+            sg.addColorStop(0, 'rgba(0,0,0,.55)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = sg; c.beginPath(); c.ellipse(cx + 6, g.gB - ry * .3, R * 1.3, ry * 1.4, 0, 0, 7); c.fill();
+        } else {
+        // 背景：お店のカウンター（暗い店内・ぼけた灯り）
+        const bg = c.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#2b1b13'); bg.addColorStop(.6, '#1a100b'); bg.addColorStop(1, '#120a07');
+        c.fillStyle = bg; c.fillRect(0, 0, W, H);
+        this.bokeh.forEach(b => { const gg = c.createRadialGradient(b.x * W, b.y * H, 0, b.x * W, b.y * H, b.r); gg.addColorStop(0, `rgba(255,190,110,${b.a})`); gg.addColorStop(1, 'rgba(255,190,110,0)'); c.fillStyle = gg; c.beginPath(); c.arc(b.x * W, b.y * H, b.r, 0, 7); c.fill(); });
+        // カウンター（木目）
+        const cTop = g.gB - ry * 2.2;
+        const wood = c.createLinearGradient(0, cTop, 0, H);
+        wood.addColorStop(0, '#7a4e2c'); wood.addColorStop(.08, '#5e3a20'); wood.addColorStop(1, '#2e1c10');
+        c.fillStyle = wood; c.fillRect(0, cTop, W, H - cTop);
+        this.grain.forEach(gl => { c.strokeStyle = `rgba(20,10,4,${gl.a})`; c.lineWidth = 1; c.beginPath(); const y0 = cTop + gl.y * (H - cTop); for (let x = 0; x <= W; x += 8) c.lineTo(x, y0 + Math.sin(x * gl.k + gl.p) * 2); c.stroke(); });
+        c.fillStyle = 'rgba(255,220,170,.18)'; c.fillRect(0, cTop, W, 1.5);
+        // ジョッキの影と、カウンターへの映りこみ
+        c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx + 6, g.gB - ry * .4, R * 1.15, ry * 1.1, 0, 0, 7); c.fill();
+        if (this.b > 0.02) { const rg = c.createRadialGradient(cx, g.gB + 6, 2, cx, g.gB + 6, R * 1.4); rg.addColorStop(0, 'rgba(240,170,50,.28)'); rg.addColorStop(1, 'rgba(240,170,50,0)'); c.fillStyle = rg; c.fillRect(cx - R * 1.5, g.gB - 4, R * 3, R); }
+
+        // ビールサーバー（タワー＋コック）
+        const tx = cx + R * 1.55, fy = g.ny - R * 0.42;
+        c.fillStyle = this.chrome(tx - R * .28, 0, tx + R * .28, 0); c.fillRect(tx - R * .28, 0, R * .56, fy + R * .1);
+        c.fillStyle = this.chrome(0, fy - R * .2, 0, fy + R * .2); c.beginPath(); c.roundRect(cx - R * .28, fy - R * .19, tx - cx + R * .28, R * .38, R * .12); c.fill();
+        c.fillStyle = this.chrome(cx - R * .14, 0, cx + R * .14, 0); c.beginPath(); c.moveTo(cx - R * .16, fy + R * .15); c.lineTo(cx + R * .16, fy + R * .15); c.lineTo(cx + R * .09, g.ny); c.lineTo(cx - R * .09, g.ny); c.fill();
+        // レバー（注ぐ：手前へ、泡：奥へ）
+        const ang = this.mode === 'beer' ? -0.42 : this.mode === 'foam' ? 0.42 : 0;
+        c.save(); c.translate(cx + R * .05, fy - R * .18); c.rotate(ang);
+        const lg = c.createLinearGradient(-R * .1, 0, R * .1, 0); lg.addColorStop(0, '#0d0907'); lg.addColorStop(.45, '#4a3a30'); lg.addColorStop(1, '#0d0907');
+        c.fillStyle = lg; c.beginPath(); c.roundRect(-R * .1, -R * 1.05, R * .2, R * 1.0, R * .08); c.fill();
+        c.fillStyle = '#c8a45c'; c.fillRect(-R * .12, -R * .12, R * .24, R * .1);
+        c.restore();
+        }
+
+        // ---- 中身 ----
+        const yb = this.level(Math.min(1, this.b)), fTotal = Math.min(1.12, this.b + this.f);
+        const yf = this.level(fTotal), Ri = g.Ri, ryi = ry * (Ri / R);
+        const capY = Math.max(yf, g.gT);   // ふちより上は「泡のドーム」
+        const keep = this.scrapeP != null ? 1 - this.scrapeP : 1;   // すり切るほど、ドームとしずくが消える
+        if (this.b > 0.005) {
+            // ビール本体
+            this.bodyPath(yb, g.inBot, Ri, ryi);
+            const bgd = c.createLinearGradient(0, yb, 0, g.inBot);
+            bgd.addColorStop(0, '#f2b631'); bgd.addColorStop(.5, '#e39a16'); bgd.addColorStop(1, '#b8680a');
+            c.fillStyle = bgd; c.fill();
+            // 円柱の陰影（ふちは濃く、中央はすきとおる）
+            const sh = c.createLinearGradient(cx - Ri, 0, cx + Ri, 0);
+            sh.addColorStop(0, 'rgba(90,35,0,.55)'); sh.addColorStop(.18, 'rgba(90,35,0,.1)'); sh.addColorStop(.32, 'rgba(255,236,170,.28)'); sh.addColorStop(.5, 'rgba(255,236,170,0)'); sh.addColorStop(.85, 'rgba(90,35,0,.18)'); sh.addColorStop(1, 'rgba(90,35,0,.6)');
+            c.fillStyle = sh; c.fill();
+            // 立ちのぼる気泡
+            c.save(); c.clip();
+            this.bubbles.forEach(bb => {
+                const y = g.inBot - bb.y * (g.inBot - yb); if (y < yb + 2) return;
+                const x = cx + bb.u * Ri + Math.sin(this.t * 3 + bb.w) * 1.2;
+                c.fillStyle = 'rgba(255,248,220,.75)'; c.beginPath(); c.arc(x, y, bb.r, 0, 7); c.fill();
+            });
+            if (this.mode === 'beer') { // 注いでいるときの、うずまく細かい泡
+                for (let k = 0; k < 40; k++) { const x = cx + rand(-.5, .5) * Ri, y = yb + rand(0, (g.inBot - yb) * .6); c.fillStyle = 'rgba(255,240,200,.25)'; c.beginPath(); c.arc(x, y, rand(.5, 1.6), 0, 7); c.fill(); }
+            }
+            c.restore();
+            if (this.f < 0.01) { c.fillStyle = 'rgba(250,205,100,.95)'; c.beginPath(); c.ellipse(cx, yb, Ri, ryi, 0, 0, 7); c.fill(); }
+        }
+        if (this.f > 0.005 && this.b > 0.005) {
+            // 泡（クリーム色・きめ細かい）
+            const fy0 = Math.min(yb, g.inBot);
+            this.bodyPath(capY, fy0, Ri, ryi);
+            const fg = c.createLinearGradient(cx - Ri, 0, cx + Ri, 0);
+            fg.addColorStop(0, '#d6c7a6'); fg.addColorStop(.25, '#f7efdc'); fg.addColorStop(.45, '#fffaf0'); fg.addColorStop(.8, '#eee3c9'); fg.addColorStop(1, '#cdbd9a');
+            c.fillStyle = fg; c.fill();
+            c.save(); c.clip();
+            const fh = fy0 - capY;
+            this.foamDots.forEach(d => { const x = cx + d.u * Ri, y = capY + d.v * (fh + ryi); c.strokeStyle = 'rgba(170,150,115,.35)'; c.lineWidth = .7; c.beginPath(); c.arc(x, y, d.r, 0, 7); c.stroke(); });
+            const bd = c.createLinearGradient(0, fy0 - 8, 0, fy0 + ryi); bd.addColorStop(0, 'rgba(240,190,90,0)'); bd.addColorStop(1, 'rgba(240,190,90,.75)');
+            c.fillStyle = bd; c.fillRect(cx - Ri, fy0 - 8, Ri * 2, 8 + ryi);
+            c.restore();
+            // 泡の上の面（ふちを越えたらドーム）
+            const dome = Math.max(0, g.gT - yf) * (this.scrapeP != null ? 1 - this.scrapeP : 1);
+            const tg = c.createRadialGradient(cx - Ri * .3, capY - dome * .6 - ryi * .4, 2, cx, capY, Ri * 1.1);
+            tg.addColorStop(0, '#ffffff'); tg.addColorStop(.6, '#fbf4e4'); tg.addColorStop(1, '#e3d5b6');
+            c.fillStyle = tg; c.beginPath();
+            if (dome > 0.5) { c.moveTo(cx - R * 1.02, g.gT); c.bezierCurveTo(cx - R * 1.04, g.gT - dome * 1.1 - ryi, cx + R * 1.04, g.gT - dome * 1.1 - ryi, cx + R * 1.02, g.gT); c.ellipse(cx, g.gT, R * 1.02, ryi, 0, 0, Math.PI, false); }
+            else c.ellipse(cx, capY, Ri, ryi, 0, 0, 7);
+            c.fill();
+            // 泡の表面のこまかな粒
+            for (let k = 0; k < 26; k++) {
+                const d = this.foamDots[k], x = cx + d.u * Ri * .9, y = capY - Math.max(0, g.gT - yf) * .5 + d.v * ryi * 1.2 - ryi * .5;
+                c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.arc(x - .5, y - .5, d.r * .55, 0, 7); c.fill();
+                c.strokeStyle = 'rgba(190,170,130,.35)'; c.lineWidth = .6; c.beginPath(); c.arc(x, y, d.r * .7, 0, 7); c.stroke();
+            }
+            // あふれた泡のしずく
+            if (this.b + this.f > 1.07 && keep > 0.02) {
+                const len = clamp((this.b + this.f - 1.07) * 900, 0, R * 1.6) * keep;
+                c.fillStyle = '#f7efdc';
+                [[-1, 0.0], [1, 0.3], [-1, 0.55]].forEach(([side, k]) => {
+                    const x = cx + side * (R + 1), L = len * (1 - k * .5);
+                    c.beginPath(); c.moveTo(x - 4, g.gT); c.quadraticCurveTo(x - 3 * side, g.gT + L * .7, x, g.gT + L); c.quadraticCurveTo(x + 4 * side, g.gT + L * .6, x + 4, g.gT); c.fill();
+                });
+            }
+        }
+
+        // ---- ガラス ----
+        this.bodyPath(g.gT, g.gB - ry, R, ry);
+        c.fillStyle = 'rgba(210,230,245,.07)'; c.fill();
+        if (this.chill > 0) { c.fillStyle = `rgba(235,245,252,${0.13 * this.chill})`; c.fill(); }  // 冷えた曇り
+        // 厚い底
+        c.beginPath(); c.ellipse(cx, g.gB - ry, R, ry, 0, 0, 7); c.fillStyle = this.b > 0.01 ? 'rgba(220,150,40,.35)' : 'rgba(255,255,255,.12)'; c.fill();
+        c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(cx - R, g.inBot, R * 2, g.gB - ry - g.inBot);
+        // 縦の映りこみ
+        const hl = c.createLinearGradient(cx - R, 0, cx + R, 0);
+        hl.addColorStop(0, 'rgba(255,255,255,.35)'); hl.addColorStop(.06, 'rgba(255,255,255,.05)'); hl.addColorStop(.16, 'rgba(255,255,255,.0)');
+        hl.addColorStop(.2, 'rgba(255,255,255,.55)'); hl.addColorStop(.26, 'rgba(255,255,255,.08)'); hl.addColorStop(.8, 'rgba(255,255,255,0)'); hl.addColorStop(.86, 'rgba(255,255,255,.22)'); hl.addColorStop(.9, 'rgba(255,255,255,0)'); hl.addColorStop(1, 'rgba(255,255,255,.3)');
+        c.fillStyle = hl; c.fillRect(cx - R, g.gT, R * 2, g.gB - ry - g.gT);
+        // 水滴（冷えると出てくる）
+        if (this.chill > 0) {
+            c.globalAlpha = this.chill;
+            this.drops.forEach(d => {
+                const x = cx + d.u * R, y0 = g.gT + d.v * (g.gB - ry - g.gT) + (d.slide ? (this.t * d.slide) % 30 : 0);
+                if (y0 > g.gB - ry) return;
+                const dg = c.createRadialGradient(x - d.r * .3, y0 - d.r * .3, 0, x, y0, d.r);
+                dg.addColorStop(0, 'rgba(255,255,255,.95)'); dg.addColorStop(.35, 'rgba(255,255,255,.25)'); dg.addColorStop(1, 'rgba(255,255,255,.55)');
+                c.fillStyle = dg; c.beginPath(); c.arc(x, y0, d.r, 0, 7); c.fill();
+            });
+            c.globalAlpha = 1;
+        }
+        // ジョッキの縦すじ（厚いガラスの面）
+        for (let k = 1; k < 9; k++) {
+            const u = -1 + k * 0.222, x = cx + Math.sin(u * Math.PI / 2) * R, a = 0.06 + 0.1 * (1 - Math.abs(u));
+            c.fillStyle = `rgba(255,255,255,${a})`; c.fillRect(x - .6, g.gT + R * .25, 1.2, g.gB - ry - g.gT - R * .45);
+            c.fillStyle = `rgba(0,0,0,${a * .5})`; c.fillRect(x + .8, g.gT + R * .25, 1, g.gB - ry - g.gT - R * .45);
+        }
+        // したたる水滴のすじ
+        if (this.chill > 0) {
+            c.globalAlpha = this.chill;
+            this.drops.forEach(d => {
+                if (!d.slide) return;
+                const x = cx + d.u * R, y0 = g.gT + d.v * (g.gB - ry - g.gT) + (this.t * d.slide) % 30;
+                if (y0 > g.gB - ry) return;
+                const tg = c.createLinearGradient(0, y0 - 26, 0, y0); tg.addColorStop(0, 'rgba(255,255,255,0)'); tg.addColorStop(1, 'rgba(255,255,255,.35)');
+                c.fillStyle = tg; c.fillRect(x - d.r * .35, y0 - 26, d.r * .7, 26);
+            });
+            c.globalAlpha = 1;
+        }
+        // 輪郭
+        c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1.3;
+        c.beginPath(); c.moveTo(cx - R, g.gT); c.lineTo(cx - R, g.gB - ry); c.ellipse(cx, g.gB - ry, R, ry, 0, Math.PI, 0, true); c.lineTo(cx + R, g.gT); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,.6)'; c.lineWidth = 1.6; c.beginPath();
+        if (this.b + this.f > 1.0 && this.f > 0.02) c.ellipse(cx, g.gT, R, ry, 0, 0, Math.PI, false); else c.ellipse(cx, g.gT, R, ry, 0, 0, 7);
+        c.stroke();
+        // 取っ手（厚いガラス）
+        const hx = cx + R, hy1 = g.gT + R * .45, hy2 = g.gB - ry - R * .55;
+        c.lineCap = 'round';
+        c.strokeStyle = 'rgba(200,220,235,.22)'; c.lineWidth = R * .26;
+        c.beginPath(); c.moveTo(hx - 2, hy1); c.bezierCurveTo(hx + R * .85, hy1 - R * .05, hx + R * .85, hy2 + R * .05, hx - 2, hy2); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.6;
+        c.beginPath(); c.moveTo(hx, hy1 - R * .1); c.bezierCurveTo(hx + R * .95, hy1 - R * .15, hx + R * .95, hy2 + R * .15, hx, hy2 + R * .1); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(hx, hy1 + R * .12); c.bezierCurveTo(hx + R * .6, hy1 + R * .1, hx + R * .6, hy2 - R * .1, hx, hy2 - R * .12); c.stroke();
+        c.lineCap = 'butt';
+
+        // ---- 注ぐ流れ ----
+        if (this.mode) {
+            const top = g.ny, bot = Math.max(top + 4, this.b > 0.005 ? capY : g.inBot) + 2;
+            const wob = Math.sin(this.t * 40) * .6;
+            const sw = this.mode === 'beer' ? R * .085 : R * .13;
+            const sg = c.createLinearGradient(cx - sw, 0, cx + sw, 0);
+            if (this.mode === 'beer') { sg.addColorStop(0, 'rgba(190,110,10,.9)'); sg.addColorStop(.4, 'rgba(255,215,120,.95)'); sg.addColorStop(1, 'rgba(200,120,15,.9)'); }
+            else { sg.addColorStop(0, 'rgba(225,215,195,.85)'); sg.addColorStop(.45, 'rgba(255,253,245,.95)'); sg.addColorStop(1, 'rgba(225,215,195,.85)'); }
+            c.fillStyle = sg; c.beginPath(); c.moveTo(cx - sw * .8, top); c.lineTo(cx + sw * .8, top); c.lineTo(cx + sw * .5 + wob, bot); c.lineTo(cx - sw * .5 + wob, bot); c.fill();
+            for (let k = 0; k < 8; k++) { c.fillStyle = 'rgba(255,248,230,.8)'; c.beginPath(); c.arc(cx + rand(-R * .3, R * .3), bot + rand(-3, 2), rand(1, 2.6), 0, 7); c.fill(); }
+        }
+        // すり切りのへら
+        if (this.scrapeP != null && this.scrapeP < 1) {
+            const xp = cx - R * 1.25 + this.scrapeP * R * 2.6, y = g.gT - 3;
+            const bl = c.createLinearGradient(0, y - 4, 0, y + 4);
+            bl.addColorStop(0, '#f4f7f9'); bl.addColorStop(.5, '#9aa3ab'); bl.addColorStop(1, '#5d646b');
+            c.fillStyle = bl; c.beginPath(); c.roundRect(xp - R * 1.7, y - 3, R * 1.7, 6, 3); c.fill();
+            c.fillStyle = '#2b211c'; c.beginPath(); c.roundRect(xp - R * 2.3, y - 5, R * .7, 10, 4); c.fill();   // 持ち手
+            if (this.b + this.f > 1.0) { c.fillStyle = '#fffaf0'; c.beginPath(); c.ellipse(xp + 2, y - 3, R * .12, R * .08, 0, 0, 7); c.fill(); }
+        }
+        this.bits.forEach(p => { c.fillStyle = `rgba(255,250,240,${p.a})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); });
+        // 洗う：水しぶき と きらめき
+        this.water.forEach(p => { c.fillStyle = `rgba(190,225,250,${p.a})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); });
+        if (this.shine > 0) {
+            c.save(); c.globalAlpha = Math.sin(this.shine * Math.PI);
+            [[cx - R * .75, g.gT + R * .4, 9], [cx + R * .6, g.gT + R * 1.4, 7], [cx - R * .2, g.gT + R * 2.1, 6]].forEach(([x, y, s]) => {
+                c.fillStyle = '#fffbe8'; c.beginPath(); c.moveTo(x, y - s); c.lineTo(x + s * .25, y - s * .25); c.lineTo(x + s, y); c.lineTo(x + s * .25, y + s * .25); c.lineTo(x, y + s); c.lineTo(x - s * .25, y + s * .25); c.lineTo(x - s, y); c.lineTo(x - s * .25, y - s * .25); c.fill();
+            });
+            c.restore();
+        }
+        // 目安（ビール7・泡3）
+        if (this.guide) {
+            const y7 = this.level(0.7), y10 = this.level(1.0), gx = cx - R - 8;
+            c.strokeStyle = 'rgba(240,195,90,.6)'; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(gx, y10); c.lineTo(gx, g.inBot); c.moveTo(gx - 5, y7); c.lineTo(gx + 3, y7); c.moveTo(gx - 5, y10); c.lineTo(gx + 3, y10); c.moveTo(gx - 5, g.inBot); c.lineTo(gx + 3, g.inBot); c.stroke();
+            c.fillStyle = 'rgba(240,195,90,.95)'; c.font = '11px "Zen Old Mincho", serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+            c.fillText('ビール 7', gx - 7, (y7 + g.inBot) / 2);
+            c.fillText('泡 3', gx - 7, (y7 + y10) / 2);
+        }
+    }
+}
+
+const Pour = (() => {
+    const cv = $('pourCanvas');
+    const view = new PourView(cv);
+    let running = false, raf = 0, last = 0;
+
+    function loop(t) {
+        if (!running) return;
+        const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+        view.update(dt); view.draw();
+        raf = requestAnimationFrame(loop);
+    }
+    function setStep(n) {
+        [...$('pourSteps').children].forEach((el, i) => { el.className = i + 1 < n ? 'done' : i + 1 === n ? 'on' : ''; });
+        const A = $('pourActions'), M = $('pourMsg');
+        if (n === 1) {
+            M.innerHTML = '<b>ビールを注ごう</b>ボタンを長押しすると注がれます。<br>泡の入るすき間を、少し残すのがコツ！';
+            A.innerHTML = '<button class="btn-vino hold-btn" id="pHold">長押しで注ぐ</button><div class="sub-row" id="pSub"></div>';
+            bindHold($('pHold'), 'beer');
+        } else if (n === 2) {
+            M.innerHTML = '<b>泡をのせよう</b>長押しで、きめ細かな泡がのります。<br>ふちを少しこえるくらいがコツ！';
+            A.innerHTML = '<button class="btn-vino hold-btn" id="pHold">長押しで泡をのせる</button><div class="sub-row" id="pSub"></div>';
+            bindHold($('pHold'), 'foam');
+        } else if (n === 3) {
+            M.innerHTML = '<b>すり切って仕上げ！</b>ジョッキの上を左から右へなぞるか、<br>ボタンを押してね。';
+            A.innerHTML = '<button class="btn-vino" id="pScrape">すり切る</button>';
+            view.scrapeP = 0; view.scrapeAuto = false; view.scraped = false;
+            $('pScrape').onclick = () => { view.scrapeAuto = true; };
+            waitScrape();
+        }
+    }
+    // すり切り：キャンバスを左から右へなぞる（とちゅうで指を離しても、半分こえていれば最後まで）
+    let swipeX = null;
+    cv.addEventListener('pointerdown', (e) => { if (view.scrapeP == null || view.scraped) return; swipeX = e.clientX; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+    cv.addEventListener('pointermove', (e) => {
+        if (swipeX == null || view.scrapeAuto) return;
+        view.scrapeP = clamp(Math.max(view.scrapeP, (e.clientX - swipeX) / (view.W * 0.55)), 0, 1);
+    });
+    cv.addEventListener('pointerup', () => { if (swipeX != null && view.scrapeP > 0.3) view.scrapeAuto = true; swipeX = null; });
+    function waitScrape() {
+        if (!running) return;
+        if (view.scraped) { view.shine = 1; setTimeout(judge, 500); return; }
+        requestAnimationFrame(waitScrape);
+    }
+    function bindHold(btn, kind) {
+        const startH = (e) => { e.preventDefault(); try { btn.setPointerCapture(e.pointerId); } catch (_) {} view.mode = kind; btn.classList.add('holding'); };
+        const endH = () => { if (view.mode !== kind) return; view.mode = null; btn.classList.remove('holding'); afterRelease(kind); };
+        btn.addEventListener('pointerdown', startH);
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => btn.addEventListener(ev, endH));
+        btn.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    function afterRelease(kind) {
+        const sub = $('pSub'), b = view.b;
+        if (kind === 'beer' && b > 0.2) {
+            $('pourMsg').innerHTML = b > 0.95 ? '<b>たっぷり注いだね！</b>泡の入るすき間、残ってるかな？' : b < 0.5 ? '<b>まだまだ注げるよ</b>もう一度長押しで、追加できます。' : '<b>いい感じ！</b>次は、泡をのせよう。';
+            sub.innerHTML = '<button class="btn-ghost" id="pToFoam">次へ：泡をのせる ›</button>';
+            $('pToFoam').onclick = () => setStep(2);
+        }
+        if (kind === 'foam' && view.f > 0.05) {
+            $('pourMsg').innerHTML = view.b + view.f > 1.0 ? '<b>もこもこの泡！</b>最後に、すり切って仕上げよう。' : '<b>もう少し泡をのせても◎</b>もう一度長押しで、追加できます。';
+            sub.innerHTML = '<button class="btn-ghost" id="pToScrape">次へ：すり切る ›</button>';
+            $('pToScrape').onclick = () => setStep(3);
+        }
+    }
+    // できた一杯を判定（数字ではなく「どんなビールか」で伝える）
+    // できた一杯を判定：ビールと泡の比率（いちばんおいしいのは ビール7：泡3）にどれだけ近いかで S〜C
+    function judge() {
+        const b = Math.min(1, view.b), f = Math.max(0, view.f), t = b + f, fr = t ? f / t : 0, d = Math.abs(fr - 0.3);
+        let rank = t < 0.7 ? 'C' : d <= 0.05 ? 'S' : d <= 0.1 ? 'A' : d <= 0.18 ? 'B' : 'C';
+        if (t < 0.88 && rank !== 'C') rank = { S: 'A', A: 'B', B: 'C' }[rank];   // 量が少ないと1つ下
+        const kind = t < 0.7 ? 'little' : fr < 0.22 ? 'kire' : fr > 0.38 ? 'awa' : 'gold';
+        const NAME = { gold: '黄金バランス！ ごくごくビール', kire: 'キレ重視！ 泡ひかえめビール', awa: 'ふわっふわ！ 泡たっぷりビール', little: 'まだ注げる！ ちょっぴりビール' };
+        const MSG = { S: 'ビールと泡のバランスが最高！ 泡がふたになって、できたての香りをとじこめています。', A: 'おいしく飲める一杯！ あと少しで、いちばんおいしいバランスに。',
+                      B: kind === 'awa' ? 'クリーミーな一杯。ビールを少し多めにすると、もっとごくごく飲めるよ。' : 'すっきりした一杯。泡をもう少しのせると、香りが長持ちするよ。',
+                      C: 'まだまだ伸びしろあり！ ビール7：泡3 をめざして、もう一度チャレンジ！' };
+        const r = { name: NAME[kind], rank, msg: MSG[rank] };
+        const beer10 = Math.round((1 - fr) * 10);
+        pourResult = { ...r, b: view.b, f: view.f, ratio: `${beer10}：${10 - beer10}` };
+        [...$('pourSteps').children].forEach(el => el.className = 'done');
+        view.scrapeP = null;
+        const RL = { S: 'RAINBOW', A: 'GOLD', B: 'SILVER', C: 'WHITE' }[rank];
+        $('pourMsg').innerHTML = `<span class="judge"><span class="rank-badge rb-${rank}">${rank}</span><span class="judge-txt"><small>判定 ${RL}｜ビール${beer10}：泡${10 - beer10}</small><em>${r.name}</em></span></span>`;
+        $('pourActions').innerHTML = '<button class="btn-vino" id="pCheers">🃏 カードにする ›</button><div class="sub-row"><button class="btn-ghost" id="pRetry">もう一度注ぐ</button></div>';
+        $('pRetry').onclick = retry;
+        $('pCheers').onclick = () => { Cheers.prep(); show('kao'); };
+    }
+    function retry() { view.b = 0; view.f = 0; view.mode = null; view.guide = false; view.shine = 0; view.scrapeP = null; view.scraped = false; view.bits = []; setStep(1); }
+    window.addEventListener('resize', () => { if (running) view.resize(); });
+    return {
+        start() {
+            $('pourSub').textContent = SHOP.name + 'に到着！ 最後の仕上げは、あなたの手で。';
+            view.b = 0; view.f = 0; view.mode = null; view.chill = 1; view.guide = false; view.water = []; view.shine = 0;   // ジョッキは最初から冷えた状態
+            view.scrapeP = null; view.scraped = false; view.bits = [];
+            running = true;
+            requestAnimationFrame(() => { view.resize(); setStep(1); last = performance.now(); raf = requestAnimationFrame(loop); });
+        },
+        stop() { running = false; cancelAnimationFrame(raf); }
+    };
+})();
+
+// ---------------- ④ 乾杯（お届け完了） ----------------
+const Cheers = (() => {
+    const jugCv = $('chJug'), mateCv = $('chMate');
+    const view = new PourView(jugCv, { hero: true });
+    let running = false, raf = 0, last = 0;
+    function loop(t) {
+        if (!running) return;
+        const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+        view.update(dt); view.draw();
+        // 相手のジョッキ（同じ絵を左右反転して表示）
+        const mc = mateCv.getContext('2d'); mc.clearRect(0, 0, mateCv.width, mateCv.height); mc.drawImage(jugCv, 0, 0);
+        raf = requestAnimationFrame(loop);
+    }
+    function clink() {
+        const st = $('chStage');
+        st.classList.remove('clink'); void st.offsetWidth; st.classList.add('clink');
+        st.querySelectorAll('.spark').forEach(e => e.remove());
+        for (let k = 0; k < 14; k++) {   // ぶつかったところから、きらきら
+            const sp = document.createElement('span'); sp.className = 'spark';
+            const an = rand(0, 6.28), r = rand(40, 110);
+            sp.style.cssText = `left:62%;top:34%;--x:${Math.cos(an) * r}px;--y:${Math.sin(an) * r}px`;
+            st.appendChild(sp);
+        }
+        if (navigator.vibrate) try { navigator.vibrate(40); } catch (e) {}
+        setTimeout(() => st.classList.remove('clink'), 2600);
+    }
+    $('chStage').addEventListener('click', clink);
+    return {
+        start() {
+            const goal = Drive.lastStop() || buildStops().pop();
+            $('chBg').style.backgroundImage = `url(${goal.pop ? goal.pop.src : IMG_DIR + goal.bg + '_' + goal.s + '.webp'})`;
+            $('chSeason').textContent = SEASONS[mode].jp + 'ルート';
+            $('chName').textContent = pourResult.name || 'まろやか！ バランスビール';
+            $('chRank').textContent = pourResult.rank || 'A';
+            $('chMsg').innerHTML = `工場出荷から2〜3日以内。できたての生ビールを、あなたのジョッキへお届けしました。<br>${pourResult.msg || ''}${honks ? `（ダッシュ ${honks}回）` : ''}`;
+            $('chStage').classList.remove('clink');
+            view.b = pourResult.b != null ? Math.min(1.04, pourResult.b) : 0.7;
+            view.f = pourResult.f != null ? Math.min(1.12 - Math.min(1, view.b), pourResult.f) : 0.3;
+            view.chill = 1; view.mode = null; view.guide = false; view.shine = 0; view.water = [];
+            running = true;
+            requestAnimationFrame(() => {
+                view.resize();
+                mateCv.width = jugCv.width; mateCv.height = jugCv.height; mateCv.style.height = 'auto';
+                last = performance.now(); raf = requestAnimationFrame(loop);
+            });
+        },
+        stop() { running = false; cancelAnimationFrame(raf); },
+        prep() {   // 乾杯画面は出さずに、記念撮影とマイカード用のジョッキだけ描いておく
+            view.fixedW = 300;
+            view.b = pourResult.b != null ? Math.min(1.04, pourResult.b) : 0.7;
+            view.f = pourResult.f != null ? Math.min(1.12 - Math.min(1, view.b), pourResult.f) : 0.3;
+            view.chill = 1; view.mode = null; view.guide = false; view.shine = 0; view.water = []; view.scrapeP = null;
+            view.resize(); view.update(0.016); view.draw();
+        }
+    };
+})();
+function renderCheers() { Cheers.start(); }
+
+// ---------------- ④-2 カオハメ写真 ----------------
+//   お店を背景に、ジョッキを掲げた体の絵。顔の穴に自分の写真をはめます（写真は端末の中だけで使う）
+const Kao = (() => {
+    const cv = $('kaoCv');
+    let face = null, fx = 0, fy = 0, zoom = 1.1, drag = null;
+    // 体のイラスト（顔とジョッキの部分を透明にぬいたもの）。HOLE … 顔の穴の中心と半径／GRIP … にぎった手（ジョッキの取っ手を持たせる位置）
+    const BODY = new Image(); BODY.src = IMG_DIR + 'kaohame_body.webp';
+    const BODY_W = 690, BODY_H = 662,   // 胴体だけ（足はなし）
+          HOLE = { x: 372, y: 300, rx: 142, ry: 168 }, GRIP = { x: 112, y: 318 };   // 頭は消して、顔の写真を大きく
+    BODY.onload = () => { if ($('s-kao').classList.contains('active')) render(); };
+    function board(c, X, Y, W, H) {   // 看板の絵（W:H ＝ 542:368 の横長）。お店の右下に、ビールを持った人
+        const u = H / 736, goal = Drive.lastStop() || buildStops().pop(), gim = goal && goal.im && goal.im.ok ? goal.im : null;
+        c.save(); c.beginPath(); c.rect(X, Y, W, H); c.clip();
+        if (gim) { const nw = gim.naturalWidth, nh = gim.naturalHeight, sh = nh * 0.8, sw = sh * W / H; c.drawImage(gim, clamp(nw * (goal.focus || .5) - sw / 2, 0, nw - sw), 0, sw, sh, X, Y, W, H); }
+        else { c.fillStyle = '#3a2a22'; c.fillRect(X, Y, W, H); }
+        const s = H * 0.0009, bw = BODY_W * s, bx = X + W - bw * 0.97, by = Y + H - BODY_H * s;   // 右下から胴体が出ているように（お店がよく見える大きさ）   // 体の大きさと位置（右下）
+        const hx = bx + HOLE.x * s, hy = by + HOLE.y * s, rx = HOLE.rx * s, ry = HOLE.ry * s;
+        if (BODY.complete && BODY.naturalWidth) c.drawImage(BODY, bx, by, bw, BODY_H * s);
+        // 顔（体の上に、大きな楕円で）
+        c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 10 * u; c.shadowOffsetY = 4 * u;
+        c.fillStyle = '#fffdf6'; c.beginPath(); c.ellipse(hx, hy, rx + 7 * u, ry + 7 * u, 0, 0, 7); c.fill(); c.restore();
+        if (face) {
+            c.save(); c.beginPath(); c.ellipse(hx, hy, rx, ry, 0, 0, 7); c.clip();
+            const k = Math.max(rx * 2 / face.naturalWidth, ry * 2 / face.naturalHeight) * zoom, fw = face.naturalWidth * k, fh = face.naturalHeight * k;
+            c.drawImage(face, hx - fw / 2 + fx * u, hy - fh / 2 + fy * u, fw, fh); c.restore();
+        } else {
+            c.fillStyle = '#000'; c.beginPath(); c.ellipse(hx, hy, rx, ry, 0, 0, 7); c.fill();   // 写真を撮るまでは、まっ黒
+        }
+        // ジョッキ（自分で注いだもの）を、にぎった手に持たせる
+        const jug = $('chJug');
+        if (jug && jug.width) {
+            const jw = 250 * s, jh = jw * jug.height / jug.width, gx = bx + GRIP.x * s, gy = by + GRIP.y * s;
+            c.save(); c.translate(gx, gy); c.rotate(-0.16);
+            c.drawImage(jug, -jw * 0.86, -jh * 0.6, jw, jh); c.restore();
+        }
+        c.restore();
+    }
+    function render() {
+        const w = cv.clientWidth, h = Math.round(w * 368 / 542), d = Math.min(2, window.devicePixelRatio || 1);
+        cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+        board(cv.getContext('2d'), 0, 0, cv.width, cv.height);
+    }
+    function load(e) {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = () => { const im = new Image(); im.onload = () => { face = im; fx = 0; fy = 0; zoom = 1.1; $('kaoZoom').value = 1.1; $('kaoZoomRow').hidden = false; $('kaoDone').hidden = false; $('kaoSkip').hidden = true; $('kaoNote').textContent = '写真をドラッグで位置、スライダーで大きさを合わせてね'; render(); }; im.src = rd.result; };
+        rd.readAsDataURL(f); e.target.value = '';
+    }
+    $('kaoCam').addEventListener('change', load);
+    $('kaoZoom').addEventListener('input', (e) => { zoom = +e.target.value; render(); });
+    cv.addEventListener('pointerdown', (e) => { if (!face) return; drag = { x: e.clientX, y: e.clientY, fx, fy }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+    cv.addEventListener('pointermove', (e) => { if (!drag) return; const k = 736 / cv.clientHeight; fx = drag.fx + (e.clientX - drag.x) * k; fy = drag.fy + (e.clientY - drag.y) * k; render(); });
+    cv.addEventListener('pointerup', () => { drag = null; });
+    $('kaoDone').addEventListener('click', () => show('card'));
+    return {
+        start() { requestAnimationFrame(() => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(render)); },
+        hasFace() { return !!face; },
+        draw(c, x, y, w, h) { board(c, x, y, w, h); }
+    };
+})();
+
+// ---------------- ⑤ マイカード ----------------
+const RANK_STYLE = {
+    S: { label: 'RAINBOW', jp: 'レインボー', frame: ['#ff6ec4', '#ffd36b', '#7dff9b', '#5ed6ff', '#b68cff', '#ff6ec4'], line: '#ffffff', ink: '#2a1640' },
+    A: { label: 'GOLD',    jp: 'ゴールド',   frame: ['#7a5410', '#f7e08a', '#c9962a', '#fff3b0', '#a87a1c', '#f0cf6a'], line: '#ffe08a', ink: '#3a2400' },
+    B: { label: 'SILVER',  jp: 'シルバー',   frame: ['#6c7178', '#eef1f4', '#9aa0a7', '#ffffff', '#7d8288', '#d8dde3'], line: '#e8ecf2', ink: '#24282e' },
+    C: { label: 'WHITE',   jp: 'ホワイト',   frame: ['#d4d4dc', '#ffffff', '#e6e6ee', '#ffffff', '#cfcfd8', '#f4f4f8'], line: '#ffffff', ink: '#3a3a44' }
+};
+const MyCard = (() => {
+    const wrap = $('myCard'), cv = $('cardCv');
+    let face = null, serial = '', raf = 0, running = false, touched = 0, t0 = 0, cardPhoto = null;
+    function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+    function cover(c, im, x, y, w, h, fx = 0.5, fy = 0.5) {   // 画像を枠いっぱいに（はみ出しは切る）
+        const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height, sc = Math.max(w / iw, h / ih);
+        const sw = w / sc, sh = h / sc, sx = clamp(iw * fx - sw / 2, 0, iw - sw), sy = clamp(ih * fy - sh / 2, 0, ih - sh);
+        c.drawImage(im, sx, sy, sw, sh, x, y, w, h);
+    }
+    function fitText(c, txt, maxW, size, font) { let sz = size; do { c.font = `${sz}px ${font}`; sz -= 1; } while (c.measureText(txt).width > maxW && sz > 10); }
+    function draw(c, W, H, opts = {}) {
+        const u = W / 630, R = RANK_STYLE[pourResult.rank || 'A'], goal = Drive.lastStop() || buildStops().pop();
+        c.clearRect(0, 0, W, H); c.save();
+        rr(c, 0, 0, W, H, 28 * u); c.clip();
+        // 外わく（ランクの色）
+        const fg = c.createLinearGradient(0, 0, W, H); R.frame.forEach((col, k) => fg.addColorStop(k / (R.frame.length - 1), col));
+        c.fillStyle = fg; c.fillRect(0, 0, W, H);
+        if (pourResult.rank === 'S') { c.globalAlpha = .18; c.fillStyle = '#fff'; for (let k = -H; k < W; k += 22 * u) { c.beginPath(); c.moveTo(k, H); c.lineTo(k + 8 * u, H); c.lineTo(k + H + 8 * u, 0); c.lineTo(k + H, 0); c.fill(); } c.globalAlpha = 1; }
+        // 中の台紙
+        const ix = 22 * u, iy = 22 * u, iw = W - 44 * u, ih = H - 44 * u;
+        const bg = c.createLinearGradient(0, iy, 0, iy + ih); bg.addColorStop(0, '#171a33'); bg.addColorStop(1, '#07080f');
+        rr(c, ix, iy, iw, ih, 18 * u); c.fillStyle = bg; c.fill();
+        // 保存用：光の帯を焼きこむ（写真より先に描くので、写真には色がかからない）
+        if (opts.shine) {
+            c.globalCompositeOperation = 'screen';
+            const lg = c.createLinearGradient(0, 0, W, H); lg.addColorStop(.3, 'rgba(255,255,255,0)'); lg.addColorStop(.5, pourResult.rank === 'S' ? 'rgba(200,160,255,.35)' : 'rgba(255,255,255,.28)'); lg.addColorStop(.7, 'rgba(255,255,255,0)');
+            c.fillStyle = lg; c.fillRect(0, 0, W, H); c.globalCompositeOperation = 'source-over';
+        }
+        // 見出し・ランク
+        c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+        c.fillStyle = '#ffc53d'; c.font = `${40 * u}px 'Dela Gothic One'`; c.fillText('速達生便。', 50 * u, 86 * u);
+        c.fillStyle = '#6fd6ff'; c.font = `900 ${15 * u}px 'Zen Kaku Gothic New'`; c.fillText(`MY CARD ｜ ${SHOP.name}`, 52 * u, 110 * u);
+        const ex = W - 92 * u, ey = 74 * u, er = 40 * u;
+        c.beginPath(); c.arc(ex, ey, er, 0, 7); c.fillStyle = fg; c.fill(); c.lineWidth = 3 * u; c.strokeStyle = 'rgba(255,255,255,.85)'; c.stroke();
+        c.fillStyle = R.ink; c.textAlign = 'center'; c.font = `700 ${50 * u}px 'Oswald'`; c.fillText(pourResult.rank || 'A', ex, ey + 18 * u);
+        // 絵（お店の写真＋自分のジョッキ＋顔写真）
+        const ax = 44 * u, ay = 128 * u, aw = W - 88 * u, ah = 368 * u;
+        c.save(); rr(c, ax, ay, aw, ah, 14 * u); c.clip();
+        const gim = goal && goal.im && goal.im.ok ? goal.im : null;
+        const photo = cardPhoto && cardPhoto.complete && cardPhoto.naturalWidth ? cardPhoto : null;   // お店の外観写真があれば、そちらを使う
+        if (photo) cover(c, photo, ax, ay, aw, ah, .5, .5);
+        else if (gim) {   // お店の画像から、お店の建物まわりを大きく切りだす（色はかけない）
+            const nw = gim.naturalWidth, nh = gim.naturalHeight, sh = nh * 0.8, sw = sh * aw / ah;
+            c.drawImage(gim, clamp(nw * (goal.focus || .5) - sw / 2, 0, nw - sw), 0, sw, sh, ax, ay, aw, ah);
+        } else { c.fillStyle = '#2a2140'; c.fillRect(ax, ay, aw, ah); }
+        const jug = $('chJug');
+        if (jug && jug.width && !Kao.hasFace()) { const jh = ah * 0.62, jw = jh * jug.width / jug.height; c.drawImage(jug, ax + aw - jw + 26 * u, ay + ah - jh + 4 * u, jw, jh); }
+        if (Kao.hasFace()) Kao.draw(c, ax, ay, aw, ah);   // カオハメ写真があれば、カードの絵はそれに
+        c.restore();
+        rr(c, ax, ay, aw, ah, 14 * u); c.lineWidth = 3 * u; c.strokeStyle = R.line; c.stroke();
+        // できた一杯の名前
+        const ny = 512 * u, nh = 66 * u;
+        rr(c, ax, ny, aw, nh, 12 * u); c.fillStyle = 'rgba(255,255,255,.08)'; c.fill(); c.lineWidth = 2 * u; c.strokeStyle = R.line; c.stroke();
+        c.fillStyle = '#fff'; c.textAlign = 'center'; fitText(c, pourResult.name || '', aw - 30 * u, 30 * u, "'Dela Gothic One'");
+        c.fillText(pourResult.name || '', W / 2, ny + nh / 2 + 11 * u);
+        // データ（横1列）
+        const d = new Date(), date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        const rows = [['ルート', SEASONS[mode].jp], ['ランク', `${pourResult.rank || 'A'}`], ['日付', date.slice(5)], ['ダッシュ', honks + '回']];
+        rows.forEach(([k, v], i) => {
+            const cx = ax + (i + 0.5) * (aw / 4), cy = 610 * u;
+            c.textAlign = 'center'; c.fillStyle = '#ffc53d'; c.font = `900 ${13 * u}px 'Zen Kaku Gothic New'`; c.fillText(k, cx, cy);
+            c.fillStyle = '#fff'; c.font = `700 ${22 * u}px 'Zen Kaku Gothic New'`; c.fillText(v, cx, cy + 27 * u);
+        });
+        // 感想（Q3）… カードのいちばん下に
+        const cy = 662 * u, chh = H - 80 * u - cy;
+        rr(c, ax, cy, aw, chh, 12 * u); c.fillStyle = 'rgba(255,255,255,.95)'; c.fill();
+        c.fillStyle = '#e5322d'; c.textAlign = 'left'; c.font = `700 ${13 * u}px 'Oswald'`; c.fillText('MY COMMENT', ax + 16 * u, cy + 24 * u);
+        c.fillStyle = '#1d1b22'; c.font = `900 ${24 * u}px 'Zen Kaku Gothic New'`;
+        const txt = (survey.comment || '').slice(0, 60), lines = []; let line = '';
+        for (const ch of txt) { if (c.measureText(line + ch).width > aw - 36 * u) { lines.push(line); line = ch; } else line += ch; }
+        if (line) lines.push(line);
+        const show2 = lines.slice(0, 2); if (lines.length > 2) show2[1] = show2[1].slice(0, -1) + '…';
+        show2.forEach((ln, k) => c.fillText(ln, ax + 18 * u, cy + 60 * u + k * 32 * u));
+        // シリアル・レア度
+        c.textAlign = 'left'; c.fillStyle = 'rgba(255,255,255,.6)'; c.font = `500 ${15 * u}px 'Oswald'`; c.fillText('No. ' + serial, 50 * u, H - 44 * u);
+        c.textAlign = 'right'; c.fillStyle = R.line; c.font = `700 ${16 * u}px 'Oswald'`; c.fillText(R.label + ' RARE', W - 50 * u, H - 44 * u);
+        // 保存用：S・A・B は星のきらめきも焼きこむ（写真の外だけ）
+        if (opts.shine && (pourResult.rank || 'A') !== 'C') {
+            const n = { S: 14, A: 9, B: 6 }[pourResult.rank || 'A'];
+            for (let k = 0; k < n; k++) {
+                let x, y; do { x = rand(.03, .97); y = rand(.03, .97); } while (x > .06 && x < .94 && y > .13 && y < .58);
+                const r = rand(8, 18) * u, sx = x * W, sy = y * H;
+                c.save(); c.translate(sx, sy); c.rotate(rand(0, .8));
+                c.fillStyle = '#fff'; c.shadowColor = R.line; c.shadowBlur = 12 * u;
+                c.beginPath(); c.moveTo(0, -r); c.lineTo(r * .2, -r * .2); c.lineTo(r, 0); c.lineTo(r * .2, r * .2); c.lineTo(0, r); c.lineTo(-r * .2, r * .2); c.lineTo(-r, 0); c.lineTo(-r * .2, -r * .2); c.closePath(); c.fill();
+                c.restore();
+            }
+        }
+        c.restore();
+    }
+    function render() {
+        const w = cv.clientWidth, h = cv.clientHeight, d = Math.min(3, (window.devicePixelRatio || 1) * 1.5);
+        cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+        draw(cv.getContext('2d'), cv.width, cv.height);
+    }
+    function tilt(x, y) {   // x, y：0〜1（カードのどこを指しているか）
+        wrap.style.setProperty('--rx', ((0.5 - y) * 18).toFixed(2) + 'deg'); wrap.style.setProperty('--ry', ((x - 0.5) * 22).toFixed(2) + 'deg');
+        wrap.style.setProperty('--px', (x * 100).toFixed(1) + '%'); wrap.style.setProperty('--py', (y * 100).toFixed(1) + '%');
+        wrap.style.setProperty('--gx', (x * 100).toFixed(1) + '%'); wrap.style.setProperty('--gy', (y * 100).toFixed(1) + '%');
+    }
+    function idle(t) {   // さわっていないときは、ゆっくり光がゆれる
+        if (!running) return;
+        if (performance.now() - touched > 1500) { const k = (t - t0) / 1000; tilt(0.5 + Math.sin(k * 0.9) * 0.32, 0.5 + Math.cos(k * 0.7) * 0.25); }
+        raf = requestAnimationFrame(idle);
+    }
+    wrap.addEventListener('pointermove', (e) => { const r = wrap.getBoundingClientRect(); touched = performance.now(); tilt(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)); });
+    window.addEventListener('deviceorientation', (e) => { if (!running || e.gamma == null) return; touched = performance.now(); tilt(clamp(0.5 + e.gamma / 60, 0, 1), clamp(0.5 + (e.beta - 45) / 60, 0, 1)); });
+    $('cardSave').addEventListener('click', () => {
+        const o = document.createElement('canvas'); o.width = 1260; o.height = 1760; draw(o.getContext('2d'), o.width, o.height, { shine: true });
+        o.toBlob(async (blob) => {
+            const file = new File([blob], 'sokutatsu_mycard.png', { type: 'image/png' });
+            try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: '速達生便。マイカード' }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sokutatsu_mycard.png'; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        }, 'image/png');
+    });
+    return {
+        start() {
+            const rank = pourResult.rank || 'A', R = RANK_STYLE[rank], gs = Drive.lastStop();
+            if (gs && gs.pop && (!cardPhoto || cardPhoto.dataset.src !== gs.pop.src)) { cardPhoto = new Image(); cardPhoto.dataset.src = gs.pop.src; cardPhoto.onload = () => running && render(); cardPhoto.src = gs.pop.src; }
+            else if (!gs || !gs.pop) cardPhoto = null;
+            serial = serial || String(Math.floor(rand(100000, 999999)));
+            wrap.className = 'mycard r-' + rank;
+            // きらきらの星（写真の部分はさけて、枠と台紙の上に）
+            const nStar = { S: 16, A: 11, B: 7, C: 3 }[rank], col = { S: '#d9b8ff', A: '#ffe08a', B: '#e8f2ff', C: '#ffffff' }[rank];
+            $('cardStars').innerHTML = Array.from({ length: nStar }, () => {
+                let x, y; do { x = rand(3, 97); y = rand(3, 97); } while (x > 6 && x < 94 && y > 13 && y < 58);
+                return `<i style="left:${x}%;top:${y}%;--s:${rand(8, rank === 'S' ? 20 : 15).toFixed(0)}px;--t:${rand(1.6, 3.2).toFixed(2)}s;--d:${rand(0, 3).toFixed(2)}s;--c:${col}"></i>`;
+            }).join('');
+            const stg = $('cardStage'); stg.classList.remove('reveal'); void stg.offsetWidth; stg.classList.add('reveal');
+            stg.style.setProperty('--bc', col);
+            const rt = $('cardRarity'); rt.classList.toggle('shine', rank !== 'C');
+            rt.style.setProperty('--rc1', { S: '#ff6ec4', A: '#e0a82a', B: '#9aa6b8', C: '#fff' }[rank]); rt.style.setProperty('--rc2', { S: '#5ed6ff', A: '#fff3b0', B: '#ffffff', C: '#fff' }[rank]);
+            $('cardRarity').textContent = R.label; $('cardRarity').style.color = rank === 'S' ? '#d9b8ff' : R.line;
+            running = true; t0 = performance.now();
+            const go = () => requestAnimationFrame(() => { render(); raf = requestAnimationFrame(idle); });
+            (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go);
+        },
+        stop() { running = false; cancelAnimationFrame(raf); }
+    };
+})();
+})();
+</script>
+</body>
+</html>

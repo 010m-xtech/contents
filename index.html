@@ -51,7 +51,6 @@
       color: var(--dark-gray);
     }
 
-    /* 4つのボタンを配置するグリッドレイアウト */
     .choices-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -59,14 +58,12 @@
       margin-bottom: 22px;
     }
 
-    /* ラジオボタン自体のポインタを隠す */
     .choice-card input[type="radio"] {
       position: absolute;
       opacity: 0;
       pointer-events: none;
     }
 
-    /* カード型ボタンの見た目（縦の長さを110pxの150%＝165pxに設定） */
     .choice-card {
       display: flex;
       flex-direction: column;
@@ -78,7 +75,7 @@
       cursor: pointer;
       background: #ffffff;
       transition: all 0.2s ease;
-      min-height: 140px;
+      min-height: 165px;
       box-sizing: border-box;
       user-select: none;
     }
@@ -88,7 +85,6 @@
       background-color: #fcfcfc;
     }
 
-    /* 選択時のアクティブ状態 */
     .choice-card.selected {
       border-color: var(--dark-gray);
       background-color: var(--selected-bg);
@@ -96,7 +92,6 @@
       box-shadow: inset 0 0 0 1px var(--dark-gray);
     }
 
-    /* アイコンの枠と画像スタイル */
     .choice-icon {
       width: 56px;
       height: 56px;
@@ -114,7 +109,6 @@
       pointer-events: none;
     }
 
-    /* 年代アイコン（under35 / over35）のみ80%のサイズに縮小 */
     .choice-icon img.age-icon {
       transform: scale(0.8);
     }
@@ -126,7 +120,6 @@
       text-align: center;
     }
 
-    /* 送信ボタン（濃いグレー） */
     button.submit-btn {
       width: 100%;
       background-color: var(--dark-gray);
@@ -162,10 +155,8 @@
     <h1>サービス向上のため<br>アンケートにご協力ください</h1>
 
     <form id="surveyForm">
-      <!-- 1. 性別セクション -->
       <div class="section-title">性別</div>
       <div class="choices-grid">
-        <!-- 男性 -->
         <label class="choice-card" onclick="selectCard(this, 'gender')">
           <input type="radio" name="gender" value="男性" required>
           <div class="choice-icon">
@@ -174,7 +165,6 @@
           <span class="choice-label">男性</span>
         </label>
 
-        <!-- 女性 -->
         <label class="choice-card" onclick="selectCard(this, 'gender')">
           <input type="radio" name="gender" value="女性" required>
           <div class="choice-icon">
@@ -184,10 +174,8 @@
         </label>
       </div>
 
-      <!-- 2. 年代セクション -->
       <div class="section-title">年代</div>
       <div class="choices-grid">
-        <!-- 35歳未満 -->
         <label class="choice-card" onclick="selectCard(this, 'age')">
           <input type="radio" name="age" value="35歳未満" required>
           <div class="choice-icon">
@@ -196,7 +184,6 @@
           <span class="choice-label">35歳未満</span>
         </label>
 
-        <!-- 35歳以上 -->
         <label class="choice-card" onclick="selectCard(this, 'age')">
           <input type="radio" name="age" value="35歳以上" required>
           <div class="choice-icon">
@@ -213,26 +200,44 @@
   <script>
     const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec';
 
-    // 1. 店舗ID取得（画面非表示でも裏側でしっかり取得します）
+    // 1. 店舗ID取得（?shop_id=408430, ?cd=408430, #408430 のどれでも取得）
     function getShopId() {
       const params = new URLSearchParams(window.location.search);
-      return params.get('shop_id') || params.get('cd') || '';
+      const hash = window.location.hash.replace('#', '').trim();
+      return params.get('shop_id') || params.get('cd') || (hash.length === 6 ? hash : '');
     }
 
-    // 2. デバイスIDの生成・取得
+    // 2. デバイスIDの生成・取得（Cookie + localStorage ハイブリッド）
+    function setCookie(name, value, days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
     function getOrCreateDeviceId() {
-      let deviceId = localStorage.getItem('device_id');
+      let deviceId = localStorage.getItem('device_id') || getCookie('device_id');
       if (!deviceId) {
         deviceId = 'dev_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
-        localStorage.setItem('device_id', deviceId);
       }
+      localStorage.setItem('device_id', deviceId);
+      setCookie('device_id', deviceId, 365);
       return deviceId;
     }
 
-    // 3. URLにdevice_idを安全に付与する
-    function appendDeviceId(targetUrlString, deviceId) {
+    // 3. 遷移先URLに device_id と #shop_id を付与する
+    function buildTargetUrl(targetUrlString, deviceId, shopId) {
       const url = new URL(targetUrlString);
       url.searchParams.set('device_id', deviceId);
+      if (shopId) {
+        url.hash = shopId;
+      }
       return url.toString();
     }
 
@@ -250,13 +255,11 @@
       }
     }
 
-    // 日本時間取得
     function getFormattedTimestamp() {
       const d = new Date();
       return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
     }
 
-    // カードクリック時に選択状態スタイルを更新するUI制御
     function selectCard(clickedCard, groupName) {
       const groupCards = document.querySelectorAll(`input[name="${groupName}"]`);
       groupCards.forEach(input => {
@@ -267,11 +270,9 @@
       radio.checked = true;
     }
 
-    // 初期化
     const currentShopId = getShopId();
     const deviceId = getOrCreateDeviceId();
 
-    // 画面表示イベント（survey_view）
     window.addEventListener('DOMContentLoaded', () => {
       sendDataToGAS({
         type: 'event',
@@ -283,7 +284,6 @@
       });
     });
 
-    // フォーム送信処理
     document.getElementById('surveyForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
@@ -295,7 +295,7 @@
       const timestamp = getFormattedTimestamp();
 
       try {
-        const res = await fetch('./routing.json');
+        const res = await fetch('./routing.json?t=' + new Date().getTime());
         const routeConfig = await res.json();
         const targetConfig = routeConfig[currentShopId] || routeConfig['default'];
 
@@ -306,7 +306,6 @@
         const targetUrl = targetConfig.url;
         const targetContentName = targetConfig.name || '不明なコンテンツ';
 
-        // 1. ユーザーデータ送信
         const userPromise = sendDataToGAS({
           type: 'user',
           timestamp: timestamp,
@@ -316,7 +315,6 @@
           age: formData.get('age')
         });
 
-        // 2. イベントデータ（survey_submit）送信
         const eventPromise = sendDataToGAS({
           type: 'event',
           timestamp: timestamp,
@@ -328,7 +326,8 @@
 
         await Promise.all([userPromise, eventPromise]);
 
-        const nextUrl = appendDeviceId(targetUrl, deviceId);
+        // 遊び場へ device_id と #店舗ID を付けて遷移
+        const nextUrl = buildTargetUrl(targetUrl, deviceId, currentShopId);
         window.location.href = nextUrl;
 
       } catch (err) {

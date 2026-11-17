@@ -1,18 +1,17 @@
 {
   "default": {
-    "name": "あそび場",
-    "url": "https://010m-xtech.github.io/contents/000playground/"
-  },
-  "100001": {
-    "name": "おさかなキャッチ",
-    "url": "https://010m-xtech.github.io/contents/013fishcatch/"
+    "name": "遊び場（汎用URL）",
+    "url": "https://010m-xtech.github.io/contents/000playground/",
+    "append_shop_id": true
   },
   "073810": {
-    "name": "あそび場",
-    "url": "https://010m-xtech.github.io/contents/000playground/#073810"
-  }
-    "408430": {
-    "name": "あそび場",
-    "url": "https://010m-xtech.github.io/contents/000playground/#408430"
+    "name": "遊び場（汎用URL・店舗073810）",
+    "url": "https://010m-xtech.github.io/contents/000playground/",
+    "append_shop_id": true
   },
+  "408430": {
+    "name": "遊び場（専用URL・店舗073810）",
+    "url": "https://010m-xtech.github.io/contents/000playground/",
+    "append_shop_id": false
+  }
 }

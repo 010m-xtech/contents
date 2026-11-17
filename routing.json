@@ -1,17 +1,14 @@
 {
   "default": {
     "name": "遊び場（汎用URL）",
-    "url": "https://010m-xtech.github.io/contents/000playground/",
-    "append_shop_id": true
+    "url": "https://010m-xtech.github.io/contents/000playground/"
   },
   "073810": {
-    "name": "遊び場（汎用URL・店舗073810）",
-    "url": "https://010m-xtech.github.io/contents/000playground/",
-    "append_shop_id": true
+    "name": "遊び場（店舗073810）",
+    "url": "https://010m-xtech.github.io/contents/000playground/"
   },
   "408430": {
-    "name": "遊び場（専用URL・店舗073810）",
-    "url": "https://010m-xtech.github.io/contents/000playground/",
-    "append_shop_id": false
+    "name": "遊び場（店舗408430）",
+    "url": "https://010m-xtech.github.io/contents/000playground/"
   }
 }

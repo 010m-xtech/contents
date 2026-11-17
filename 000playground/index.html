@@ -6,7 +6,6 @@
   <title>オリジナルゲームポータル</title>
 
   <style>
-    /* ベーススタイル（高級感・清潔感のあるモダンデザイン） */
     :root {
       --bg-color: #f8fafc;
       --card-bg: #ffffff;
@@ -58,10 +57,9 @@
       margin-top: 6px;
     }
 
-    /* ゲーム一覧（トップ画面）スタイル */
     .game-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr; /* 2列並び */
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
 
@@ -101,16 +99,12 @@
       <p>お食事までのひとときを、手軽なミニゲームとともに</p>
     </header>
 
-    <!-- トップ画面（ゲーム一覧） -->
     <section id="top-section">
-      <div id="game-grid" class="game-grid">
-        <!-- JavaScriptでJSONからカードを動的に生成します -->
-      </div>
+      <div id="game-grid" class="game-grid"></div>
     </section>
   </div>
 
   <script>
-    // GASのウェブアプリURL（アンケート画面と共通）
     const GAS_URL = "https://script.google.com/macros/s/AKfycbywUquCksD91EOG9taXWzUZ5ncoD0IhjIF4etILA__iK8Du0fMR5SpbyLtvPlSBIvddRg/exec";
 
     let storeCd = "000000";
@@ -119,22 +113,26 @@
     window.addEventListener('DOMContentLoaded', () => {
       initIds();
       loadGameConfig();
-      // 遊び場ページ表示イベント送信
       sendEventLog('top_view', '');
     });
 
     // 1. 店舗IDとデバイスIDの初期化・引き継ぎ
     function initIds() {
-      // ハッシュ(#073810)から店舗CDを取得
+      const params = new URLSearchParams(window.location.search);
+
       const hash = window.location.hash.replace('#', '').trim();
-      if (hash && hash.length === 6) {
+      const queryShopId = params.get('shop_id') || params.get('cd') || '';
+      const match6Digits = window.location.href.match(/(?:#|shop_id=|cd=|\/|_)(\d{6})(?:$|&|\?|\/|_)/);
+
+      if (hash && /^\d{6}$/.test(hash)) {
         storeCd = hash;
+      } else if (queryShopId && /^\d{6}$/.test(queryShopId)) {
+        storeCd = queryShopId;
+      } else if (match6Digits) {
+        storeCd = match6Digits[1];
       }
 
-      // URLパラメータ(?device_id=...) または localStorage からデバイスIDを取得
-      const params = new URLSearchParams(window.location.search);
       const urlDeviceId = params.get('device_id');
-
       if (urlDeviceId) {
         deviceId = urlDeviceId;
         localStorage.setItem('device_id', deviceId);
@@ -147,15 +145,17 @@
       }
     }
 
-    // 2. 遷移先URLに device_id と 店舗CD(#) を安全に付与する
-    function buildGameUrl(baseUrl, storeCode, devId) {
-      const url = new URL(baseUrl);
+    // 2. 遷移先URLに device_id と（append_shop_idがtrueなら）#店舗CD を付与
+    function buildGameUrl(game, storeCode, devId) {
+      const url = new URL(game.url);
       url.searchParams.set('device_id', devId);
-      url.hash = storeCode;
+      if (game.append_shop_id) {
+        url.hash = storeCode;
+      }
       return url.toString();
     }
 
-    // 3. 日本時間（YYYY/MM/DD HH:mm:ss）を取得
+    // 3. 日本時間取得
     function getFormattedTimestamp() {
       const d = new Date();
       return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
@@ -165,10 +165,9 @@
     async function loadGameConfig() {
       const grid = document.getElementById('game-grid');
       try {
-        const response = await fetch('config.json');
+        const response = await fetch('config.json?t=' + new Date().getTime());
         const configData = await response.json();
 
-        // 該当する店舗CDの設定を取得（なければデフォルト 000000）
         const games = configData[storeCd] || configData["000000"];
 
         grid.innerHTML = '';
@@ -176,19 +175,15 @@
           const card = document.createElement('a');
           card.className = 'game-card';
           card.dataset.title = game.title;
-          
-          // 別タブで開く設定（遊び場に戻りやすくし、通信キャンセルも防ぐ）
           card.target = '_blank';
           card.rel = 'noopener noreferrer';
 
-          // 遷移先に device_id と #店舗CD を引き継ぐ
-          card.href = buildGameUrl(game.url, storeCd, deviceId);
+          card.href = buildGameUrl(game, storeCd, deviceId);
 
           card.innerHTML = `
             <img class="game-thumbnail" src="${game.thumbnail}" alt="${game.title}" onerror="this.src='thumbnail/default_game1.webp'">
           `;
 
-          // タップ時にGASへ game_choice イベントを送信
           card.addEventListener('click', () => {
             sendEventLog('game_choice', game.title);
           });

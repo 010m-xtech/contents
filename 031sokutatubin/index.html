@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -313,6 +312,10 @@ button { font-family: inherit; color: inherit; border: 0; background: none; curs
 #s-kao .qa, #s-card .card-wrap { margin: auto 0; }
 .kao-wrap { border-radius: 14px; overflow: hidden; box-shadow: 0 18px 40px -10px rgba(0,0,0,.8), 0 0 0 2px rgba(255,197,61,.5); }
 #kaoCv { display: block; width: 100%; touch-action: none; cursor: grab; }
+.kao-wrap { position: relative; }
+#kaoVideo { position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+#s-kao [hidden] { display: none !important; }
+#kaoShutter { background: linear-gradient(#ff6b6b, #d93030); color: #fff; }
 .kao-zoom { display: flex; align-items: center; gap: 10px; margin: 12px 4px 0; font-size: 12px; font-weight: 900; color: #c9cde0; }
 .kao-zoom input { flex: 1; accent-color: var(--gold); }
 
@@ -486,11 +489,14 @@ button { font-family: inherit; color: inherit; border: 0; background: none; curs
             <p class="qa-kicker">PHOTO</p>
             <h2 class="qa-title" style="margin-bottom:4px">記念撮影もできるよ！</h2>
             <p class="pour-sub" style="margin-bottom:14px;text-align:center">お店の前で、自分の一杯と記念にパチリ。</p>
-            <div class="kao-wrap"><canvas id="kaoCv" aria-label="カオハメ写真"></canvas></div>
+            <div class="kao-wrap"><canvas id="kaoCv" aria-label="カオハメ写真"></canvas><video id="kaoVideo" playsinline muted autoplay></video></div>
             <div class="kao-zoom" id="kaoZoomRow" hidden><span>小</span><input type="range" id="kaoZoom" min="0.6" max="3" step="0.01" value="1.1" aria-label="顔の大きさ"><span>大</span></div>
-            <p class="op-note" id="kaoNote">「写真を撮る」で、顔の部分に自分が入ります</p>
+            <p class="op-note" id="kaoNote">「写真を撮る」でカメラが起動し、顔の部分に自分がうつります</p>
             <div class="card-actions">
-                <label class="btn-vino photo-btn">📸 写真を撮る<input type="file" accept="image/*" capture="user" id="kaoCam" hidden></label>
+                <button class="btn-vino" id="kaoShoot">📸 写真を撮る</button>
+                <button class="btn-vino" id="kaoShutter" hidden>● シャッター</button>
+                <button class="btn-ghost" id="kaoCancel" hidden>カメラをやめる</button>
+                <label class="btn-ghost photo-btn" id="kaoPickRow">🖼 撮った写真・アルバムから選ぶ<input type="file" accept="image/*" id="kaoCam" hidden></label>
                 <button class="btn-vino" id="kaoDone" hidden>この写真でカードにする ›</button>
                 <button class="btn-ghost" data-go="card" id="kaoSkip">写真なしでカードにする ›</button>
                 <p class="op-note">※ 写真はこの端末の中だけで使い、どこにも送信しません</p>
@@ -522,7 +528,7 @@ button { font-family: inherit; color: inherit; border: 0; background: none; curs
 (() => {
 'use strict';
 const IMG_DIR = 'image/';     // 背景画像と動画を置くフォルダ
-const SHOP_NAME = 'トン・ガリアーノ';
+const SHOP_NAME = 'お店の名前';
 
 // ==================================================================
 // ▼ 季節ごとの景色（名所は入れず、仮の景色です。あとで差し替えOK） ▼
@@ -590,22 +596,23 @@ const SEASON_ORDER = ['haru', 'natsu', 'aki', 'fuyu'];
 //   URL の最後に ?shop=お店のID をつけると、そのお店の設定で動きます。
 //   （つけないときは DEFAULT_SHOP_ID のお店）くわしくは 使い方.txt
 // ==================================================================
-const DEFAULT_SHOP_ID = 'tongallianookazaki';
+const DEFAULT_SHOP_ID = 'sample';
 const SHOP_ID = (new URLSearchParams(location.search).get('shop') || DEFAULT_SHOP_ID).replace(/[^a-zA-Z0-9_-]/g, '') || DEFAULT_SHOP_ID;
 const SHOP_DIR = 'shops/' + SHOP_ID + '/';
-// shop.js が読めないときに使う、かわりの設定（トン・ガリアーノ）
+// shop.js が読めないときに使う、かわりの設定（見本のお店）
 const FALLBACK_SHOP = {
-    name: 'トン・ガリアーノ',
+    name: 'お店の名前',
     stops: [
         { bg: 'nagoya', name: '出発', title: '速達生ビール、配達中！', text: 'できたての生ビールを積んで出発！ 工場出荷から2〜3日以内にお届けします。' },
         { bg: 'tokyo' },
-        { spot: 'okazaki', photos: [{ photo: 'okazakijo.webp', caption: '岡崎城', credit: 'Evelyn-rose / Wikimedia Commons（CC0）' }] },
+        { bg: 'okazaki', name: '名所・メニュー', title: 'ここに名所やメニューが入れられます', text: 'お店の近くの名所や、おすすめメニューの写真と紹介文を入れられます。',
+          photos: [{ photo: 'sample_meisho.webp', caption: '名所の写真が入れられます' }] },
         { bg: 'yokohama' }, { bg: 'fuji' },
-        { bg: 'tsumago', name: '乙川の桜', title: '乙川の桜', text: '岡崎の春をいろどる、川ぞいの桜並木。',
-          photos: [{ photo: 'otogawa.webp', caption: '乙川の桜', credit: 'Evelyn-rose / Wikimedia Commons（CC0）' }] },
+        { bg: 'tsumago', name: '名所・メニュー', title: 'ここに名所やメニューが入れられます', text: 'おすすめの一品や、季節の景色など、自由に紹介できます。',
+          photos: [{ photo: 'sample_menu.webp', caption: 'メニューの写真が入れられます' }] },
         { bg: 'kyoto' }, { bg: 'shirakawa' }
     ],
-    goal: { bg: 'tg', logo: true, title: 'トン・ガリアーノに到着！', text: 'ナポリピッツァとワインのお店に、鮮度そのままでお届け。ここからは、おいしく注ぐ番です。' }
+    goal: { bg: 'tg', sign: { main: 'お店の看板', sub: 'ここにロゴ・店名が入ります' }, title: 'お店に到着！', text: 'ここにお店の紹介文が入ります。鮮度そのままでお届け。ここからは、おいしく注ぐ番です。' }
 };
 let SHOP = FALLBACK_SHOP;
 // 背景に使える景色（image フォルダの「キー_季節.webp」）。road … 道路の高さ（上から0〜1）／focus … ゴールで止まる位置（お店の入口）
@@ -728,7 +735,7 @@ function shopStop(k, d) {   // shop.js の1か所ぶんを、走るための形�
 function goalStop(k) {   // 最後に着くお店
     const g = SHOP.goal || {}, bg = g.bg || 'tg', imgs = loadBg(bg) || {};
     return { ...SEASONS[k].stops[2], s: k, arrive: true, bg, im: imgs[k], road: (BG[bg] || {}).road || 0.88, focus: (BG[bg] || {}).focus || 0.5,
-        sign: !!g.logo, memo: null, place: 'ゴール',
+        sign: g.logo || g.sign ? { main: (g.sign && g.sign.main) || 'お店の看板', sub: (g.sign && g.sign.sub) || 'ここにロゴ・店名が入ります' } : null, memo: null, place: 'ゴール',
         title: bySeason(g.title, k) || SHOP.name + 'に到着！', text: bySeason(g.text, k) || '鮮度そのままでお届け。ここからは、おいしく注ぐ番です。',
         pop: g.photo ? { src: photoUrl(g.photo), credit: g.credit || '' } : null, pops: g.photo ? [{ src: photoUrl(g.photo), credit: g.credit || '', caption: SHOP.name }] : [] };
 }
@@ -741,7 +748,7 @@ const $ = (id) => document.getElementById(id);
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 let lastTouch = 0;
-document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouch < 320 && !e.target.closest('input, textarea')) e.preventDefault(); lastTouch = now; }, { passive: false });
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouch < 320 && !e.target.closest('input, textarea, label, button')) e.preventDefault(); lastTouch = now; }, { passive: false });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -782,7 +789,7 @@ function show(name) {
     if (name === 'pour') Pour.start();
     if (name === 'cheers') renderCheers();
     if (name === 'card') MyCard.start(); else if (typeof MyCard !== 'undefined') MyCard.stop();
-    if (name === 'kao') Kao.start();
+    if (name === 'kao') Kao.start(); else if (typeof Kao !== 'undefined') Kao.stop();
 }
 document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-go]');
@@ -913,8 +920,6 @@ $('btnStart').addEventListener('click', () => show('survey'));
 //   画像と画像のつなぎ目は、ふわっと重ねてなじませます。
 //   右タップで次の景色へ（早送り）、左タップで前の景色へ。
 // ==================================================================
-const LOGO_PIG = new Image(); LOGO_PIG.src = 'image/tg_logo_pig.webp';
-const LOGO_TXT = new Image(); LOGO_TXT.src = 'image/tg_logo_text_light.webp';
 const OVERLAP = 0.24;     // 画像どうしを重ねる幅（画像の横はばに対する割合）。広いほどなめらかにつながる
 const HOLD_S = 3;
 const LEG_S = 7.5;          // 出発→1か所目→2か所目→お店、どの区間も同じ時間（秒）で走る。景色の並びとは関係なし
@@ -1083,13 +1088,18 @@ class StripScene {   // トラックは左から右へ走り、景色は左へ�
             c.drawImage(src, 0, 0, src.width, src.height * 0.02, xl, 0, sg.w, y0 + 1);   // 上のすき間は、景色の上の端を引きのばして
             c.drawImage(src, xl, y0, sg.w, ih);
             if (xl < W / 2 && xr > W / 2) bottom = im.bottomColor || bottom;
-            if (sg.st.sign && LOGO_TXT.complete && LOGO_TXT.naturalWidth) {   // トン・ガリアーノの看板（本物のロゴを重ねる）
+            if (sg.st.sign) {   // お店の看板（仮）。sign に文字を入れると、その文字の看板になる
                 const cx = xl + sg.w * (sg.st.focus || 0.5), sw = Math.min(W * 0.62, 260), sh = sw * 0.36, sy = this.y0 + ih * 0.2;
                 c.fillStyle = 'rgba(31,58,44,.94)'; c.beginPath(); c.roundRect(cx - sw / 2, sy, sw, sh, 10); c.fill();
                 c.strokeStyle = '#c8a45c'; c.lineWidth = 2; c.stroke();
-                const lh = sh * 0.78; c.drawImage(LOGO_PIG, cx - sw / 2 + 10, sy + (sh - lh) / 2, lh, lh);
-                const tw = sw - lh - 30, th = tw * LOGO_TXT.naturalHeight / LOGO_TXT.naturalWidth;
-                c.drawImage(LOGO_TXT, cx - sw / 2 + lh + 18, sy + (sh - th) / 2, tw, th);
+                c.setLineDash([5, 4]); c.strokeStyle = 'rgba(200,164,92,.6)'; c.beginPath(); c.roundRect(cx - sw / 2 + 6, sy + 6, sw - 12, sh - 12, 6); c.stroke(); c.setLineDash([]);
+                c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#f3e3b8';
+                fitText(c, sg.st.sign.main, sw - 30, Math.round(sh * 0.36), "900 {S}px 'Zen Kaku Gothic New', sans-serif");
+                c.fillText(sg.st.sign.main, cx, sy + sh * 0.42);
+                c.fillStyle = 'rgba(243,227,184,.75)'; fitText(c, sg.st.sign.sub, sw - 30, Math.round(sh * 0.17), "700 {S}px 'Zen Kaku Gothic New', sans-serif");
+                c.fillText(sg.st.sign.sub, cx, sy + sh * 0.76);
+                c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+                function fitText(c, t, maxW, size, font) { let z = size; do { c.font = font.replace('{S}', z); z--; } while (c.measureText(t).width > maxW && z > 8); }
             }
         });
         // 景色の下：景色を上下反転してぼかした「映りこみ」で、文字の所までなめらかにつなぐ
@@ -1654,7 +1664,9 @@ function renderCheers() { Cheers.start(); }
 //   お店を背景に、ジョッキを掲げた体の絵。顔の穴に自分の写真をはめます（写真は端末の中だけで使う）
 const Kao = (() => {
     const cv = $('kaoCv');
-    let face = null, fx = 0, fy = 0, zoom = 1.1, drag = null;
+    let face = null, fx = 0, fy = 0, zoom = 1.1, drag = null, stream = null, liveRaf = 0;
+    const video = $('kaoVideo');
+    const dims = (im) => [im.naturalWidth || im.videoWidth || im.width, im.naturalHeight || im.videoHeight || im.height];
     // 体のイラスト（顔とジョッキの部分を透明にぬいたもの）。HOLE … 顔の穴の中心と半径／GRIP … にぎった手（ジョッキの取っ手を持たせる位置）
     const BODY = new Image(); BODY.src = IMG_DIR + 'kaohame_body.webp';
     const BODY_W = 690, BODY_H = 662,   // 胴体だけ（足はなし）
@@ -1671,10 +1683,14 @@ const Kao = (() => {
         // 顔（体の上に、大きな楕円で）
         c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 10 * u; c.shadowOffsetY = 4 * u;
         c.fillStyle = '#fffdf6'; c.beginPath(); c.ellipse(hx, hy, rx + 7 * u, ry + 7 * u, 0, 0, 7); c.fill(); c.restore();
-        if (face) {
+        const live = stream && video.videoWidth ? video : null, src = live || face;
+        if (src) {
+            const [nw, nh] = dims(src);
             c.save(); c.beginPath(); c.ellipse(hx, hy, rx, ry, 0, 0, 7); c.clip();
-            const k = Math.max(rx * 2 / face.naturalWidth, ry * 2 / face.naturalHeight) * zoom, fw = face.naturalWidth * k, fh = face.naturalHeight * k;
-            c.drawImage(face, hx - fw / 2 + fx * u, hy - fh / 2 + fy * u, fw, fh); c.restore();
+            const z = live ? 1.1 : zoom, ox = live ? 0 : fx * u, oy = live ? 0 : fy * u;
+            const k = Math.max(rx * 2 / nw, ry * 2 / nh) * z, fw = nw * k, fh = nh * k;
+            if (live) { c.translate(hx, 0); c.scale(-1, 1); c.translate(-hx, 0); }   // カメラの映像は鏡のように
+            c.drawImage(src, hx - fw / 2 + ox, hy - fh / 2 + oy, fw, fh); c.restore();
         } else {
             c.fillStyle = '#000'; c.beginPath(); c.ellipse(hx, hy, rx, ry, 0, 0, 7); c.fill();   // 写真を撮るまでは、まっ黒
         }
@@ -1692,13 +1708,58 @@ const Kao = (() => {
         cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
         board(cv.getContext('2d'), 0, 0, cv.width, cv.height);
     }
-    function load(e) {
+    function setFace(im) {
+        face = im; fx = 0; fy = 0; zoom = 1.1; $('kaoZoom').value = 1.1; $('kaoZoomRow').hidden = false; $('kaoDone').hidden = false; $('kaoSkip').hidden = true;
+        $('kaoShoot').textContent = '📸 とりなおす';
+        $('kaoNote').textContent = '写真をドラッグで位置、スライダーで大きさを合わせてね'; render();
+    }
+    function load(e) {   // アルバム・撮った写真から選ぶ
         const f = e.target.files && e.target.files[0]; if (!f) return;
-        const rd = new FileReader();
-        rd.onload = () => { const im = new Image(); im.onload = () => { face = im; fx = 0; fy = 0; zoom = 1.1; $('kaoZoom').value = 1.1; $('kaoZoomRow').hidden = false; $('kaoDone').hidden = false; $('kaoSkip').hidden = true; $('kaoNote').textContent = '写真をドラッグで位置、スライダーで大きさを合わせてね'; render(); }; im.src = rd.result; };
-        rd.readAsDataURL(f); e.target.value = '';
+        stopCam();
+        const url = URL.createObjectURL(f), im = new Image();
+        im.onload = () => setFace(im);
+        im.onerror = () => { $('kaoNote').textContent = 'この写真は読みこめませんでした。別の写真をえらんでね'; };
+        im.src = url; e.target.value = '';
     }
     $('kaoCam').addEventListener('change', load);
+    // ▼ 画面の中でカメラを動かす（カメラアプリに切りかえないので、撮った写真が消えない）
+    function camUI(on) {
+        $('kaoShoot').hidden = on; $('kaoShutter').hidden = !on; $('kaoCancel').hidden = !on; $('kaoPickRow').hidden = on;
+        if (on) { $('kaoDone').hidden = true; $('kaoSkip').hidden = true; $('kaoZoomRow').hidden = true; }
+        else if (face) { $('kaoDone').hidden = false; $('kaoZoomRow').hidden = false; }
+        else $('kaoSkip').hidden = false;
+    }
+    function stopCam() {
+        cancelAnimationFrame(liveRaf);
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        video.srcObject = null; camUI(false);
+    }
+    async function startCam() {
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+            $('kaoNote').textContent = 'この画面ではカメラが使えません。「撮った写真・アルバムから選ぶ」を押してね'; return;
+        }
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+        } catch (err) {
+            stream = null;
+            $('kaoNote').textContent = 'カメラが使えませんでした（カメラの許可をオンにしてね）。「撮った写真・アルバムから選ぶ」からでも入れられます'; return;
+        }
+        video.srcObject = stream;
+        try { await video.play(); } catch (_) {}
+        camUI(true); $('kaoNote').textContent = '顔を穴に合わせて「シャッター」！';
+        const loop = () => { if (!stream) return; render(); liveRaf = requestAnimationFrame(loop); };
+        loop();
+    }
+    function shutter() {
+        if (!stream || !video.videoWidth) return;
+        const vw = video.videoWidth, vh = video.videoHeight, sc = document.createElement('canvas');
+        sc.width = vw; sc.height = vh;
+        const x = sc.getContext('2d'); x.translate(vw, 0); x.scale(-1, 1); x.drawImage(video, 0, 0, vw, vh);   // 見えていたとおり（鏡）で保存
+        stopCam(); setFace(sc);
+    }
+    $('kaoShoot').addEventListener('click', startCam);
+    $('kaoShutter').addEventListener('click', shutter);
+    $('kaoCancel').addEventListener('click', () => { stopCam(); render(); $('kaoNote').textContent = '「写真を撮る」でカメラが起動し、顔の部分に自分がうつります'; });
     $('kaoZoom').addEventListener('input', (e) => { zoom = +e.target.value; render(); });
     cv.addEventListener('pointerdown', (e) => { if (!face) return; drag = { x: e.clientX, y: e.clientY, fx, fy }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
     cv.addEventListener('pointermove', (e) => { if (!drag) return; const k = 736 / cv.clientHeight; fx = drag.fx + (e.clientX - drag.x) * k; fy = drag.fy + (e.clientY - drag.y) * k; render(); });
@@ -1706,6 +1767,7 @@ const Kao = (() => {
     $('kaoDone').addEventListener('click', () => show('card'));
     return {
         start() { requestAnimationFrame(() => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(render)); },
+        stop() { if (stream) stopCam(); },
         hasFace() { return !!face; },
         draw(c, x, y, w, h) { board(c, x, y, w, h); }
     };

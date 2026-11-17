@@ -10,27 +10,5 @@
   "073810": {
     "name": "あそび場",
     "url": "https://010m-xtech.github.io/contents/000playground/#073810"
-  },
-  "408430": [
-    {
-      "title": "開運あみだくじ",
-      "thumbnail": "thumbnail/019_3Damida.webp",
-      "url": "https://010m-xtech.github.io/TEST2/3Damida_408430"
-    },
-    {
-      "title": "ルーレット",
-      "thumbnail": "thumbnail/002roulette.webp",
-      "url": "https://010m-xtech.github.io/restaurant-games/ROULETTE_408430/"
-    },
-    {
-      "title": "おぢおば診断",
-      "thumbnail": "thumbnail/015oziobashindan.webp",
-      "url": "https://010m-xtech.github.io/TEST2/odioba_408430/"
-    },
-    {
-      "title": "前世占い",
-      "thumbnail": "thumbnail/004zenseuranai.webp",
-      "url": "https://010m-xtech.github.io/restaurant-games/uranai_408430/"
-    }
-  ]
+  }
 }

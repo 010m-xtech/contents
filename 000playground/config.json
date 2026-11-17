@@ -1,41 +1,41 @@
 {
   "000000": [
-   {
+    {
       "title": "HopStepCatch",
       "thumbnail": "thumbnail/012hopstepcatch.webp",
-      "url": "https://010m-xtech.github.io/contents/012jumper/"
-     "append_shop_id": true
+      "url": "https://010m-xtech.github.io/contents/012jumper/",
+      "append_shop_id": true
     },
     {
       "title": "スライドパズル",
       "thumbnail": "thumbnail/006slidingpuzzle.webp",
-      "url": "https://010m-xtech.github.io/contents/006slidingpuzzle/"
+      "url": "https://010m-xtech.github.io/contents/006slidingpuzzle/",
       "append_shop_id": true
     },
     {
       "title": "あいしょう占い",
       "thumbnail": "thumbnail/009aisyouranai.webp",
-      "url": "https://010m-xtech.github.io/contents/009aishouranai/"
+      "url": "https://010m-xtech.github.io/contents/009aishouranai/",
       "append_shop_id": true
     },
-        {
+    {
       "title": "クイズタイムショック",
       "thumbnail": "thumbnail/007quiztimeshock.webp",
-      "url": "https://010m-xtech.github.io/contents/007quiztimeshock/"
-          "append_shop_id": true
+      "url": "https://010m-xtech.github.io/contents/007quiztimeshock/",
+      "append_shop_id": true
     }
   ],
   "073810": [
     {
       "title": "速達生ガチャ",
       "thumbnail": "thumbnail/001sokutatsunamagacha.webp",
-      "url": "https://010m-xtech.github.io/TEST2/sokutatunamagacha1"
+      "url": "https://010m-xtech.github.io/TEST2/sokutatunamagacha1",
       "append_shop_id": true
     },
     {
       "title": "ルーレット",
       "thumbnail": "thumbnail/006slidingpuzzle.webp",
-      "url": "https://010m-xtech.github.io/contents/006slidingpuzzle/"
+      "url": "https://010m-xtech.github.io/contents/006slidingpuzzle/",
       "append_shop_id": true
     }
   ],
@@ -43,27 +43,26 @@
     {
       "title": "開運あみだくじ",
       "thumbnail": "thumbnail/019_3Damida.webp",
-      "url": "https://010m-xtech.github.io/TEST2/3Damida_408430"
+      "url": "https://010m-xtech.github.io/TEST2/3Damida_408430",
       "append_shop_id": false
     },
     {
       "title": "ルーレット",
       "thumbnail": "thumbnail/002roulette.webp",
-      "url": "https://010m-xtech.github.io/restaurant-games/ROULETTE_408430/"
+      "url": "https://010m-xtech.github.io/restaurant-games/ROULETTE_408430/",
       "append_shop_id": false
     },
     {
       "title": "おぢおば診断",
       "thumbnail": "thumbnail/015oziobashindan.webp",
-      "url": "https://010m-xtech.github.io/TEST2/odioba_408430/"
+      "url": "https://010m-xtech.github.io/TEST2/odioba_408430/",
       "append_shop_id": false
     },
     {
       "title": "前世占い",
       "thumbnail": "thumbnail/004zenseuranai.webp",
-      "url": "https://010m-xtech.github.io/restaurant-games/uranai_408430/"
+      "url": "https://010m-xtech.github.io/restaurant-games/uranai_408430/",
       "append_shop_id": false
     }
   ]
 }
-

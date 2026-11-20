@@ -37,8 +37,6 @@
     }
     #game-container canvas {
       display: block;
-      width: 100% !important;
-      height: 100% !important;
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
       outline: none;
@@ -337,7 +335,6 @@
         return;
       }
       document.getElementById('reset-zoom-btn').style.display = 'block';
-      // 拡大率に応じて上下左右の端までしっかり動かせる可動域を確保
       const maxPanX = (w * (zoomScale - 1)) / 2;
       const maxPanY = ((h / 2) * (zoomScale - 1)) / 2;
       panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
@@ -408,6 +405,8 @@
       document.getElementById('retry-top-btn').style.display = 'none';
       document.getElementById('timer-badge').classList.remove('danger');
 
+      // プレイ開始時にキャンバスサイズを画面と完全一致させる
+      syncCanvasSize();
       resetZoom();
       foundDiffs = differences.map(() => false);
       missEffects = [];
@@ -444,6 +443,19 @@
       }
     }
 
+    // キャンバスサイズと親枠サイズを常に厳密に同期する関数
+    function syncCanvasSize() {
+      const wrapper = document.getElementById('game-wrapper');
+      if (wrapper && p5Instance) {
+        const w = wrapper.clientWidth;
+        const h = wrapper.clientHeight;
+        if (p5Instance.width !== w || p5Instance.height !== h) {
+          p5Instance.resizeCanvas(w, h);
+          clampPan(w, h);
+        }
+      }
+    }
+
     // p5.js スケッチ
     const sketch = (p) => {
       p5Instance = p;
@@ -454,10 +466,16 @@
         canvas.parent('game-container');
         p.imageMode(p.CENTER);
 
+        // スマホのアドレスバー出現・収納などによるサイズ変化をリアルタイム監視して即座に同期
+        if (window.ResizeObserver) {
+          const ro = new ResizeObserver(() => syncCanvasSize());
+          ro.observe(wrapper);
+        }
+
         initGameData();
 
-        // ★ 改良版タッチ操作（2本指で拡大＋同時移動、拡大後の1本指ドラッグ移動、1本指タップで〇×判定）
-        let touchMode = 'NONE'; // 'NONE' | 'SINGLE' | 'PINCH'
+        // タッチ操作
+        let touchMode = 'NONE';
         let tapStartX = 0, tapStartY = 0;
         let lastMoveX = 0, lastMoveY = 0;
         let hasDragged = false;
@@ -469,6 +487,7 @@
         el.addEventListener('touchstart', (e) => {
           if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
           e.preventDefault();
+          syncCanvasSize();
 
           if (e.touches.length === 1) {
             touchMode = 'SINGLE';
@@ -494,12 +513,10 @@
             const curX = e.touches[0].clientX;
             const curY = e.touches[0].clientY;
 
-            // 最初のタッチ位置から8px以上動いたら「ドラッグ（移動）」とみなす
             if (!hasDragged && Math.hypot(curX - tapStartX, curY - tapStartY) > 8) {
               hasDragged = true;
             }
 
-            // 拡大中なら指の動きに合わせて上下左右へスクロール
             if (zoomScale > 1.0 && hasDragged) {
               panX += (curX - lastMoveX);
               panY += (curY - lastMoveY);
@@ -518,12 +535,10 @@
             const midX = (t0.clientX + t1.clientX) / 2;
             const midY = (t0.clientY + t1.clientY) / 2;
 
-            // 2本指の広がりで拡大・縮小
             if (lastPinchDist > 0) {
               const scaleFactor = dist / lastPinchDist;
               zoomScale = Math.max(1.0, Math.min(3.5, zoomScale * scaleFactor));
             }
-            // 2本指の中心点の移動でそのまま上下左右にも移動可能
             if (zoomScale > 1.0) {
               panX += (midX - lastPinchMidX);
               panY += (midY - lastPinchMidY);
@@ -538,17 +553,15 @@
 
         el.addEventListener('touchend', (e) => {
           if (e.touches.length === 0) {
-            // 1本指でほとんど動かずに離した場合のみ「タップ判定」を実行
             if (touchMode === 'SINGLE' && !hasDragged && gameState === 'PLAYING') {
               const rect = el.getBoundingClientRect();
               const mx = tapStartX - rect.left;
               const my = tapStartY - rect.top;
-              checkTapHit(mx, my);
+              checkTapHit(mx, my, rect.width, rect.height);
             }
             touchMode = 'NONE';
             lastPinchDist = 0;
           } else if (e.touches.length === 1) {
-            // 2本指から1本指になったときは、暴発タップを防ぐため移動専用モードとして継続
             touchMode = 'SINGLE';
             hasDragged = true;
             lastMoveX = e.touches[0].clientX;
@@ -556,7 +569,7 @@
           }
         });
 
-        // PCマウス操作用（クリック判定＋ホイールズーム＋ドラッグ）
+        // PCマウス操作用
         let mouseDown = false;
         let mouseMoved = false;
         let lastMouseX = 0, lastMouseY = 0;
@@ -586,7 +599,7 @@
         el.addEventListener('mouseup', (e) => {
           if (mouseDown && !mouseMoved && gameState === 'PLAYING') {
             const rect = el.getBoundingClientRect();
-            checkTapHit(e.clientX - rect.left, e.clientY - rect.top);
+            checkTapHit(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
           }
           mouseDown = false;
         });
@@ -599,9 +612,9 @@
           clampPan(p.width, p.height);
         }, { passive: false });
 
-        // タップ位置の正解判定関数（拡大・スクロール座標にも対応）
-        function checkTapHit(mx, my) {
-          let box2 = { x: 0, y: p.height / 2, w: p.width, h: p.height / 2 };
+        // ★ 実際の画面表示サイズ（viewW, viewH）を基準に誤差なく当たり判定を行う関数
+        function checkTapHit(mx, my, viewW, viewH) {
+          let box2 = { x: 0, y: viewH / 2, w: viewW, h: viewH / 2 };
           if (my < box2.y) return;
 
           let baseBounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
@@ -624,7 +637,8 @@
 
               let targetX = zoomedX + diff.x * zoomedW;
               let targetY = zoomedY + diff.y * zoomedH;
-              let targetR = (diff.r || 0.07) * Math.max(zoomedW, zoomedH);
+              // スマホの指タッチでも反応しやすいよう、判定半径に少し余裕を持たせる
+              let targetR = (diff.r || 0.07) * Math.max(zoomedW, zoomedH) * 1.15;
 
               if (p.dist(mx, my, targetX, targetY) <= targetR) {
                 foundDiffs[i] = true;
@@ -685,11 +699,7 @@
       }
 
       p.windowResized = () => {
-        const wrapper = document.getElementById('game-wrapper');
-        if (wrapper) {
-          p.resizeCanvas(wrapper.clientWidth, wrapper.clientHeight);
-          clampPan(p.width, p.height);
-        }
+        syncCanvasSize();
       };
 
       function calculateImageBounds(img, boxX, boxY, boxW, boxH) {

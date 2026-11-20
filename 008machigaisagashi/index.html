@@ -33,11 +33,13 @@
       position: absolute;
       inset: 0;
       z-index: 1;
+      touch-action: none;
     }
     #game-container canvas {
       display: block;
       width: 100% !important;
       height: 100% !important;
+      touch-action: none;
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
@@ -85,7 +87,7 @@
       background: #ff4757;
     }
 
-    /* ★ 中央のタイマー＆案内メッセージ（HTMLで確実に中央＆大きく表示） */
+    /* 中央のタイマー＆案内メッセージ */
     #center-hud {
       position: absolute;
       top: 50%;
@@ -210,6 +212,10 @@
       white-space: pre-wrap;
       text-shadow: 0 3px 10px rgba(0,0,0,0.8);
     }
+    #retry-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #b33939, 0 4px 10px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
@@ -310,7 +316,7 @@
     let timerStartTime = 0;
     let p5Instance = null;
 
-    // ★ ズーム＆パン（移動）管理用変数
+    // ズーム＆パン（移動）管理用変数
     let zoomScale = 1.0;
     let panX = 0;
     let panY = 0;
@@ -323,7 +329,7 @@
     }
 
     function clampPan(w, h) {
-      if (zoomScale <= 1.0) {
+      if (zoomScale <= 1.01) {
         zoomScale = 1.0;
         panX = 0;
         panY = 0;
@@ -331,6 +337,7 @@
         return;
       }
       document.getElementById('reset-zoom-btn').style.display = 'block';
+      // 拡大率に応じて上下左右の端までしっかり動かせる可動域を確保
       const maxPanX = (w * (zoomScale - 1)) / 2;
       const maxPanY = ((h / 2) * (zoomScale - 1)) / 2;
       panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
@@ -449,11 +456,13 @@
 
         initGameData();
 
-        // ★ タッチ操作（1本指タップ＝判定、1本指ドラッグ＝拡大中スクロール、2本指＝ピンチズーム）
-        let isDragging = false;
-        let hasMoved = false;
-        let startTouchX = 0, startTouchY = 0;
+        // ★ 改良版タッチ操作（2本指で拡大＋同時移動、拡大後の1本指ドラッグ移動、1本指タップで〇×判定）
+        let touchMode = 'NONE'; // 'NONE' | 'SINGLE' | 'PINCH'
+        let tapStartX = 0, tapStartY = 0;
+        let lastMoveX = 0, lastMoveY = 0;
+        let hasDragged = false;
         let lastPinchDist = 0;
+        let lastPinchMidX = 0, lastPinchMidY = 0;
 
         const el = canvas.elt;
 
@@ -462,16 +471,18 @@
           e.preventDefault();
 
           if (e.touches.length === 1) {
-            isDragging = true;
-            hasMoved = false;
-            startTouchX = e.touches[0].clientX;
-            startTouchY = e.touches[0].clientY;
+            touchMode = 'SINGLE';
+            hasDragged = false;
+            tapStartX = lastMoveX = e.touches[0].clientX;
+            tapStartY = lastMoveY = e.touches[0].clientY;
           } else if (e.touches.length === 2) {
-            isDragging = false;
-            hasMoved = true; // 2本指操作はタップ判定にしない
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            lastPinchDist = Math.hypot(dx, dy);
+            touchMode = 'PINCH';
+            hasDragged = true;
+            const t0 = e.touches[0];
+            const t1 = e.touches[1];
+            lastPinchDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+            lastPinchMidX = (t0.clientX + t1.clientX) / 2;
+            lastPinchMidY = (t0.clientY + t1.clientY) / 2;
           }
         }, { passive: false });
 
@@ -479,44 +490,69 @@
           if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
           e.preventDefault();
 
-          if (e.touches.length === 1 && isDragging) {
-            const dx = e.touches[0].clientX - startTouchX;
-            const dy = e.touches[0].clientY - startTouchY;
-            if (Math.hypot(dx, dy) > 8) {
-              hasMoved = true;
+          if (e.touches.length === 1 && touchMode === 'SINGLE') {
+            const curX = e.touches[0].clientX;
+            const curY = e.touches[0].clientY;
+
+            // 最初のタッチ位置から8px以上動いたら「ドラッグ（移動）」とみなす
+            if (!hasDragged && Math.hypot(curX - tapStartX, curY - tapStartY) > 8) {
+              hasDragged = true;
             }
-            if (zoomScale > 1.0 && hasMoved) {
-              panX += dx;
-              panY += dy;
+
+            // 拡大中なら指の動きに合わせて上下左右へスクロール
+            if (zoomScale > 1.0 && hasDragged) {
+              panX += (curX - lastMoveX);
+              panY += (curY - lastMoveY);
               clampPan(p.width, p.height);
             }
-            startTouchX = e.touches[0].clientX;
-            startTouchY = e.touches[0].clientY;
+
+            lastMoveX = curX;
+            lastMoveY = curY;
 
           } else if (e.touches.length === 2) {
-            hasMoved = true;
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const dist = Math.hypot(dx, dy);
+            touchMode = 'PINCH';
+            hasDragged = true;
+            const t0 = e.touches[0];
+            const t1 = e.touches[1];
+            const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+            const midX = (t0.clientX + t1.clientX) / 2;
+            const midY = (t0.clientY + t1.clientY) / 2;
+
+            // 2本指の広がりで拡大・縮小
             if (lastPinchDist > 0) {
               const scaleFactor = dist / lastPinchDist;
               zoomScale = Math.max(1.0, Math.min(3.5, zoomScale * scaleFactor));
-              clampPan(p.width, p.height);
             }
+            // 2本指の中心点の移動でそのまま上下左右にも移動可能
+            if (zoomScale > 1.0) {
+              panX += (midX - lastPinchMidX);
+              panY += (midY - lastPinchMidY);
+            }
+            clampPan(p.width, p.height);
+
             lastPinchDist = dist;
+            lastPinchMidX = midX;
+            lastPinchMidY = midY;
           }
         }, { passive: false });
 
         el.addEventListener('touchend', (e) => {
           if (e.touches.length === 0) {
-            if (isDragging && !hasMoved && gameState === 'PLAYING') {
+            // 1本指でほとんど動かずに離した場合のみ「タップ判定」を実行
+            if (touchMode === 'SINGLE' && !hasDragged && gameState === 'PLAYING') {
               const rect = el.getBoundingClientRect();
-              const mx = startTouchX - rect.left;
-              const my = startTouchY - rect.top;
+              const mx = tapStartX - rect.left;
+              const my = tapStartY - rect.top;
               checkTapHit(mx, my);
             }
-            isDragging = false;
+            touchMode = 'NONE';
             lastPinchDist = 0;
+          } else if (e.touches.length === 1) {
+            // 2本指から1本指になったときは、暴発タップを防ぐため移動専用モードとして継続
+            touchMode = 'SINGLE';
+            hasDragged = true;
+            lastMoveX = e.touches[0].clientX;
+            lastMoveY = e.touches[0].clientY;
           }
         });
 
@@ -566,12 +602,11 @@
         // タップ位置の正解判定関数（拡大・スクロール座標にも対応）
         function checkTapHit(mx, my) {
           let box2 = { x: 0, y: p.height / 2, w: p.width, h: p.height / 2 };
-          if (my < box2.y) return; // 上半分は無視
+          if (my < box2.y) return;
 
           let baseBounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
           if (!baseBounds2) return;
 
-          // ズーム＆パンを反映した実際の描画領域を計算
           const centerX = box2.x + box2.w / 2;
           const centerY = box2.y + box2.h / 2;
           const zoomedW = baseBounds2.w * zoomScale;
@@ -683,7 +718,7 @@
         let bounds1 = calculateImageBounds(img1, box1.x, box1.y, box1.w, box1.h);
         let bounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
 
-        // 1. 上半分の描画（クリップ領域内でズーム＆パン適用）
+        // 1. 上半分の描画
         p.push();
         p.drawingContext.save();
         p.drawingContext.beginPath();
@@ -697,7 +732,6 @@
           const zh = bounds1.h * zoomScale;
           p.image(img1, cx, cy, zw, zh);
 
-          // 上画像の赤丸
           p.noFill();
           p.stroke(255, 50, 50);
           p.strokeWeight(5);
@@ -713,7 +747,7 @@
         p.drawingContext.restore();
         p.pop();
 
-        // 2. 下半分の描画（クリップ領域内で上と同じズーム＆パンを連動適用）
+        // 2. 下半分の描画
         p.push();
         p.drawingContext.save();
         p.drawingContext.beginPath();
@@ -727,7 +761,6 @@
           const zh = bounds2.h * zoomScale;
           p.image(img2, cx, cy, zw, zh);
 
-          // 下画像の赤丸
           p.noFill();
           p.stroke(255, 50, 50);
           p.strokeWeight(5);
@@ -761,7 +794,7 @@
         p.strokeWeight(3);
         p.line(0, p.height / 2, p.width, p.height / 2);
 
-        // タイマー処理（HTML要素を更新）
+        // タイマー処理
         if (gameState === 'PLAYING') {
           let elapsed = (p.millis() - timerStartTime) / 1000;
           timeLeft = Math.max(0, TIME_LIMIT - elapsed);

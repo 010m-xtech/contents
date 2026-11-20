@@ -524,17 +524,17 @@
           p.push();
           p.translate(p.width / 2, p.height / 2);
           
-          // タイマー枠
+        // タイマー枠（文字を大きくするので枠も少し拡大）
           p.fill(0, 0, 0, 210);
           p.stroke(255, 179, 0);
           p.strokeWeight(3);
           p.rectMode(p.CENTER);
-          p.rect(0, 0, 124, 46, 23);
+          p.rect(0, 0, 140, 52, 26); // ← 幅124→140、高さ46→52に変更
 
           // 時計アイコン＋残り秒数
           p.noStroke();
           p.fill(255);
-          p.textSize(24);
+          p.textSize(28); // ← 24から28へ拡大
           p.textStyle(p.BOLD);
           p.textAlign(p.CENTER, p.CENTER);
 
@@ -550,22 +550,22 @@
             const totalDiffs = differences.length || 5;
             const msg = `上下の写真には違う場所が${totalDiffs}つあるよ。\n下の写真をタッチして教えてね！`;
             
-            p.textSize(13);
+            p.textSize(16); // ← 上部の「みつけた！」と同じ 16 に変更
             p.textStyle(p.BOLD);
-            const boxW = Math.min(p.width - 24, 340);
-            const boxH = 48;
-            const msgY = 54; // タイマー中心からの下方向距離
+            const boxW = Math.min(p.width - 20, 410); // ← 文字がはみ出さないよう横幅を拡大
+            const boxH = 58; // ← 2行分がゆったり収まる高さに変更
+            const msgY = 62; // ← タイマーと重ならないよう少し下へ調整
 
             // 黒い半透明の背景枠
             p.fill(0, 0, 0, 185);
             p.stroke(255, 255, 255, 120);
             p.strokeWeight(1.5);
-            p.rect(0, msgY, boxW, boxH, 10);
+            p.rect(0, msgY, boxW, boxH, 12);
 
             // テキスト描画（黄色）
             p.noStroke();
             p.fill(255, 235, 59);
-            p.textLeading(18);
+            p.textLeading(22); // ← 行間も18から22へ調整
             p.text(msg, 0, msgY);
           }
           p.pop();

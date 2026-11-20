@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>まちがい探し</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
@@ -15,6 +15,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      height: 100dvh;
       width: 100vw;
     }
 
@@ -22,10 +23,10 @@
       position: relative;
       width: 100%;
       height: 100vh;
+      height: 100dvh;
       max-width: 520px;
       background: #000;
       overflow: hidden;
-      box-shadow: 0 0 30px rgba(0,0,0,0.6);
     }
 
     #game-container {
@@ -35,6 +36,8 @@
     }
     #game-container canvas {
       display: block;
+      width: 100% !important;
+      height: 100% !important;
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
@@ -42,17 +45,17 @@
     /* プレイ中の上部HUD */
     #ui-layer {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
-      z-index: 10;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 20;
       display: flex;
       justify-content: space-between;
       align-items: center;
       pointer-events: none;
     }
     .hud-badge {
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.8);
       border: 2px solid #ffb300;
       color: #fff;
       padding: 6px 14px;
@@ -61,19 +64,79 @@
       font-weight: bold;
       text-shadow: 1px 1px 2px #000;
     }
-    #retry-top-btn {
+    .hud-right-btns {
+      display: flex;
+      gap: 8px;
       pointer-events: auto;
-      padding: 6px 14px;
-      font-size: 14px;
+    }
+    .mini-btn {
+      padding: 6px 12px;
+      font-size: 13px;
       font-weight: bold;
-      background: #ff4757;
       border: 2px solid #fff;
       border-radius: 20px;
       color: #fff;
       cursor: pointer;
     }
+    #reset-zoom-btn {
+      background: #0288d1;
+    }
+    #retry-top-btn {
+      background: #ff4757;
+    }
 
-    /* スタート画面（top.webp を両サイドが切れないよう contain で表示し、余白は黒） */
+    /* ★ 中央のタイマー＆案内メッセージ（HTMLで確実に中央＆大きく表示） */
+    #center-hud {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 94%;
+      max-width: 460px;
+      pointer-events: none;
+    }
+    #timer-badge {
+      background: rgba(0, 0, 0, 0.88);
+      border: 3px solid #ffb300;
+      color: #ffffff;
+      padding: 6px 22px;
+      border-radius: 30px;
+      font-size: 26px;
+      font-weight: 900;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #timer-badge.danger {
+      border-color: #ff4757;
+      color: #ff4757;
+      animation: blink 0.5s infinite alternate;
+    }
+    @keyframes blink {
+      from { opacity: 1; }
+      to { opacity: 0.4; }
+    }
+    #guide-msg-box {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      color: #ffeb3b;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.45;
+      text-align: center;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* スタート画面 */
     #start-overlay {
       position: absolute;
       inset: 0;
@@ -81,7 +144,6 @@
       background: #000000 url('image/top.webp') center center / contain no-repeat;
     }
 
-    /* ★ スタートボタンの配置設定（縦位置は top の数値で微調整できます） */
     .main-btn {
       padding: 16px 42px;
       font-size: 22px;
@@ -99,7 +161,7 @@
     #start-btn {
       position: absolute;
       left: 50%;
-      top: 47%; /* ← ここを変えると縦位置が動きます（例: 55% で少し下、45% で少し上） */
+      top: 47%;
       transform: translate(-50%, -50%);
     }
     #start-btn:active {
@@ -148,20 +210,25 @@
       white-space: pre-wrap;
       text-shadow: 0 3px 10px rgba(0,0,0,0.8);
     }
-    #retry-btn:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 #b33939, 0 4px 10px rgba(0,0,0,0.5);
-    }
   </style>
 </head>
 <body>
   <div id="game-wrapper">
     <div id="game-container"></div>
 
-    <!-- プレイ中UI -->
+    <!-- プレイ中上部UI -->
     <div id="ui-layer" style="display:none;">
       <div class="hud-badge" id="found-hud">みつけた！ 0 / 5</div>
-      <button id="retry-top-btn" style="display:none;">つぎの問題へ</button>
+      <div class="hud-right-btns">
+        <button id="reset-zoom-btn" class="mini-btn" style="display:none;">🔍 全体表示</button>
+        <button id="retry-top-btn" class="mini-btn" style="display:none;">つぎの問題へ</button>
+      </div>
+    </div>
+
+    <!-- 中央タイマー＆案内メッセージ -->
+    <div id="center-hud" style="display:none;">
+      <div id="timer-badge"><span>⏱️</span><span id="timer-text">45</span></div>
+      <div id="guide-msg-box">上下の写真には違う場所が5つあるよ。<br>下の写真をタッチして教えてね！（2本指で拡大🔍）</div>
     </div>
 
     <!-- スタート画面 -->
@@ -243,6 +310,33 @@
     let timerStartTime = 0;
     let p5Instance = null;
 
+    // ★ ズーム＆パン（移動）管理用変数
+    let zoomScale = 1.0;
+    let panX = 0;
+    let panY = 0;
+
+    function resetZoom() {
+      zoomScale = 1.0;
+      panX = 0;
+      panY = 0;
+      document.getElementById('reset-zoom-btn').style.display = 'none';
+    }
+
+    function clampPan(w, h) {
+      if (zoomScale <= 1.0) {
+        zoomScale = 1.0;
+        panX = 0;
+        panY = 0;
+        document.getElementById('reset-zoom-btn').style.display = 'none';
+        return;
+      }
+      document.getElementById('reset-zoom-btn').style.display = 'block';
+      const maxPanX = (w * (zoomScale - 1)) / 2;
+      const maxPanY = ((h / 2) * (zoomScale - 1)) / 2;
+      panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+      panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+    }
+
     // ステージデータの読み込み
     async function initGameData() {
       try {
@@ -270,6 +364,7 @@
       differences = stage.diffs || [];
       foundDiffs = differences.map(() => false);
       missEffects = [];
+      resetZoom();
 
       const path1 = `image/${storeCd}/${stage.img1}`;
       const path2 = `image/${storeCd}/${stage.img2}`;
@@ -301,8 +396,12 @@
       document.getElementById('start-overlay').style.display = 'none';
       document.getElementById('result-overlay').style.display = 'none';
       document.getElementById('ui-layer').style.display = 'flex';
+      document.getElementById('center-hud').style.display = 'flex';
+      document.getElementById('guide-msg-box').style.display = 'block';
       document.getElementById('retry-top-btn').style.display = 'none';
+      document.getElementById('timer-badge').classList.remove('danger');
 
+      resetZoom();
       foundDiffs = differences.map(() => false);
       missEffects = [];
       timeLeft = TIME_LIMIT;
@@ -325,11 +424,16 @@
 
     function updateUI() {
       const hud = document.getElementById('found-hud');
+      const guideBox = document.getElementById('guide-msg-box');
+      const totalDiffs = differences.length || 5;
+
       if (gameState === 'ANSWER_VIEW') {
         hud.innerText = '答え合わせ中';
+        guideBox.style.display = 'none';
       } else {
         const foundCount = foundDiffs.filter(f => f).length;
-        hud.innerText = `みつけた！ ${foundCount} / ${differences.length}`;
+        hud.innerText = `みつけた！ ${foundCount} / ${totalDiffs}`;
+        guideBox.innerHTML = `上下の写真には違う場所が${totalDiffs}つあるよ。<br>下の写真をタッチして教えてね！（2本指で拡大🔍）`;
       }
     }
 
@@ -342,32 +446,150 @@
         const canvas = p.createCanvas(wrapper.clientWidth, wrapper.clientHeight);
         canvas.parent('game-container');
         p.imageMode(p.CENTER);
-        p.textFont('-apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif');
 
         initGameData();
 
-        canvas.elt.addEventListener('pointerdown', (e) => {
-          if (gameState !== 'PLAYING') return;
+        // ★ タッチ操作（1本指タップ＝判定、1本指ドラッグ＝拡大中スクロール、2本指＝ピンチズーム）
+        let isDragging = false;
+        let hasMoved = false;
+        let startTouchX = 0, startTouchY = 0;
+        let lastPinchDist = 0;
 
-          const rect = canvas.elt.getBoundingClientRect();
-          const mx = e.clientX - rect.left;
-          const my = e.clientY - rect.top;
+        const el = canvas.elt;
 
+        el.addEventListener('touchstart', (e) => {
+          if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
+          e.preventDefault();
+
+          if (e.touches.length === 1) {
+            isDragging = true;
+            hasMoved = false;
+            startTouchX = e.touches[0].clientX;
+            startTouchY = e.touches[0].clientY;
+          } else if (e.touches.length === 2) {
+            isDragging = false;
+            hasMoved = true; // 2本指操作はタップ判定にしない
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            lastPinchDist = Math.hypot(dx, dy);
+          }
+        }, { passive: false });
+
+        el.addEventListener('touchmove', (e) => {
+          if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
+          e.preventDefault();
+
+          if (e.touches.length === 1 && isDragging) {
+            const dx = e.touches[0].clientX - startTouchX;
+            const dy = e.touches[0].clientY - startTouchY;
+            if (Math.hypot(dx, dy) > 8) {
+              hasMoved = true;
+            }
+            if (zoomScale > 1.0 && hasMoved) {
+              panX += dx;
+              panY += dy;
+              clampPan(p.width, p.height);
+            }
+            startTouchX = e.touches[0].clientX;
+            startTouchY = e.touches[0].clientY;
+
+          } else if (e.touches.length === 2) {
+            hasMoved = true;
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.hypot(dx, dy);
+            if (lastPinchDist > 0) {
+              const scaleFactor = dist / lastPinchDist;
+              zoomScale = Math.max(1.0, Math.min(3.5, zoomScale * scaleFactor));
+              clampPan(p.width, p.height);
+            }
+            lastPinchDist = dist;
+          }
+        }, { passive: false });
+
+        el.addEventListener('touchend', (e) => {
+          if (e.touches.length === 0) {
+            if (isDragging && !hasMoved && gameState === 'PLAYING') {
+              const rect = el.getBoundingClientRect();
+              const mx = startTouchX - rect.left;
+              const my = startTouchY - rect.top;
+              checkTapHit(mx, my);
+            }
+            isDragging = false;
+            lastPinchDist = 0;
+          }
+        });
+
+        // PCマウス操作用（クリック判定＋ホイールズーム＋ドラッグ）
+        let mouseDown = false;
+        let mouseMoved = false;
+        let lastMouseX = 0, lastMouseY = 0;
+
+        el.addEventListener('mousedown', (e) => {
+          if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
+          mouseDown = true;
+          mouseMoved = false;
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+        });
+
+        el.addEventListener('mousemove', (e) => {
+          if (!mouseDown) return;
+          const dx = e.clientX - lastMouseX;
+          const dy = e.clientY - lastMouseY;
+          if (Math.hypot(dx, dy) > 5) mouseMoved = true;
+          if (zoomScale > 1.0 && mouseMoved) {
+            panX += dx;
+            panY += dy;
+            clampPan(p.width, p.height);
+          }
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+        });
+
+        el.addEventListener('mouseup', (e) => {
+          if (mouseDown && !mouseMoved && gameState === 'PLAYING') {
+            const rect = el.getBoundingClientRect();
+            checkTapHit(e.clientX - rect.left, e.clientY - rect.top);
+          }
+          mouseDown = false;
+        });
+
+        el.addEventListener('wheel', (e) => {
+          if (gameState !== 'PLAYING' && gameState !== 'ANSWER_VIEW') return;
+          e.preventDefault();
+          const delta = e.deltaY < 0 ? 1.15 : 0.85;
+          zoomScale = Math.max(1.0, Math.min(3.5, zoomScale * delta));
+          clampPan(p.width, p.height);
+        }, { passive: false });
+
+        // タップ位置の正解判定関数（拡大・スクロール座標にも対応）
+        function checkTapHit(mx, my) {
           let box2 = { x: 0, y: p.height / 2, w: p.width, h: p.height / 2 };
-          let bounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
-          if (!bounds2) return;
+          if (my < box2.y) return; // 上半分は無視
 
-          if (mx >= bounds2.x && mx <= bounds2.x + bounds2.w &&
-              my >= bounds2.y && my <= bounds2.y + bounds2.h) {
+          let baseBounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
+          if (!baseBounds2) return;
+
+          // ズーム＆パンを反映した実際の描画領域を計算
+          const centerX = box2.x + box2.w / 2;
+          const centerY = box2.y + box2.h / 2;
+          const zoomedW = baseBounds2.w * zoomScale;
+          const zoomedH = baseBounds2.h * zoomScale;
+          const zoomedX = centerX + panX - zoomedW / 2;
+          const zoomedY = centerY + panY - zoomedH / 2;
+
+          if (mx >= zoomedX && mx <= zoomedX + zoomedW &&
+              my >= zoomedY && my <= zoomedY + zoomedH) {
 
             let hitAny = false;
             for (let i = 0; i < differences.length; i++) {
               if (foundDiffs[i]) continue;
               let diff = differences[i];
 
-              let targetX = bounds2.x + diff.x * bounds2.w;
-              let targetY = bounds2.y + diff.y * bounds2.h;
-              let targetR = (diff.r || 0.07) * Math.max(bounds2.w, bounds2.h);
+              let targetX = zoomedX + diff.x * zoomedW;
+              let targetY = zoomedY + diff.y * zoomedH;
+              let targetR = (diff.r || 0.07) * Math.max(zoomedW, zoomedH);
 
               if (p.dist(mx, my, targetX, targetY) <= targetR) {
                 foundDiffs[i] = true;
@@ -384,7 +606,7 @@
               audio.playMiss();
             }
           }
-        });
+        }
 
         document.getElementById('start-btn').addEventListener('click', () => {
           audio.init();
@@ -399,6 +621,10 @@
         document.getElementById('retry-top-btn').addEventListener('click', () => {
           audio.init();
           nextRandomStage();
+        });
+
+        document.getElementById('reset-zoom-btn').addEventListener('click', () => {
+          resetZoom();
         });
 
         document.getElementById('answer-btn').addEventListener('click', () => {
@@ -427,6 +653,7 @@
         const wrapper = document.getElementById('game-wrapper');
         if (wrapper) {
           p.resizeCanvas(wrapper.clientWidth, wrapper.clientHeight);
+          clampPan(p.width, p.height);
         }
       };
 
@@ -456,34 +683,65 @@
         let bounds1 = calculateImageBounds(img1, box1.x, box1.y, box1.w, box1.h);
         let bounds2 = calculateImageBounds(img2, box2.x, box2.y, box2.w, box2.h);
 
+        // 1. 上半分の描画（クリップ領域内でズーム＆パン適用）
+        p.push();
+        p.drawingContext.save();
+        p.drawingContext.beginPath();
+        p.drawingContext.rect(box1.x, box1.y, box1.w, box1.h);
+        p.drawingContext.clip();
+
         if (img1 && bounds1) {
-          p.image(img1, bounds1.x + bounds1.w / 2, bounds1.y + bounds1.h / 2, bounds1.w, bounds1.h);
-        }
+          const cx = box1.x + box1.w / 2 + panX;
+          const cy = box1.y + box1.h / 2 + panY;
+          const zw = bounds1.w * zoomScale;
+          const zh = bounds1.h * zoomScale;
+          p.image(img1, cx, cy, zw, zh);
 
-        if (img2 && bounds2) {
-          p.image(img2, bounds2.x + bounds2.w / 2, bounds2.y + bounds2.h / 2, bounds2.w, bounds2.h);
-        }
-
-        // 正解の赤丸描画
-        p.noFill();
-        p.stroke(255, 50, 50);
-        p.strokeWeight(5);
-        for (let i = 0; i < differences.length; i++) {
-          if (foundDiffs[i]) {
-            if (bounds1) {
-              let cx1 = bounds1.x + differences[i].x * bounds1.w;
-              let cy1 = bounds1.y + differences[i].y * bounds1.h;
-              let cr1 = (differences[i].r || 0.07) * Math.max(bounds1.w, bounds1.h) * 2;
-              p.circle(cx1, cy1, cr1);
-            }
-            if (bounds2) {
-              let cx2 = bounds2.x + differences[i].x * bounds2.w;
-              let cy2 = bounds2.y + differences[i].y * bounds2.h;
-              let cr2 = (differences[i].r || 0.07) * Math.max(bounds2.w, bounds2.h) * 2;
-              p.circle(cx2, cy2, cr2);
+          // 上画像の赤丸
+          p.noFill();
+          p.stroke(255, 50, 50);
+          p.strokeWeight(5);
+          for (let i = 0; i < differences.length; i++) {
+            if (foundDiffs[i]) {
+              let rx = (cx - zw / 2) + differences[i].x * zw;
+              let ry = (cy - zh / 2) + differences[i].y * zh;
+              let rr = (differences[i].r || 0.07) * Math.max(zw, zh) * 2;
+              p.circle(rx, ry, rr);
             }
           }
         }
+        p.drawingContext.restore();
+        p.pop();
+
+        // 2. 下半分の描画（クリップ領域内で上と同じズーム＆パンを連動適用）
+        p.push();
+        p.drawingContext.save();
+        p.drawingContext.beginPath();
+        p.drawingContext.rect(box2.x, box2.y, box2.w, box2.h);
+        p.drawingContext.clip();
+
+        if (img2 && bounds2) {
+          const cx = box2.x + box2.w / 2 + panX;
+          const cy = box2.y + box2.h / 2 + panY;
+          const zw = bounds2.w * zoomScale;
+          const zh = bounds2.h * zoomScale;
+          p.image(img2, cx, cy, zw, zh);
+
+          // 下画像の赤丸
+          p.noFill();
+          p.stroke(255, 50, 50);
+          p.strokeWeight(5);
+          for (let i = 0; i < differences.length; i++) {
+            if (foundDiffs[i]) {
+              let rx = (cx - zw / 2) + differences[i].x * zw;
+              let ry = (cy - zh / 2) + differences[i].y * zh;
+              let rr = (differences[i].r || 0.07) * Math.max(zw, zh) * 2;
+              p.circle(rx, ry, rr);
+            }
+          }
+        }
+        p.drawingContext.restore();
+        p.pop();
 
         // ハズレタップ時の「×」エフェクト
         for (let i = missEffects.length - 1; i >= 0; i--) {
@@ -499,17 +757,28 @@
         }
 
         // 中央区切り線
-        p.stroke(60);
-        p.strokeWeight(4);
+        p.stroke(80);
+        p.strokeWeight(3);
         p.line(0, p.height / 2, p.width, p.height / 2);
 
-        // タイマー処理
+        // タイマー処理（HTML要素を更新）
         if (gameState === 'PLAYING') {
           let elapsed = (p.millis() - timerStartTime) / 1000;
           timeLeft = Math.max(0, TIME_LIMIT - elapsed);
 
+          const ceilTime = Math.ceil(timeLeft);
+          document.getElementById('timer-text').innerText = ceilTime;
+
+          const timerBadge = document.getElementById('timer-badge');
+          if (timeLeft <= 10 && timeLeft > 0) {
+            timerBadge.classList.add('danger');
+          } else {
+            timerBadge.classList.remove('danger');
+          }
+
           if (timeLeft === 0) {
             gameState = 'TIMEUP';
+            timerBadge.classList.remove('danger');
             audio.playTimeUp();
             setTimeout(() => {
               document.getElementById('result-title').innerText = 'タイムアップ！残念…\n答え合わせは下のボタンから！';
@@ -517,58 +786,6 @@
               document.getElementById('result-overlay').style.display = 'flex';
             }, 800);
           }
-        }
-
-        // 中央タイマー（時計アイコン付き）＆ その下の案内メッセージ
-        if (gameState !== 'WAITING' && gameState !== 'LOADING') {
-          p.push();
-          p.translate(p.width / 2, p.height / 2);
-          
-        // タイマー枠（文字を大きくするので枠も少し拡大）
-          p.fill(0, 0, 0, 210);
-          p.stroke(255, 179, 0);
-          p.strokeWeight(3);
-          p.rectMode(p.CENTER);
-          p.rect(0, 0, 140, 52, 26); // ← 幅124→140、高さ46→52に変更
-
-          // 時計アイコン＋残り秒数
-          p.noStroke();
-          p.fill(255);
-          p.textSize(28); // ← 24から28へ拡大
-          p.textStyle(p.BOLD);
-          p.textAlign(p.CENTER, p.CENTER);
-
-          if (timeLeft <= 10 && timeLeft > 0 && gameState === 'PLAYING') {
-            if (Math.floor(p.millis() / 250) % 2 === 0) {
-              p.fill(255, 71, 87);
-            }
-          }
-          p.text(`⏱️ ${Math.ceil(timeLeft)}`, 0, 1);
-
-          // 挑戦中の場合、タイマーの下に案内メッセージを表示
-          if (gameState === 'PLAYING') {
-            const totalDiffs = differences.length || 5;
-            const msg = `上下の写真には違う場所が${totalDiffs}つあるよ。\n下の写真をタッチして教えてね！`;
-            
-            p.textSize(16); // ← 上部の「みつけた！」と同じ 16 に変更
-            p.textStyle(p.BOLD);
-            const boxW = Math.min(p.width - 20, 410); // ← 文字がはみ出さないよう横幅を拡大
-            const boxH = 58; // ← 2行分がゆったり収まる高さに変更
-            const msgY = 62; // ← タイマーと重ならないよう少し下へ調整
-
-            // 黒い半透明の背景枠
-            p.fill(0, 0, 0, 185);
-            p.stroke(255, 255, 255, 120);
-            p.strokeWeight(1.5);
-            p.rect(0, msgY, boxW, boxH, 12);
-
-            // テキスト描画（黄色）
-            p.noStroke();
-            p.fill(255, 235, 59);
-            p.textLeading(22); // ← 行間も18から22へ調整
-            p.text(msg, 0, msgY);
-          }
-          p.pop();
         }
       };
     };

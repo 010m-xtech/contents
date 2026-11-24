@@ -295,7 +295,8 @@
 
             // ---- Googleスプレッドシート送信 ----
             const send = () => {
-                const url = settings.value.gasUrl;
+                // 送信停止中：かごや（179940）のシートにデータが混ざっていたため、menu.json の gasUrl を使わない
+                const url = '';
                 if (!url || sent) return;
                 sent = true;
                 const payload = {

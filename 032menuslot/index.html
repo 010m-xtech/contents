@@ -1,1 +1,2384 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>今夜の一杯スロット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@500;700&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07060a; --text:#f6f1ea; --muted:#a49c93; --glass:rgba(255,255,255,.06); --glass-line:rgba(255,255,255,.12);
+  --accent:#f5b83d; --accent2:#ffdf8a; --ink:#2b1a03; --glow:rgba(245,184,61,.55);
+  --body1:#3a2a14; --body2:#120c05;
+  --cell:58px;
+}
+body[data-m="beer"]{ --accent:#f5b83d; --accent2:#ffe39a; --ink:#2b1a03; --glow:rgba(245,184,61,.55); --body1:#3d2a10; --body2:#120b03; }
+body[data-m="sake"]{ --accent:#8fb8ff; --accent2:#d9e6ff; --ink:#071631; --glow:rgba(120,165,255,.55); --body1:#15223f; --body2:#050915; }
+body[data-m="wine"]{ --accent:#ff6b8b; --accent2:#ffd0da; --ink:#2d0510; --glow:rgba(255,90,130,.55); --body1:#3d0d1c; --body2:#120207; }
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0; min-height:100%; background:var(--bg)}
+body{
+  color:var(--text); font-family:"Noto Sans JP",system-ui,sans-serif; overflow-x:hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,170,60,.18) 0 40px, transparent 90px),
+    radial-gradient(circle at 85% 12%, rgba(255,120,80,.14) 0 30px, transparent 80px),
+    radial-gradient(circle at 70% 40%, rgba(120,160,255,.10) 0 50px, transparent 110px),
+    radial-gradient(circle at 20% 70%, rgba(255,200,120,.10) 0 60px, transparent 130px),
+    radial-gradient(ellipse at 50% 0%, #241a12 0%, #07060a 65%);
+  background-attachment:fixed;
+}
+button{font:inherit; color:inherit}
+.screen{display:none; min-height:100svh}
+.screen.active{display:block}
+.wrap{max-width:460px; margin:0 auto; padding:max(18px, env(safe-area-inset-top)) 16px 32px}
+
+/* ===== 質問 ===== */
+.brand{display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0 2px; font-family:Oswald,sans-serif; letter-spacing:.28em; font-size:12px; color:var(--muted)}
+.brand i{width:22px; height:1px; background:var(--muted); opacity:.5}
+.qtitle{font-size:26px; font-weight:900; text-align:center; margin:6px 0 4px; letter-spacing:.04em}
+.qsub{font-size:13px; color:var(--muted); text-align:center; margin:0 0 20px}
+.progress{display:flex; gap:6px; margin:18px 0 22px}
+.progress span{flex:1; height:4px; border-radius:4px; background:rgba(255,255,255,.12); overflow:hidden; position:relative}
+.progress span.on::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg,#f5b83d,#ff6b8b,#8fb8ff)}
+.qstep{animation:slide .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes slide{from{opacity:0; transform:translateX(24px)} to{opacity:1; transform:none}}
+.qnum{font-family:Oswald,sans-serif; font-size:13px; letter-spacing:.2em; color:var(--muted)}
+.qtext{font-size:22px; font-weight:700; margin:4px 0 16px}
+.opts{display:grid; gap:10px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{
+  position:relative; display:flex; align-items:center; gap:14px; padding:14px; width:100%; text-align:left;
+  border-radius:18px; border:1px solid var(--glass-line); background:var(--glass);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); cursor:pointer;
+  transition:transform .15s, border-color .2s, background .2s;
+}
+.opt:active{transform:scale(.97)}
+.opt:hover{border-color:rgba(255,255,255,.3)}
+.opt .ic{width:62px; height:62px; flex:none; border-radius:14px; display:grid; place-items:center; background:radial-gradient(circle at 50% 35%, rgba(255,255,255,.16), rgba(255,255,255,.02))}
+.opt .ic svg{width:50px; height:50px}
+.opt .t{font-size:18px; font-weight:700}
+.opt .d{font-size:12px; color:var(--muted); margin-top:3px; line-height:1.5}
+.opts.two .opt{flex-direction:column; text-align:center; padding:18px 10px}
+.opt .emo{font-size:30px}
+.opt.c-beer{background:linear-gradient(135deg, rgba(245,184,61,.22), rgba(245,184,61,.04))}
+.opt.c-sake{background:linear-gradient(135deg, rgba(120,165,255,.22), rgba(120,165,255,.04))}
+.opt.c-wine{background:linear-gradient(135deg, rgba(255,90,130,.22), rgba(255,90,130,.04))}
+.qback{display:block; margin:18px auto 0; background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer}
+
+/* ===== 台の決定 ===== */
+.decide{text-align:center; padding-top:8vh}
+.decide .lead{color:var(--muted); font-size:14px; letter-spacing:.1em}
+.decide .mname{font-size:34px; font-weight:900; margin:6px 0 4px; color:var(--accent); text-shadow:0 0 24px var(--glow)}
+.decide .tags{display:flex; justify-content:center; gap:8px; margin:10px 0 26px}
+.tag{font-size:12px; padding:5px 12px; border-radius:999px; border:1px solid var(--glass-line); background:var(--glass)}
+.preview{display:flex; justify-content:center; gap:10px; margin:0 auto 30px}
+.preview div{width:76px; height:76px; border-radius:16px; display:grid; place-items:center; background:linear-gradient(180deg,#fbf6ec,#e2d8c6); box-shadow:0 10px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.2) inset; animation:float 3s ease-in-out infinite}
+.preview div:nth-child(2){animation-delay:.3s} .preview div:nth-child(3){animation-delay:.6s}
+.preview svg{width:58px; height:58px}
+@keyframes float{50%{transform:translateY(-8px)}}
+.cta{
+  display:block; width:100%; padding:18px; border:none; border-radius:16px; cursor:pointer;
+  font-size:17px; font-weight:900; letter-spacing:.12em; color:var(--ink);
+  background:linear-gradient(180deg,var(--accent2),var(--accent)); box-shadow:0 10px 30px var(--glow);
+}
+.cta:active{transform:scale(.98)}
+
+/* ===== スロット台（一人称視点） ===== */
+#s-play .wrap{padding-top:max(10px, env(safe-area-inset-top)); padding-bottom:20px}
+.topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+.topbar button{background:var(--glass); border:1px solid var(--glass-line); border-radius:999px; padding:7px 14px; font-size:12px; cursor:pointer; color:var(--text)}
+.scene{perspective:1100px}
+.enter{animation:approach 1.1s cubic-bezier(.2,.75,.2,1)}
+@keyframes approach{from{transform:translateY(60px) scale(.62); filter:blur(8px) brightness(.4); opacity:.3} to{transform:none; filter:none; opacity:1}}
+.cabinet{
+  position:relative; border-radius:30px 30px 18px 18px; padding:12px 12px 0;
+  background:linear-gradient(180deg, var(--body1), var(--body2) 70%);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.08) inset,
+    0 0 0 1px #000,
+    0 30px 60px rgba(0,0,0,.7),
+    0 0 50px var(--glow);
+}
+.cabinet::before{ /* 側面のクロームライン */
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(90deg, rgba(255,255,255,.18), transparent 6%, transparent 94%, rgba(255,255,255,.12));
+}
+/* 大型モニター（リールはモニターの下部に重なる） */
+.cabinet{--monH:min(48svh, 420px); --ov:calc(var(--monH) * .24)}
+.monitor{
+  position:relative; height:var(--monH); border-radius:22px; padding:5px; background:#000; overflow:hidden;
+  box-shadow:0 0 0 2px #34343a, 0 0 0 3px rgba(255,255,255,.14), 0 6px 18px rgba(0,0,0,.6);
+}
+#mc{position:absolute; inset:5px; width:calc(100% - 10px); height:calc(100% - 10px); border-radius:18px; display:block}
+.monitor::after{content:""; position:absolute; inset:5px; border-radius:18px; pointer-events:none;
+  background:linear-gradient(165deg, rgba(255,255,255,.16), transparent 32%), radial-gradient(ellipse at 50% 120%, transparent 60%, rgba(0,0,0,.5));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), inset 0 0 40px rgba(0,0,0,.6)}
+.mon-ui,.lcd{display:none !important}
+.mon-ui{position:absolute; left:0; right:0; top:18px; text-align:center; pointer-events:none; transition:opacity .25s}
+.logo{font-family:Oswald,sans-serif; font-weight:700; font-size:44px; letter-spacing:.14em; line-height:1;
+  background:linear-gradient(180deg,#fff, var(--accent2) 40%, var(--accent) 60%, #fff 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 0 12px var(--glow)) drop-shadow(0 2px 0 rgba(0,0,0,.7));
+}
+.logo-sub{font-size:11px; letter-spacing:.4em; color:var(--accent2); margin-top:6px; opacity:.9; text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.leds{position:absolute; left:20px; right:20px; top:9px; display:flex; justify-content:space-between; pointer-events:none}
+.leds i{width:5px; height:5px; border-radius:50%; background:var(--accent); box-shadow:0 0 6px var(--accent); opacity:.25; animation:chase 1.4s linear infinite}
+@keyframes chase{0%,30%{opacity:1} 60%,100%{opacity:.2}}
+.cabinet.fever .leds i{animation-duration:.35s}
+.monitor.live .mon-ui,.monitor.live .lcd{opacity:0}
+.lcd{
+  position:absolute; left:50%; transform:translateX(-50%); top:86px;
+  min-width:62%; max-width:88%; padding:0 16px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+  font-weight:700; font-size:14px; letter-spacing:.1em; color:#fff; transition:opacity .25s;
+  text-shadow:0 0 10px var(--glow), 0 1px 2px rgba(0,0,0,.8);
+  background:linear-gradient(90deg, transparent, rgba(0,0,0,.6) 18%, rgba(0,0,0,.6) 82%, transparent);
+  border-top:1px solid rgba(255,255,255,.18); border-bottom:1px solid rgba(255,255,255,.18);
+}
+.lcd.blink{animation:blink .45s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.bezel{
+  position:relative; z-index:2; margin:calc(-1 * var(--ov)) -28px 0; padding:7px; border-radius:6px;
+  background:linear-gradient(180deg,#f2f2f2,#8d8d8d 18%,#dcdcdc 50%,#6f6f6f 82%,#c9c9c9);
+  box-shadow:0 6px 14px rgba(0,0,0,.6);
+}
+.reels{position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:5px; padding:5px; border-radius:10px; background:#0a0a0a}
+.reel{position:relative; height:calc(var(--cell) * 3); overflow:hidden; border-radius:6px; background:#fff}
+.strip{position:absolute; left:0; right:0; top:0; will-change:transform}
+.strip.fast{filter:blur(1.4px) saturate(1.2)}
+.cell{height:var(--cell); display:grid; place-items:center}
+.cell svg{width:78%; height:78%; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+.cell{overflow:hidden}
+.cell img{width:92%; height:calc(var(--cell) * .86); object-fit:contain; border-radius:4px; display:block; -webkit-user-drag:none; user-select:none}
+.cell.win img{animation:winpulse .5s ease-in-out infinite alternate}
+.r-hero{background:#fff !important}
+.r-hero img{width:112px; height:112px; object-fit:contain}
+.preview div{background:#fff !important; overflow:hidden}
+.preview img{width:64px; height:64px; object-fit:contain}
+.opt .ic{background:#fff !important}
+.opt .ic{overflow:hidden}
+.opt .ic img{width:54px; height:54px; object-fit:contain}
+.pay-row .ic{background:#fff !important; overflow:hidden}
+.pay-row .ic img{width:40px; height:40px; object-fit:contain}
+.cell.win svg{animation:winpulse .5s ease-in-out infinite alternate}
+@keyframes winpulse{to{transform:scale(1.14); filter:drop-shadow(0 0 10px #ffd34d) drop-shadow(0 0 2px #fff)}}
+.reel::after{ /* 円筒の陰影 */
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.08) 26%, transparent 40%, transparent 60%, rgba(0,0,0,.08) 74%, rgba(0,0,0,.55) 100%);
+}
+.glass{position:absolute; inset:7px; border-radius:8px; pointer-events:none;
+  background:linear-gradient(160deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.04) 30%, transparent 55%, rgba(255,255,255,.06) 85%);
+}
+.payline{position:absolute; left:7px; right:7px; top:calc(12px + var(--cell)); height:var(--cell); pointer-events:none;
+  border-top:2px solid rgba(230,40,40,.55); border-bottom:2px solid rgba(230,40,40,.55)}
+.payline::before,.payline::after{content:""; position:absolute; top:50%; width:0; height:0; border:8px solid transparent; transform:translateY(-50%)}
+.payline::before{left:-13px; border-left-color:#ff3b30; filter:drop-shadow(0 0 4px #ff3b30)}
+.payline::after{right:-13px; border-right-color:#ff3b30; filter:drop-shadow(0 0 4px #ff3b30)}
+.cabinet.win .payline{border-color:#ffd34d; box-shadow:0 0 18px #ffd34d, inset 0 0 18px rgba(255,211,77,.5); animation:blink .3s steps(2) infinite}
+.reel.reach{box-shadow:0 0 0 3px #ff3b30, 0 0 20px #ff3b30; animation:reachglow .3s infinite alternate}
+@keyframes reachglow{to{box-shadow:0 0 0 3px #ffd60a, 0 0 26px #ffd60a}}
+.cabinet.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)}}
+
+/* 操作パネル（手前に傾けて一人称視点に） */
+.deck{
+  margin:14px -12px 0; padding:18px 16px 22px; border-radius:0 0 18px 18px;
+  transform-origin:top center; transform:rotateX(24deg);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg,#2b2b30,#141417);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.18), 0 24px 40px rgba(0,0,0,.6);
+}
+.stops{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:0 4px}
+.stops .btn3d{height:50px; font-size:13px}
+.btn3d{
+  position:relative; height:58px; border-radius:14px; border:none; cursor:pointer;
+  font-family:Oswald,sans-serif; font-weight:700; letter-spacing:.14em; font-size:15px;
+  color:#5b5b5b; background:linear-gradient(180deg,#4a4a50,#2c2c31);
+  box-shadow:0 7px 0 #0b0b0d, 0 10px 16px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .06s, box-shadow .06s, background .2s, color .2s;
+}
+.btn3d.live{color:#2a0d00; background:radial-gradient(circle at 50% 30%, #fff1c7, #ffb02e 60%, #e07a00); box-shadow:0 7px 0 #7a3c00, 0 10px 22px rgba(255,160,40,.6), inset 0 1px 0 rgba(255,255,255,.7)}
+.btn3d.live.stop{background:radial-gradient(circle at 50% 30%, #ffd9d9, #ff4b4b 60%, #b80f0f); color:#fff; box-shadow:0 7px 0 #600, 0 10px 22px rgba(255,60,60,.6), inset 0 1px 0 rgba(255,255,255,.6); text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.btn3d.press{transform:translateY(6px); box-shadow:0 1px 0 #0b0b0d, 0 3px 6px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.2)}
+.btn3d:disabled{cursor:default}
+.startrow{display:flex; align-items:center; gap:14px; margin-top:22px; padding:0 8px}
+.start{flex:1; height:64px; border-radius:32px; font-size:20px}
+.credit{font-family:Oswald,sans-serif; font-size:11px; color:var(--muted); letter-spacing:.16em; text-align:center; line-height:1.3}
+.credit b{display:block; color:#ffd36e; font-size:20px; text-shadow:0 0 8px rgba(255,190,60,.8)}
+.hint{text-align:center; color:var(--muted); font-size:12px; margin-top:16px}
+
+/* ===== リーチ演出 ===== */
+#reach{position:fixed; z-index:30; display:none; background:#000; overflow:hidden; box-shadow:0 0 50px var(--glow)}
+#reach.show{display:block}
+#reach canvas,#reach video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+#reach .skip{opacity:0; transition:opacity .3s; position:absolute; right:16px; bottom:max(20px, env(safe-area-inset-bottom)); font-size:12px; color:rgba(255,255,255,.6); letter-spacing:.1em}
+
+/* ===== 結果 ===== */
+.overlay{position:fixed; inset:0; z-index:20; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px)}
+.overlay.show{display:flex}
+.card{
+  width:100%; max-width:460px; max-height:92svh; overflow:auto; padding:22px 18px max(20px, env(safe-area-inset-bottom));
+  border-radius:28px 28px 0 0; background:linear-gradient(180deg, rgba(40,34,30,.96), rgba(16,13,12,.98));
+  border-top:1px solid rgba(255,255,255,.18); box-shadow:0 -20px 60px rgba(0,0,0,.6);
+  animation:up .5s cubic-bezier(.2,.9,.25,1.05); text-align:center;
+}
+@keyframes up{from{transform:translateY(100%)} to{transform:none}}
+.grab{width:40px; height:4px; border-radius:4px; background:rgba(255,255,255,.25); margin:-8px auto 14px}
+.r-label{font-family:Oswald,sans-serif; font-size:12px; letter-spacing:.3em; color:var(--accent)}
+.r-hero{width:132px; height:132px; margin:10px auto 6px; border-radius:30px; display:grid; place-items:center;
+  background:linear-gradient(180deg,#fbf6ec,#e0d5c1); box-shadow:0 14px 40px rgba(0,0,0,.6), 0 0 40px var(--glow)}
+.r-hero svg{width:104px; height:104px}
+.r-name{font-size:26px; font-weight:900; margin:8px 0 2px}
+.r-taste{display:inline-block; font-size:11px; padding:3px 10px; border-radius:999px; background:var(--accent); color:var(--ink); font-weight:700}
+.r-desc{font-size:14px; line-height:1.8; color:#ddd3c7; margin:12px 4px 14px}
+.r-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; text-align:left}
+.r-box{padding:12px; border-radius:14px; background:var(--glass); border:1px solid var(--glass-line)}
+.r-box .k{font-size:11px; color:var(--muted)}
+.r-box .v{font-size:15px; font-weight:700; margin-top:4px; line-height:1.4}
+.r-msg{margin:12px 0 0; padding:14px; border-radius:14px; font-size:14px; line-height:1.7; background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--glass-line)}
+.r-msg small{display:block; font-size:11px; color:var(--muted); margin-bottom:4px}
+.r-staff{font-size:12px; color:var(--muted); margin:14px 0}
+.r-btns{display:grid; grid-template-columns:1fr 1.3fr; gap:10px}
+.r-btns button{padding:15px; border-radius:14px; font-weight:700; font-size:15px; cursor:pointer}
+.b-sec{background:transparent; border:1px solid var(--glass-line)}
+.b-pri{border:none; color:var(--ink); background:linear-gradient(180deg,var(--accent2),var(--accent))}
+.card.rare{background:linear-gradient(180deg, #3b2b0c, #120c02)}
+.card.rare .r-hero{box-shadow:0 0 0 2px #ffd34d, 0 0 60px rgba(255,211,77,.8)}
+.card.rare .r-name{background:linear-gradient(180deg,#fff7cf,#ffd34d,#c28a12); -webkit-background-clip:text; background-clip:text; color:transparent}
+
+/* 絵柄表 */
+.pay{display:grid; gap:8px; text-align:left; margin-top:10px}
+.pay-row{display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-line)}
+.pay-row .ic{width:46px; height:46px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(180deg,#fbf6ec,#e0d5c1); flex:none}
+.pay-row .ic svg{width:38px; height:38px}
+.pay-row .three{display:flex; gap:2px}
+.pay-row .nm{font-size:14px; font-weight:700}
+.pay-row .tg{font-size:11px; color:var(--muted)}
+.pay-row.mine{border-color:var(--accent)}
+
+.sparkle{position:fixed; z-index:40; pointer-events:none; width:10px; height:16px; border-radius:2px; animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+#reach.full .skip{opacity:1}
+
+/* ===== 台：画面の横幅いっぱい。モニターとリールの画面幅をそろえる ===== */
+#s-play .wrap{padding-left:0; padding-right:0; max-width:520px}
+#s-play .topbar{padding:0 12px}
+.topbar{justify-content:flex-start}
+.cabinet{border-radius:0; padding:0;
+  background:linear-gradient(90deg,#0c0c0e,#2a2a30 3%,#18181c 8%,#18181c 92%,#2a2a30 97%,#0c0c0e), linear-gradient(180deg, var(--body1), var(--body2));
+}
+.cabinet::before{display:none}
+.monitor{border-radius:0; padding:0; background:linear-gradient(180deg,#3a3a40,#121214);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.25), inset 0 -2px 0 rgba(0,0,0,.6)}
+#mc{inset:12px 12px 0 12px; width:calc(100% - 24px); height:calc(100% - 12px); border-radius:6px 6px 0 0}
+.monitor::after{inset:12px 12px 0 12px; border-radius:6px 6px 0 0}
+.leds{top:3px}
+.bezel{margin:calc(-1 * var(--ov)) 0 0 !important; padding:7px !important; border-radius:0 !important;
+  background:linear-gradient(180deg,#f4f4f4,#9a9a9a 16%,#e6e6e6 45%,#7c7c7c 80%,#cfcfcf) !important;
+  box-shadow:0 -6px 14px rgba(0,0,0,.55), 0 8px 14px rgba(0,0,0,.6) !important}
+.reels{border-radius:4px}
+.reel{border-radius:3px}
+/* メッキの飾りバー */
+.trim{position:relative; height:20px; margin:0;
+  background:linear-gradient(180deg,#fdfdfd 0%,#bdbdbd 25%,#6a6a6a 55%,#cfcfcf 80%,#5a5a5a 100%);
+  box-shadow:0 4px 10px rgba(0,0,0,.6)}
+.trim i{position:absolute; left:10%; right:10%; top:8px; height:4px; border-radius:4px; background:var(--accent); box-shadow:0 0 10px var(--accent), 0 0 2px #fff}
+.deck{margin:0 !important; transform:perspective(700px) rotateX(18deg) !important; border-radius:0 0 14px 14px;
+  background:radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.10), transparent 60%), repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px), linear-gradient(180deg,#34343a,#141417) !important}
+
+/* STOP：丸い立体ボタン（メッキのリングにドーム型のボタン） */
+.stops{padding:4px 12px 0 !important; gap:0 !important}
+.stopwrap{justify-self:center; width:84px; height:84px; border-radius:50%; display:grid; place-items:center;
+  background:conic-gradient(from 200deg, #fafafa, #8a8a8a, #e8e8e8, #5e5e5e, #f2f2f2, #7a7a7a, #fafafa);
+  box-shadow:0 6px 12px rgba(0,0,0,.7), inset 0 0 0 2px rgba(0,0,0,.35)}
+.stopwrap::after{content:""; position:absolute}
+.btn3d.stop{width:66px; height:66px !important; border-radius:50% !important; padding:0; font-size:12px !important; letter-spacing:.08em;
+  background:radial-gradient(circle at 50% 28%, #7a7a80 0%, #3a3a40 45%, #1c1c20 100%);
+  box-shadow:0 6px 0 #0b0b0d, 0 8px 10px rgba(0,0,0,.7), inset 0 2px 3px rgba(255,255,255,.35), inset 0 -6px 10px rgba(0,0,0,.5);
+  color:#77777c}
+.btn3d.stop.live{color:#fff;
+  background:radial-gradient(circle at 50% 26%, #ffe3e3 0%, #ff5a5a 30%, #d61414 62%, #7a0000 100%);
+  box-shadow:0 6px 0 #4a0000, 0 8px 18px rgba(255,40,40,.65), inset 0 3px 4px rgba(255,255,255,.7), inset 0 -8px 12px rgba(80,0,0,.55);
+  text-shadow:0 1px 1px rgba(0,0,0,.5)}
+.btn3d.stop.press{transform:translateY(5px); box-shadow:0 1px 0 #2a0000, 0 2px 4px rgba(0,0,0,.6), inset 0 3px 6px rgba(0,0,0,.35)}
+
+/* START：四角い立体ボタン */
+.startrow{margin-top:20px !important; padding:0 16px 4px !important}
+.start{height:62px !important; border-radius:10px !important; font-size:21px !important;
+  background:linear-gradient(180deg,#ffe9a8 0%,#ffbe3b 35%,#f08f00 75%,#c46a00 100%) !important; color:#3a1c00 !important;
+  box-shadow:0 7px 0 #6b3500, 0 10px 20px rgba(255,150,30,.45), inset 0 2px 0 rgba(255,255,255,.75), inset 0 -4px 8px rgba(120,50,0,.35), 0 0 0 3px #2a2a2e, 0 0 0 5px #8a8a90 !important}
+.start:disabled{background:linear-gradient(180deg,#5a5a60,#2e2e33) !important; color:#77777c !important;
+  box-shadow:0 7px 0 #0b0b0d, inset 0 2px 0 rgba(255,255,255,.15), 0 0 0 3px #2a2a2e, 0 0 0 5px #55555a !important}
+.start.press{transform:translateY(6px) !important}
+
+/* リーチの色：モニター枠・最後のリール */
+#reach[data-tier="blue"]{box-shadow:0 0 0 3px #3da5ff, 0 0 50px #3da5ff}
+#reach[data-tier="green"]{box-shadow:0 0 0 3px #3fe07a, 0 0 50px #3fe07a}
+#reach[data-tier="red"]{box-shadow:0 0 0 3px #ff3b2b, 0 0 60px #ff3b2b}
+#reach[data-tier="gold"]{box-shadow:0 0 0 3px #ffd34d, 0 0 70px #ffd34d}
+#reach[data-tier="rainbow"]{animation:rbshadow 1s linear infinite}
+@keyframes rbshadow{0%{box-shadow:0 0 0 3px #ff3b3b,0 0 70px #ff3b3b}25%{box-shadow:0 0 0 3px #ffd34d,0 0 70px #ffd34d}50%{box-shadow:0 0 0 3px #3fe07a,0 0 70px #3fe07a}75%{box-shadow:0 0 0 3px #3da5ff,0 0 70px #3da5ff}100%{box-shadow:0 0 0 3px #c86bff,0 0 70px #c86bff}}
+.cabinet[data-tier="blue"] .reel.reach{animation:none; box-shadow:0 0 0 3px #3da5ff, 0 0 22px #3da5ff}
+.cabinet[data-tier="green"] .reel.reach{animation:none; box-shadow:0 0 0 3px #3fe07a, 0 0 22px #3fe07a}
+.cabinet[data-tier="red"] .reel.reach{animation:none; box-shadow:0 0 0 3px #ff3b2b, 0 0 24px #ff3b2b}
+.cabinet[data-tier="gold"] .reel.reach{animation:none; box-shadow:0 0 0 3px #ffd34d, 0 0 28px #ffd34d}
+.cabinet[data-tier="rainbow"] .reel.reach{animation:rbshadow .6s linear infinite}
+
+/* ② 予告：モニターの暗転 */
+.monfx{position:absolute; inset:12px 12px 0 12px; pointer-events:none; background:#000; opacity:0; z-index:1}
+.monfx.on{animation:blackout 1.1s ease forwards}
+@keyframes blackout{0%{opacity:0} 12%{opacity:1} 70%{opacity:1} 72%{opacity:.2} 76%{opacity:1} 100%{opacity:0}}
+.cabinet.bigshake{animation:bigshake .7s}
+@keyframes bigshake{10%{transform:translate(-8px,2px) rotate(-.6deg)} 20%{transform:translate(8px,-2px) rotate(.6deg)} 30%{transform:translate(-7px,1px)} 40%{transform:translate(7px,-1px)} 55%{transform:translate(-4px,0)} 70%{transform:translate(3px,0)} 85%{transform:translate(-1px,0)}}
+
+#reachDim{position:fixed; inset:0; z-index:29; background:#000; opacity:0; pointer-events:none}
+.monitor.prereach{animation:prereach .32s ease-out}
+@keyframes prereach{0%{filter:brightness(1)} 50%{filter:brightness(1.5) saturate(1.3)} 100%{filter:brightness(1)}}
+
+/* ===== 最初の画面：スポットライトと金の粒 ===== */
+#s-q{position:relative; overflow:hidden}
+#s-q::before{content:""; position:absolute; inset:-30%; pointer-events:none;
+  background:conic-gradient(from 0deg at 50% 0%, transparent 0 40deg, rgba(255,215,120,.10) 50deg, transparent 62deg, transparent 150deg, rgba(255,180,90,.08) 165deg, transparent 178deg, transparent 280deg, rgba(255,230,160,.09) 292deg, transparent 305deg);
+  animation:spot 9s ease-in-out infinite alternate}
+@keyframes spot{from{transform:rotate(-12deg)} to{transform:rotate(12deg)}}
+#s-q::after{content:""; position:absolute; inset:0; pointer-events:none; opacity:.55;
+  background-image:radial-gradient(1.5px 1.5px at 12% 20%, #ffd98a, transparent), radial-gradient(1px 1px at 78% 12%, #fff1c4, transparent), radial-gradient(2px 2px at 42% 70%, #ffcf6b, transparent), radial-gradient(1px 1px at 88% 58%, #fff, transparent), radial-gradient(1.5px 1.5px at 24% 86%, #ffe3a0, transparent), radial-gradient(1px 1px at 62% 36%, #fff, transparent);
+  background-size:260px 260px; animation:dust 14s linear infinite}
+@keyframes dust{to{background-position:0 -260px}}
+#s-q .wrap{position:relative; z-index:1}
+.gold{background:linear-gradient(180deg,#fff6d0,#ffd34d 45%,#c8890e); -webkit-background-clip:text; background-clip:text; color:transparent}
+.qtitle{font-size:28px}
+
+/* カード */
+.q1 .qtext{text-align:center; font-size:22px}
+.q1 .qnum{text-align:center}
+.cards{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 22px; perspective:900px}
+.dcard{position:relative; overflow:hidden; border:none; cursor:pointer; padding:14px 6px 14px; border-radius:16px; aspect-ratio:3/4.6;
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between; color:#fff;
+  background:linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.02) 40%, rgba(0,0,0,.25)), linear-gradient(180deg, var(--c1), var(--c2));
+  box-shadow:0 0 0 1px rgba(255,215,120,.55), 0 0 0 3px rgba(0,0,0,.6), 0 0 0 4px rgba(255,215,120,.25), 0 14px 30px rgba(0,0,0,.6);
+  animation:deal .7s cubic-bezier(.2,.9,.3,1.15) backwards; animation-delay:calc(var(--i) * .14s);
+  transition:transform .25s, opacity .3s, filter .3s, box-shadow .3s}
+.dcard.c-beer{--c1:#7a4a08; --c2:#1e1002}
+.dcard.c-sake{--c1:#1e3a6e; --c2:#070f20}
+.dcard.c-wine{--c1:#6e1230; --c2:#1c030b}
+@keyframes deal{from{transform:translateY(-120px) rotateY(180deg) rotateZ(-14deg) scale(.7); opacity:0} to{transform:none; opacity:1}}
+.dcard:active{transform:scale(.96)}
+.dc-shine{position:absolute; inset:0; background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.28) 45%, transparent 60%); transform:translateX(-120%); animation:cshine 3.6s ease-in-out infinite; animation-delay:calc(var(--i) * .5s + 1s); pointer-events:none}
+@keyframes cshine{0%,60%{transform:translateX(-120%)} 100%{transform:translateX(120%)}}
+.dc-en{font-family:Oswald,sans-serif; font-size:11px; letter-spacing:.35em; color:#ffe7a6; opacity:.9}
+.dc-img{width:74%; aspect-ratio:1; border-radius:50%; background:#fff; display:grid; place-items:center; overflow:hidden;
+  box-shadow:0 0 0 2px #e9c46a, 0 0 0 5px rgba(0,0,0,.5), 0 0 22px rgba(255,210,110,.45)}
+.dc-img img{width:78%; height:78%; object-fit:contain}
+.dc-t{font-size:17px; font-weight:900; letter-spacing:.06em}
+.dc-d{font-size:10.5px; color:#e8dccb; opacity:.85; margin-top:-6px}
+.dcard.lit{transform:translateY(-6px) scale(1.04); box-shadow:0 0 0 2px #ffd34d, 0 0 30px #ffd34d, 0 14px 30px rgba(0,0,0,.6)}
+.dcard.dim{opacity:.25; filter:grayscale(.7) blur(1px); transform:scale(.92)}
+.dcard.chosen{transform:translateY(-10px) scale(1.1); z-index:2; box-shadow:0 0 0 2px #ffd34d, 0 0 50px #ffd34d, 0 0 90px rgba(255,200,80,.6); animation:chosen .6s ease}
+@keyframes chosen{0%{transform:scale(1)} 40%{transform:translateY(-14px) scale(1.16) rotateY(360deg)} 100%{transform:translateY(-10px) scale(1.1) rotateY(360deg)}}
+.lucky{display:block; width:100%; padding:16px; border:none; border-radius:14px; cursor:pointer; font-size:17px; font-weight:900; letter-spacing:.1em; color:#2a1600;
+  background:linear-gradient(180deg,#fff4c4,#ffd34d 45%,#d99a10); box-shadow:0 6px 0 #7a5200, 0 10px 26px rgba(255,200,60,.45), inset 0 2px 0 rgba(255,255,255,.8)}
+.lucky:active{transform:translateY(4px); box-shadow:0 2px 0 #7a5200}
+.lucky span{display:inline-block}
+.lucky.spinning span{animation:dice .25s linear infinite}
+@keyframes dice{to{transform:rotate(360deg)}}
+.lucky-note{text-align:center; font-size:12px; color:var(--muted); margin-top:10px}
+.spark{position:fixed; z-index:50; width:6px; height:6px; border-radius:50%; pointer-events:none; box-shadow:0 0 6px currentColor; animation:spark .85s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0}}
+
+/* 台の発表 */
+.decide .done-txt{display:none} .decide.revealed .roll-txt{display:none} .decide.revealed .done-txt{display:inline}
+.decide.rolling .tags,.decide.rolling .cta,.decide.rolling .qback{opacity:0; pointer-events:none}
+.decide .tags,.decide .cta,.decide .qback{transition:opacity .4s .2s}
+.decide.rolling .mname{animation:blink .2s steps(2) infinite}
+.decide.revealed .mname{animation:reveal .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes reveal{from{transform:scale(2.2); opacity:0; filter:blur(6px)} to{transform:none; opacity:1; filter:none}}
+.rollbox{width:110px !important; height:110px !important; animation:none !important; background:#fff !important}
+.rollbox img{width:88px !important; height:88px !important}
+/* ===== 1問目：スロットホールの台選び ===== */
+.hall{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0 8px}
+.mini{position:relative; border:none; cursor:pointer; padding:8px 6px 10px; border-radius:14px 14px 8px 8px; color:#fff;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  background:linear-gradient(90deg,#0d0d10,#2b2b31 8%,#17171b 20%,#17171b 80%,#2b2b31 92%,#0d0d10), linear-gradient(180deg,var(--c1),#0b0b0d);
+  box-shadow:0 0 0 1px #000, 0 0 0 2px #6a6a70, 0 14px 26px rgba(0,0,0,.7), 0 0 24px var(--g);
+  animation:rise .6s cubic-bezier(.2,.9,.3,1.1) backwards; animation-delay:calc(var(--i)*.12s); transition:transform .25s, opacity .3s, filter .3s}
+@keyframes rise{from{transform:translateY(40px); opacity:0}}
+.mini.c-beer{--c1:#6a3e06; --g:rgba(245,184,61,.35); --n:#ffc94d}
+.mini.c-sake{--c1:#16305c; --g:rgba(120,165,255,.35); --n:#8fb8ff}
+.mini.c-wine{--c1:#5c0f28; --g:rgba(255,90,130,.35); --n:#ff7b9a}
+.mini-sign{font-family:Oswald,sans-serif; font-weight:700; font-size:18px; letter-spacing:.14em; color:#fff; padding:2px 0;
+  text-shadow:0 0 6px var(--n), 0 0 14px var(--n), 0 0 26px var(--n); animation:neon 2.4s infinite}
+@keyframes neon{0%,18%,22%,100%{opacity:1} 20%{opacity:.4}}
+.mini-lamps{display:flex; gap:4px}
+.mini-lamps i{width:5px; height:5px; border-radius:50%; background:var(--n); box-shadow:0 0 6px var(--n); animation:chase 1.1s linear infinite}
+.mini-lamps i:nth-child(2){animation-delay:-.95s}.mini-lamps i:nth-child(3){animation-delay:-.8s}.mini-lamps i:nth-child(4){animation-delay:-.65s}.mini-lamps i:nth-child(5){animation-delay:-.5s}.mini-lamps i:nth-child(6){animation-delay:-.35s}.mini-lamps i:nth-child(7){animation-delay:-.2s}
+.mini-screen{width:100%; aspect-ratio:1.15; border-radius:6px; display:grid; place-items:center; overflow:hidden;
+  background:radial-gradient(circle at 50% 45%, #fff 0 52%, #e7e2d8 100%); box-shadow:inset 0 0 0 3px #111, inset 0 0 18px rgba(0,0,0,.35), 0 0 0 1px #777}
+.mini-screen{overflow:hidden}
+.mini-screen img{height:70px; width:auto; max-width:80%; object-fit:contain}
+.mini-reels{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; width:100%; padding:3px; border-radius:4px;
+  background:linear-gradient(180deg,#eee,#888 20%,#ddd 50%,#777 85%,#ccc)}
+.mini-reels b{height:30px; overflow:hidden; background:#fff; display:grid; place-items:center; border-radius:2px; box-shadow:inset 0 3px 4px rgba(0,0,0,.25), inset 0 -3px 4px rgba(0,0,0,.25)}
+.mini-reels img{height:24px; width:auto; max-width:92%; object-fit:contain}
+.mini-name{font-size:14px; font-weight:900; letter-spacing:.04em}
+.mini-btn{width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:10px; font-weight:900; color:#fff;
+  background:radial-gradient(circle at 50% 28%, #ffe3e3, #ff5a5a 32%, #c81010 66%, #6a0000);
+  box-shadow:0 0 0 4px #2a2a2e, 0 0 0 6px #9a9aa0, 0 5px 0 6px #0b0b0d, 0 0 18px rgba(255,60,60,.6); margin-top:4px; animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{filter:brightness(1.3)}}
+.mini:active{transform:scale(.97)}
+.mini.dim{opacity:.25; filter:grayscale(.8); transform:scale(.94)}
+.mini.chosen{transform:translateY(-8px) scale(1.06); z-index:2; box-shadow:0 0 0 2px #ffd34d, 0 0 40px #ffd34d, 0 14px 26px rgba(0,0,0,.7)}
+.mini.chosen .mini-btn{transform:translateY(4px); box-shadow:0 0 0 4px #2a2a2e, 0 0 0 6px #ffd34d, 0 1px 0 6px #0b0b0d, 0 0 30px #ffd34d}
+.mini.chosen .mini-lamps i{animation-duration:.3s}
+.q2 .opts.two .opt{background:linear-gradient(180deg,#2f2f35,#16161a); border:1px solid #55555c;
+  box-shadow:0 6px 0 #070708, 0 10px 18px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18), 0 0 0 3px #111}
+.q2 .opts.two .opt:active{transform:translateY(5px); box-shadow:0 1px 0 #070708, inset 0 1px 0 rgba(255,255,255,.18), 0 0 0 3px #111}
+.q2 .opts.two .opt .t{color:#ffd36e; text-shadow:0 0 10px rgba(255,190,60,.7)}
+.q2 .qtext,.q2 .qnum{text-align:center}
+
+/* ===== 結果：カード排出 ===== */
+#cardStage{position:fixed; inset:0; z-index:45; display:none; background:radial-gradient(ellipse at 50% 20%, rgba(40,30,10,.88), rgba(0,0,0,.94))}
+@keyframes fade{from{opacity:0}}
+#cardStage.show{display:block; animation:fade .3s ease}
+.slotbar{position:absolute; left:50%; top:max(18px, env(safe-area-inset-top)); transform:translateX(-50%); width:min(340px,90vw); height:44px; border-radius:10px;
+  background:linear-gradient(180deg,#f4f4f4,#9a9a9a 18%,#e2e2e2 45%,#6a6a6a 85%,#c8c8c8); box-shadow:0 8px 18px rgba(0,0,0,.7); z-index:3}
+.sb-slit{position:absolute; left:8%; right:8%; bottom:8px; height:8px; border-radius:4px; background:#050505; box-shadow:inset 0 2px 3px #000, 0 0 12px rgba(255,211,77,.9), 0 0 2px #ffd34d}
+.sb-label{position:absolute; left:0; right:0; top:4px; text-align:center; font-family:Oswald,sans-serif; font-size:11px; letter-spacing:.4em; color:#333}
+.sb-lamp{position:absolute; right:10px; top:6px; width:8px; height:8px; border-radius:50%; background:#ff3b30; box-shadow:0 0 8px #ff3b30; animation:blink .3s steps(2) infinite}
+.cardClip{position:absolute; left:50%; transform:translateX(-50%); top:calc(max(18px, env(safe-area-inset-top)) + 40px); width:min(330px,92vw); height:calc(100svh - 150px); overflow:hidden; perspective:1000px}
+#cardStage.out .cardClip{overflow:visible}
+.tcard{--rx:0deg; --ry:0deg; --mx:50%; --my:50%; position:relative; margin:0 auto; width:min(290px,80vw); max-height:calc(100svh - 190px); aspect-ratio:63/88; border-radius:14px;
+  transform:translateY(-102%)}
+.tcard.feed{animation:feed 1.9s steps(1) forwards}
+@keyframes feed{
+  0%{transform:translateY(-102%)} 8%{transform:translateY(-88%)} 16%{transform:translateY(-80%)} 24%{transform:translateY(-68%)} 32%{transform:translateY(-60%)}
+  40%{transform:translateY(-48%)} 48%{transform:translateY(-40%)} 56%{transform:translateY(-28%)} 64%{transform:translateY(-20%)} 72%{transform:translateY(-10%)} 84%{transform:translateY(-4%)} 100%{transform:translateY(0)}}
+#cardStage.out .tcard{animation:pop .8s cubic-bezier(.2,1.2,.4,1) forwards; transform:translateY(18px) rotateX(var(--rx)) rotateY(var(--ry)); transition:transform .15s}
+@keyframes pop{0%{transform:translateY(0)} 45%{transform:translateY(30px) scale(1.1) rotateY(180deg)} 100%{transform:translateY(18px) rotateY(360deg)}}
+.tc-inner{position:absolute; inset:0; border-radius:14px; padding:10px; display:flex; flex-direction:column; gap:7px; color:#1b1408; overflow:hidden;
+  background:linear-gradient(160deg,#fff9e8,#f3e4bd 60%,#e8d09a); box-shadow:inset 0 0 0 4px #c9a043, inset 0 0 0 6px #fff4d0, inset 0 0 0 7px #8a6a1e, 0 20px 50px rgba(0,0,0,.7)}
+.tcard.ur .tc-inner{background:linear-gradient(160deg,#fff,#f4ecff 40%,#e9f7ff 70%,#fff3e0)}
+.tc-head{display:flex; align-items:center; gap:8px}
+.tc-sym{width:52px; height:52px; flex:none; border-radius:50%; background:#fff; display:grid; place-items:center; overflow:hidden;
+  box-shadow:0 0 0 3px #c9a043, 0 0 0 5px #fff4d0, 0 0 0 6px #8a6a1e, 0 3px 8px rgba(0,0,0,.3)}
+.tc-sym img{width:80%; height:80%; object-fit:contain}
+.tc-title{flex:1; min-width:0}
+.tc-cat{font-family:Oswald,sans-serif; font-size:10px; letter-spacing:.25em; color:#8a6a1e}
+.tc-name{font-size:19px; font-weight:900; line-height:1.15; letter-spacing:.02em}
+.tc-rar{font-family:Oswald,sans-serif; font-weight:700; font-size:18px; padding:2px 8px; border-radius:6px; color:#fff;
+  background:linear-gradient(180deg,#ffd34d,#c8890e); box-shadow:0 2px 0 #7a5200; text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.tcard.ur .tc-rar{background:linear-gradient(90deg,#ff5f6d,#ffc371,#47e891,#3fa7ff,#c86bff); animation:hue 2s linear infinite}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+.tc-photo{flex:1; min-height:0; border-radius:8px; background:#fff; display:grid; place-items:center; overflow:hidden;
+  box-shadow:inset 0 0 0 2px #c9a043, inset 0 0 20px rgba(0,0,0,.08)}
+.tc-photo img{width:88%; height:88%; object-fit:contain}
+.tc-desc{font-size:12.5px; line-height:1.6; padding:7px 9px; border-radius:6px; background:rgba(255,255,255,.7); box-shadow:inset 0 0 0 1px rgba(138,106,30,.35)}
+.tc-meta{display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:10.5px; color:#6a5420}
+.tc-meta span{background:rgba(255,255,255,.55); border-radius:5px; padding:4px 7px}
+.tc-meta b{display:block; font-size:12.5px; color:#1b1408}
+.tc-foot{display:flex; justify-content:space-between; font-family:Oswald,sans-serif; font-size:9px; letter-spacing:.2em; color:#8a6a1e}
+.tc-foil{position:absolute; inset:0; border-radius:14px; pointer-events:none; mix-blend-mode:color-dodge; opacity:0; transition:opacity .4s;
+  background:linear-gradient(115deg, transparent 20%, rgba(255,120,200,.35) 35%, rgba(120,220,255,.35) 45%, rgba(160,255,160,.3) 55%, rgba(255,240,120,.35) 65%, transparent 80%);
+  background-size:250% 250%; animation:foil 3s linear infinite}
+@keyframes foil{from{background-position:0% 50%} to{background-position:250% 50%}}
+.tc-glare{position:absolute; inset:0; border-radius:14px; pointer-events:none; opacity:0; transition:opacity .4s;
+  background:radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.55), transparent 45%)}
+#cardStage.out .tc-foil{opacity:.8} #cardStage.out .tc-glare{opacity:.6}
+.tcard.ur .tc-foil{background:linear-gradient(115deg, rgba(255,80,80,.45), rgba(255,200,80,.45), rgba(80,255,140,.45), rgba(80,180,255,.45), rgba(200,100,255,.45), rgba(255,80,80,.45)); background-size:300% 300%}
+#cardStage.out .tcard{filter:drop-shadow(0 0 22px rgba(255,211,77,.55))}
+#cardStage.out .tcard.ur{filter:drop-shadow(0 0 30px rgba(255,255,255,.7))}
+.cardBtns{position:absolute; left:50%; transform:translateX(-50%); bottom:max(16px, env(safe-area-inset-bottom)); width:min(340px,92vw); opacity:0; pointer-events:none; transition:opacity .4s}
+.cardBtns.show{opacity:1; pointer-events:auto}
+.cb-note{text-align:center; font-size:12px; color:#cbbfa6; margin-bottom:8px}
+.cb-row{display:grid; grid-template-columns:1fr 1.4fr; gap:10px}
+.cb-row button{padding:14px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer}
+/* ===== スマホ全体を台の枠で囲う ===== */
+:root{--fT:66px; --fS:10px; --fB:16px; --fTop:calc(var(--fT) + env(safe-area-inset-top))}
+body{padding:var(--fTop) var(--fS) var(--fB)}
+.screen{min-height:calc(100svh - var(--fTop) - var(--fB))}
+.cab-frame{position:fixed; inset:0; z-index:60; pointer-events:none}
+.cf-top{position:absolute; left:0; right:0; top:0; height:var(--fTop); padding-top:env(safe-area-inset-top);
+  background:linear-gradient(180deg,#3a3a40 0%,#1a1a1e 55%,#0c0c0e 100%);
+  box-shadow:inset 0 -2px 0 #6a6a70, inset 0 -4px 0 #0a0a0a, 0 6px 14px rgba(0,0,0,.7)}
+.cf-top::before{content:""; position:absolute; left:0; right:0; top:env(safe-area-inset-top); height:2px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent)}
+.cf-sign{position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 7px); text-align:center; font-family:Oswald,sans-serif; font-weight:700; font-size:15px; letter-spacing:.32em;
+  color:#fff7d6; text-shadow:0 0 6px #ffcc33, 0 0 14px #ff9900, 0 0 26px #ff7a00; animation:neon 3s infinite}
+.cf-lamps{position:absolute; top:calc(env(safe-area-inset-top) + 13px); width:70px; height:6px;
+  background:radial-gradient(circle, #ffd34d 0 2.4px, transparent 3px) 0 0/10px 6px repeat-x; filter:drop-shadow(0 0 3px #ffb300); animation:lampsx .6s steps(2) infinite}
+.cf-lamps.l{left:10px} .cf-lamps.r{right:10px}
+@keyframes lampsx{50%{opacity:.35}}
+/* カードの取り出し口（いつも表示） */
+.cf-slot{position:absolute; left:50%; bottom:5px; transform:translateX(-50%); width:min(300px,78vw); height:24px; border-radius:7px;
+  background:linear-gradient(180deg,#f4f4f4,#9a9a9a 22%,#e2e2e2 48%,#6a6a6a 86%,#c8c8c8); box-shadow:0 2px 4px rgba(0,0,0,.6)}
+.cf-slot i{position:absolute; left:7%; right:7%; top:8px; height:7px; border-radius:4px; background:#030303; box-shadow:inset 0 2px 3px #000, 0 0 6px rgba(255,211,77,.45)}
+.cf-slot b{position:absolute; right:-16px; top:8px; width:8px; height:8px; border-radius:50%; background:#5a1010; box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.cf-slot em{position:absolute; left:-58px; top:5px; font-style:normal; font-family:Oswald,sans-serif; font-size:9px; letter-spacing:.18em; color:#9a9aa0}
+.cab-frame.feeding .cf-slot i{box-shadow:inset 0 2px 3px #000, 0 0 14px #ffd34d, 0 0 3px #fff3c4}
+.cab-frame.feeding .cf-slot b{background:#ff3b30; box-shadow:0 0 8px #ff3b30; animation:blink .3s steps(2) infinite}
+/* 左右の柱：LEDが流れる */
+.cf-side{position:absolute; top:var(--fTop); bottom:0; width:var(--fS);
+  background:linear-gradient(90deg,#0c0c0e,#4a4a52 40%,#1a1a1e)}
+.cf-side.l{left:0} .cf-side.r{right:0; transform:scaleX(-1)}
+.cf-side::after{content:""; position:absolute; left:3px; width:4px; top:6px; bottom:6px; border-radius:2px;
+  background:repeating-linear-gradient(180deg, var(--accent) 0 6px, rgba(0,0,0,.6) 6px 14px); box-shadow:0 0 8px var(--accent);
+  animation:ledflow 1.2s linear infinite; opacity:.85}
+@keyframes ledflow{to{background-position:0 28px}}
+.cf-bottom{position:absolute; left:0; right:0; bottom:0; height:var(--fB);
+  background:linear-gradient(180deg,#5a5a60,#1a1a1e 40%,#0a0a0c); box-shadow:0 -2px 0 #0a0a0a}
+.frame-inner{position:fixed; top:var(--fTop); left:var(--fS); right:var(--fS); bottom:var(--fB); pointer-events:none; visibility:hidden}
+/* 枠の内側に収める */
+#reachDim{inset:var(--fTop) var(--fS) var(--fB) !important}
+#cardStage{inset:var(--fTop) var(--fS) var(--fB) !important; overflow:hidden}
+.cardClip{top:0 !important; height:100% !important}
+.tcard{max-height:calc(100svh - var(--fTop) - var(--fB) - 150px) !important}
+.cardBtns{bottom:12px !important}
+#cardStage .slotbar{display:none}
+#s-play .wrap{padding-top:8px}
+.sparkle{z-index:55}
+
+/* ===== カード：お酒ごとに色が変わるリアルなカード ===== */
+.tcard{--cA:#f3c14b; --cB:#8a5a0c; --cC:#fff3c4; --bg1:#fff8e6; --bg2:#f3dfa8; --ink:#2a1a04; --plate1:#6b4306; --plate2:#2e1c02; --pt:#fff2c8}
+.tcard .tc-inner{inset:0; border-radius:15px; padding:9px; gap:6px; color:var(--ink);
+  background:
+    linear-gradient(135deg, var(--cC) 0%, var(--cA) 18%, var(--cB) 38%, var(--cA) 55%, var(--cC) 70%, var(--cB) 100%);
+  box-shadow:0 0 0 2px #0b0b0b, 0 20px 46px rgba(0,0,0,.75)}
+.tcard .tc-inner::before{content:""; position:absolute; inset:7px; border-radius:9px; z-index:0;
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,.025) 0 2px, transparent 2px 6px),
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.6), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), inset 0 0 18px rgba(0,0,0,.12)}
+.tcard .tc-inner > *{position:relative; z-index:1}
+.tcard .tc-head{padding:2px 2px 0}
+.tcard .tc-sym{width:54px; height:54px; box-shadow:0 0 0 3px var(--cA), 0 0 0 5px var(--cB), 0 0 0 6px #000, 0 4px 10px rgba(0,0,0,.4)}
+.tcard .tc-title{background:linear-gradient(180deg,var(--plate1),var(--plate2)); border-radius:6px; padding:4px 9px 5px; color:var(--pt);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 0 0 1px var(--cA)}
+.tcard .tc-cat{color:var(--cC); opacity:.85}
+.tcard .tc-name{color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); font-size:18px}
+.tcard .tc-rar{position:relative; background:linear-gradient(180deg,var(--cC),var(--cA) 50%,var(--cB)); color:#fff; box-shadow:0 2px 0 rgba(0,0,0,.5), 0 0 0 1px #000}
+.tcard .tc-photo{background:#fff; border-radius:6px; box-shadow:0 0 0 3px var(--cB), 0 0 0 4px var(--cA), inset 0 0 24px rgba(0,0,0,.12), 0 3px 8px rgba(0,0,0,.3); margin:3px 3px 0}
+.tcard .tc-desc{background:rgba(255,255,255,.78); color:#222; box-shadow:inset 0 0 0 1px var(--cB)}
+.tcard .tc-meta{color:var(--ink)} .tcard .tc-meta span{background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.tcard .tc-foot{color:var(--plate1); font-weight:700; padding:0 3px}
+/* ホログラムは写真と枠だけに */
+.tcard .tc-foil{inset:0; border-radius:15px; mix-blend-mode:overlay}
+/* 7（大当たり）：黒地に虹の枠 */
+.tcard.ur .tc-inner{background:conic-gradient(from 0deg, #ff4d4d, #ffb340, #fff35c, #4dff88, #4dc3ff, #9a5cff, #ff4dd2, #ff4d4d); animation:urspin 4s linear infinite}
+@keyframes urspin{to{filter:hue-rotate(360deg)}}
+.tcard.ur .tc-inner::before{background:repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 2px, transparent 2px 6px), radial-gradient(ellipse at 50% 0%, rgba(255,215,90,.35), transparent 60%), linear-gradient(180deg,#22222a,#0b0b10)}
+.tcard.ur .tc-desc{background:rgba(255,255,255,.92)}
+.tcard.ur .tc-foot{color:#ffd34d}
+
+/* 調整 */
+.cf-slot em{display:none}
+.tcard .tc-photo{position:relative}
+.tcard .tc-photo img{position:absolute; left:6%; top:6%; width:88%; height:88%; object-fit:contain}
+.tcard.ur .tc-inner{animation:none}
+.cabinet{--monH:min(40svh, 360px) !important}
+
+/* ===== 最初の説明文 ===== */
+.intro{text-align:center; margin:2px auto 14px; padding:12px 14px; max-width:360px; border-radius:12px; font-size:13px; line-height:1.8; color:#e9dfcf;
+  background:linear-gradient(180deg, rgba(255,215,120,.10), rgba(255,215,120,.03)); box-shadow:inset 0 0 0 1px rgba(255,215,120,.25)}
+.intro p{margin:0}
+.intro b{color:#ffd36e}
+.intro-lead{font-weight:900; font-size:14px; color:#fff; letter-spacing:.06em}
+.intro-go{margin-top:6px !important; font-weight:900; color:#ffd34d; text-shadow:0 0 10px rgba(255,190,60,.6); animation:pulse 1.6s ease-in-out infinite}
+.q1 .qtext{font-size:20px}
+
+/* ===== カード：大きく・立体的に ===== */
+#cardStage .cardClip{perspective:1100px}
+#cardStage.out .tcard{animation:none !important; transform-origin:50% 50%;
+  transform:translateY(var(--ty,18px)) scale(var(--s,1.04)) rotateX(var(--rx)) rotateY(calc(360deg + var(--ry)));
+  transition:transform .9s cubic-bezier(.2,1.15,.35,1)}
+.tcard{transform-style:preserve-3d}
+/* カードの厚み（側面）と床への影 */
+.tcard .tc-inner{box-shadow:
+  0 0 0 2px #0b0b0b,
+  0 1px 0 2px #d8d8d8, 0 2px 0 2px #bdbdbd, 0 3px 0 2px #a8a8a8, 0 4px 0 2px #8a8a8a,
+  0 18px 30px rgba(0,0,0,.55), 0 40px 60px rgba(0,0,0,.45)}
+/* 表面のつや（ラミネート） */
+.tcard .tc-glare{opacity:.75 !important; mix-blend-mode:soft-light;
+  background:radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.95), rgba(255,255,255,.25) 25%, transparent 55%)}
+.tcard .tc-gloss{position:absolute; inset:0; border-radius:15px; pointer-events:none; z-index:3;
+  background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.28) calc(var(--mx) - 6%), rgba(255,255,255,.05) calc(var(--mx) + 4%), transparent 70%)}
+#cardStage.out .tc-foil{opacity:.9 !important}
+#cardStage{background:radial-gradient(ellipse at 50% 40%, rgba(60,45,15,.92), rgba(0,0,0,.97))}
+
+/* 説明文：1行ずつ折り返さない */
+.intro p{white-space:nowrap}
+.intro{font-size:13.5px}
+/* ハズレの表示 */
+.losetoast{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.6); z-index:5; pointer-events:none; opacity:0;
+  padding:10px 22px; border-radius:12px; text-align:center; background:rgba(10,10,14,.88); box-shadow:0 0 0 2px #6a6a70, 0 8px 20px rgba(0,0,0,.6); white-space:nowrap}
+.losetoast b{display:block; font-size:22px; font-weight:900; color:#fff; letter-spacing:.06em}
+.losetoast small{display:block; font-size:12px; color:#cbbfa6; margin-top:2px}
+.losetoast.show{animation:toast 2.2s ease forwards}
+@keyframes toast{0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 12%{opacity:1; transform:translate(-50%,-50%) scale(1.06)} 20%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1} 100%{opacity:0; transform:translate(-50%,-50%) scale(1)}}
+/* カードの裏面 */
+.tcard .tc-inner,.tcard .tc-foil,.tcard .tc-glare,.tcard .tc-gloss{backface-visibility:hidden; -webkit-backface-visibility:hidden}
+.tc-back{position:absolute; inset:0; border-radius:15px; transform:rotateY(180deg); backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,211,77,.10) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(-45deg, rgba(255,211,77,.10) 0 2px, transparent 2px 12px),
+    radial-gradient(circle at 50% 45%, #3a2a08, #120c02 70%);
+  box-shadow:0 0 0 2px #0b0b0b, inset 0 0 0 6px #c9a043, inset 0 0 0 8px #3a2a08, inset 0 0 0 9px #8a6a1e, 0 20px 46px rgba(0,0,0,.75)}
+.tb-ring{width:46%; aspect-ratio:1; border-radius:50%; display:grid; place-items:center;
+  background:radial-gradient(circle, #2a1e06 55%, transparent 56%), conic-gradient(#fff3c4, #c9a043, #fff3c4, #8a6a1e, #fff3c4);
+  box-shadow:0 0 30px rgba(255,211,77,.5)}
+.tb-ring span{font-family:Oswald,sans-serif; font-weight:700; font-size:64px; background:linear-gradient(180deg,#fff6d0,#ffd34d 50%,#c8890e); -webkit-background-clip:text; background-clip:text; color:transparent}
+.tb-title{font-family:Oswald,sans-serif; font-weight:700; font-size:18px; letter-spacing:.3em; color:#ffd34d; text-shadow:0 0 10px rgba(255,190,60,.6)}
+.tb-sub{font-family:Oswald,sans-serif; font-size:11px; letter-spacing:.5em; color:#c9a043}
+/* 取り出し口から出てくるときは裏向き */
+.tcard.feed{animation-name:feedback !important}
+@keyframes feedback{
+  0%{transform:translateY(-102%) rotateY(180deg)} 8%{transform:translateY(-88%) rotateY(180deg)} 16%{transform:translateY(-80%) rotateY(180deg)} 24%{transform:translateY(-68%) rotateY(180deg)} 32%{transform:translateY(-60%) rotateY(180deg)}
+  40%{transform:translateY(-48%) rotateY(180deg)} 48%{transform:translateY(-40%) rotateY(180deg)} 56%{transform:translateY(-28%) rotateY(180deg)} 64%{transform:translateY(-20%) rotateY(180deg)} 72%{transform:translateY(-10%) rotateY(180deg)} 84%{transform:translateY(-4%) rotateY(180deg)} 100%{transform:translateY(0) rotateY(180deg)}}
+/* 出きったら：くるくる回りながら大きくなって、表で止まる */
+#cardStage.out .tcard{transform:translateY(var(--ty,18px)) scale(var(--s,1.04)) rotateX(var(--rx)) rotateY(calc(1080deg + var(--ry))) !important;
+  transition:transform 1.3s cubic-bezier(.15,.75,.25,1) !important}
+.cardFlash{position:absolute; inset:0; background:radial-gradient(circle at 50% 40%, #fff, rgba(255,240,200,.6) 40%, transparent 70%); opacity:0; pointer-events:none; z-index:5}
+.cardFlash.on{animation:cflash .7s ease-out}
+@keyframes cflash{0%{opacity:0} 15%{opacity:1} 100%{opacity:0}}
+
+/* 3Dの裏表が正しく出るように：カード本体にはfilterをかけない（光は後ろに） */
+#cardStage.out .tcard,#cardStage.out .tcard.ur{filter:none !important}
+#cardStage .cardClip::before{content:""; position:absolute; left:50%; top:46%; width:120%; aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%;
+  background:radial-gradient(circle, rgba(255,211,77,.35), transparent 60%); opacity:0; transition:opacity .6s .8s; pointer-events:none}
+#cardStage.out .cardClip::before{opacity:1}
+/* ===== 遊ぶ画面：スマホ1画面に収めて固定 ===== */
+html.lockplay,html.lockplay body{overflow:hidden; overscroll-behavior:none; height:100%}
+html.lockplay #s-play{height:calc(100svh - var(--fTop) - var(--fB)); min-height:0; overflow:hidden; touch-action:none}
+#s-play .wrap{height:100%; display:flex; flex-direction:column; padding-bottom:0 !important}
+#s-play .topbar{flex:none; margin-bottom:6px}
+#s-play .scene{flex:1; min-height:0; display:flex}
+#s-play .cabinet{flex:1; min-height:0; display:flex; flex-direction:column; --ov:0px !important}
+#s-play .bezel{margin-top:0 !important}
+#s-play .monitor{flex:1 1 auto; min-height:110px; height:auto !important}
+#s-play .bezel,#s-play .trim,#s-play .deck{flex:none}
+#s-play .deck{padding:12px 16px 14px !important}
+#s-play .stopwrap{width:74px; height:74px}
+#s-play .btn3d.stop{width:58px; height:58px !important}
+#s-play .startrow{margin-top:14px !important}
+#s-play .start{height:56px !important}
+
+/* ===== リーチ：金色に光る ===== */
+.cab-frame.gold .cf-side::after{background:repeating-linear-gradient(180deg,#fff3c4 0 4px,#ffd34d 4px 8px,rgba(0,0,0,.55) 8px 14px); box-shadow:0 0 14px #ffd34d, 0 0 4px #fff; animation-duration:.3s; opacity:1}
+.cab-frame.gold .cf-top{box-shadow:inset 0 -2px 0 #ffd34d, inset 0 -4px 0 #0a0a0a, 0 6px 26px rgba(255,211,77,.65)}
+.cab-frame.gold .cf-sign{color:#fff; text-shadow:0 0 8px #ffd34d, 0 0 18px #ffb300, 0 0 34px #ff9900}
+.cab-frame.gold .cf-lamps{animation-duration:.15s}
+.cab-frame.gold .cf-bottom{box-shadow:0 -2px 0 #ffd34d, 0 -8px 24px rgba(255,211,77,.6)}
+.cab-frame::after{content:""; position:absolute; top:var(--fTop); left:var(--fS); right:var(--fS); bottom:var(--fB); pointer-events:none; opacity:0; transition:opacity .3s;
+  box-shadow:inset 0 0 0 2px #ffd34d, inset 0 0 36px rgba(255,211,77,.55)}
+.cab-frame.gold::after{opacity:1; animation:goldpulse .5s ease-in-out infinite alternate}
+@keyframes goldpulse{from{box-shadow:inset 0 0 0 2px #ffd34d, inset 0 0 22px rgba(255,211,77,.35)} to{box-shadow:inset 0 0 0 3px #fff3c4, inset 0 0 50px rgba(255,211,77,.75)}}
+/* 揃いそうなリールの枠は金色（どの色のリーチでも） */
+.cabinet .reel.reach{animation:goldreel .45s ease-in-out infinite alternate !important; z-index:2}
+@keyframes goldreel{from{box-shadow:0 0 0 3px #ffd34d, 0 0 18px #ffd34d, inset 0 0 12px rgba(255,211,77,.5)} to{box-shadow:0 0 0 4px #fff3c4, 0 0 34px #ffd34d, 0 0 60px rgba(255,180,0,.6), inset 0 0 22px rgba(255,211,77,.8)}}
+.cabinet.fever .bezel{box-shadow:0 0 0 2px #ffd34d, 0 0 30px rgba(255,211,77,.6), 0 8px 14px rgba(0,0,0,.6) !important}
+/* 最後のリール：止まる直前のドキドキ */
+.reel.tension{animation:tension .32s ease-in-out infinite !important}
+@keyframes tension{0%,100%{box-shadow:0 0 0 4px #fff3c4, 0 0 40px #ffd34d; filter:brightness(1)} 50%{box-shadow:0 0 0 5px #fff, 0 0 70px #ffb300; filter:brightness(1.15)}}
+/* 最後のSTOPが黄金に開く */
+.stopwrap{position:relative}
+.stopwrap::before{content:""; position:absolute; inset:-16px; border-radius:50%; opacity:0; pointer-events:none;
+  background:repeating-conic-gradient(rgba(255,230,140,.85) 0 8deg, transparent 8deg 22deg);
+  -webkit-mask:radial-gradient(circle, transparent 46%, #000 48%, #000 62%, transparent 72%); mask:radial-gradient(circle, transparent 46%, #000 48%, #000 62%, transparent 72%)}
+.stopwrap.goldopen{background:conic-gradient(from 200deg, #fff8d6, #c8890e, #ffe27a, #8a5a00, #fff3c4, #b8860b, #fff8d6) !important;
+  box-shadow:0 0 0 2px #fff3c4, 0 0 30px #ffd34d, 0 6px 12px rgba(0,0,0,.7) !important; animation:ringopen .7s cubic-bezier(.2,1.5,.4,1)}
+.stopwrap.goldopen::before{opacity:1; animation:rays 2.4s linear infinite}
+@keyframes rays{to{transform:rotate(360deg)}}
+@keyframes ringopen{0%{transform:scale(.6)} 60%{transform:scale(1.22)} 100%{transform:scale(1)}}
+.btn3d.stop.gold{animation:goldflip .7s ease-out;
+  background:radial-gradient(circle at 50% 26%, #fffbe6 0%, #ffe27a 28%, #e0a816 62%, #7a4e00 100%) !important; color:#3a2200 !important; text-shadow:0 1px 0 rgba(255,255,255,.6) !important;
+  box-shadow:0 6px 0 #5a3a00, 0 8px 22px rgba(255,200,60,.8), inset 0 3px 4px rgba(255,255,255,.85), inset 0 -8px 12px rgba(120,70,0,.5) !important}
+@keyframes goldflip{0%{transform:rotateY(0) scale(.7); filter:brightness(2)} 50%{transform:rotateY(180deg) scale(1.15)} 100%{transform:rotateY(360deg) scale(1); filter:brightness(1)}}
+
+/* ===== 2問目：味の選択 ===== */
+.q2 .qtext{font-size:21px}
+.tastes{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0 10px}
+.tbtn{position:relative; border:none; cursor:pointer; padding:16px 8px 14px; border-radius:16px; color:#fff; overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  box-shadow:0 0 0 1px #000, 0 0 0 3px #6a6a70, 0 14px 26px rgba(0,0,0,.7), 0 0 26px var(--g);
+  animation:rise .6s cubic-bezier(.2,.9,.3,1.1) backwards; animation-delay:calc(var(--i)*.12s); transition:transform .25s, opacity .3s, filter .3s}
+.tbtn.t0{--g:rgba(90,200,255,.45); --n:#7fdcff; background:radial-gradient(ellipse at 50% 0%, rgba(120,220,255,.35), transparent 60%), linear-gradient(180deg,#0f3550,#071620)}
+.tbtn.t1{--g:rgba(255,170,70,.45); --n:#ffb347; background:radial-gradient(ellipse at 50% 0%, rgba(255,190,110,.35), transparent 60%), linear-gradient(180deg,#4a2508,#1a0c02)}
+.tb-bulbs{position:absolute; inset:5px; border-radius:12px; pointer-events:none;
+  background:
+    radial-gradient(circle, var(--n) 0 2px, transparent 2.6px) 0 0/12px 12px repeat-x,
+    radial-gradient(circle, var(--n) 0 2px, transparent 2.6px) 0 100%/12px 12px repeat-x,
+    radial-gradient(circle, var(--n) 0 2px, transparent 2.6px) 0 0/12px 12px repeat-y,
+    radial-gradient(circle, var(--n) 0 2px, transparent 2.6px) 100% 0/12px 12px repeat-y;
+  filter:drop-shadow(0 0 3px var(--n)); animation:bulbs .5s steps(2) infinite}
+@keyframes bulbs{50%{opacity:.35}}
+.tb-en{font-family:Oswald,sans-serif; font-size:11px; letter-spacing:.35em; color:var(--n); margin-top:4px}
+.tb-icon{font-size:40px; line-height:1.1; animation:bob 1.6s ease-in-out infinite; animation-delay:calc(var(--i)*.3s); filter:drop-shadow(0 0 10px var(--n))}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-6deg)}}
+.tb-name{font-size:24px; font-weight:900; letter-spacing:.08em; text-shadow:0 0 8px var(--n), 0 0 18px var(--n)}
+.tb-sub{font-size:11px; color:#d9cfc0}
+.tb-maybe{margin-top:6px; font-size:10px; font-weight:700; color:#ffd36e; letter-spacing:.1em}
+.tb-syms{display:flex; gap:6px; justify-content:center}
+.tb-syms b{width:46px; height:46px; border-radius:50%; background:#fff; display:grid; place-items:center; overflow:hidden; box-shadow:0 0 0 2px var(--n), 0 0 14px var(--n)}
+.tb-syms img{height:36px; width:auto; max-width:40px; object-fit:contain}
+.tb-push{margin-top:8px; font-family:Oswald,sans-serif; font-weight:700; letter-spacing:.3em; font-size:12px; padding:6px 16px; border-radius:999px; color:#2a1600;
+  background:linear-gradient(180deg,#fff4c4,#ffd34d 50%,#d99a10); box-shadow:0 3px 0 #7a5200; animation:pulse 1.2s ease-in-out infinite}
+.tbtn:active{transform:scale(.97)}
+.tbtn.dim{opacity:.25; filter:grayscale(.8); transform:scale(.94)}
+.tbtn.chosen{transform:translateY(-6px) scale(1.05); box-shadow:0 0 0 2px #ffd34d, 0 0 44px #ffd34d, 0 14px 26px rgba(0,0,0,.7)}
+.tbtn.chosen .tb-bulbs{animation-duration:.12s}
+
+/* ===== 台の発表 ===== */
+.decide{padding-top:4vh !important}
+.marquee-box{position:relative; margin:0 auto 14px; padding:18px 14px 16px; border-radius:16px; max-width:340px;
+  background:radial-gradient(ellipse at 50% 0%, rgba(255,215,120,.18), transparent 70%), linear-gradient(180deg,#1e1a14,#0c0a08);
+  box-shadow:0 0 0 2px #6a5a3a, 0 0 0 4px #0a0a0a, 0 0 0 5px #c9a043, 0 0 40px var(--glow)}
+.marquee-box::before{content:""; position:absolute; inset:6px; border-radius:11px; pointer-events:none;
+  background:
+    radial-gradient(circle, #ffd34d 0 2.2px, transparent 2.8px) 0 0/14px 12px repeat-x,
+    radial-gradient(circle, #ffd34d 0 2.2px, transparent 2.8px) 7px 100%/14px 12px repeat-x;
+  filter:drop-shadow(0 0 3px #ffb300); animation:bulbs .45s steps(2) infinite}
+.marquee-box .mname{font-size:40px; margin:4px 0 8px; color:#fff; text-shadow:0 0 8px var(--accent), 0 0 22px var(--accent), 0 0 44px var(--accent)}
+.marquee-box .tags{margin:0}
+.marquee-box .tag{background:#0b0b0b; border-color:#3a3a3a; color:#ffd36e; font-family:"Noto Sans JP",monospace; font-weight:700; text-shadow:0 0 6px rgba(255,190,60,.8)}
+.d-maybe{text-align:center; font-weight:900; font-size:15px; letter-spacing:.06em; margin:6px 0 10px}
+.d-maybe{background:linear-gradient(180deg,#fff6d0,#ffd34d 45%,#c8890e); -webkit-background-clip:text; background-clip:text; color:transparent; animation:pulse 1.4s ease-in-out infinite}
+.preview div{animation:flipin .7s cubic-bezier(.2,1.4,.4,1) backwards !important; animation-delay:calc(.3s + var(--i,0)*.15s) !important; box-shadow:0 0 0 3px #ffd34d, 0 0 26px rgba(255,211,77,.6), 0 10px 30px rgba(0,0,0,.5) !important}
+@keyframes flipin{from{transform:rotateY(180deg) scale(.5); opacity:0}}
+.cta{position:relative; overflow:hidden; display:flex !important; align-items:center; justify-content:center; gap:10px; font-size:19px !important;
+  background:linear-gradient(180deg,#fff4c4,#ffd34d 45%,#d99a10) !important; color:#2a1600 !important; box-shadow:0 6px 0 #7a5200, 0 10px 30px rgba(255,200,60,.5) !important}
+.cta::after{content:""; position:absolute; inset:0; background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); transform:translateX(-120%); animation:ctashine 2.2s ease-in-out infinite}
+@keyframes ctashine{0%,40%{transform:translateX(-120%)} 100%{transform:translateX(120%)}}
+.cta i{font-style:normal; animation:nudge .8s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateX(5px)}}
+.tb-sub{letter-spacing:0 !important; white-space:nowrap; font-size:10.5px}
+.tbtn *{letter-spacing:normal}
+.tb-en,.tb-push{letter-spacing:.3em !important}
+/* ================= v9：よりリアルな光とボタン ================= */
+/* --- STOP：クロームの台座＋ガラスのドーム --- */
+#s-play .stopwrap{width:76px; height:76px; position:relative;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 58%, rgba(0,0,0,.55) 60%, transparent 66%),
+    conic-gradient(from 210deg, #f7f7f7, #8c8c92 12%, #e9e9ee 24%, #5a5a60 38%, #d8d8dd 52%, #6e6e74 66%, #fafafa 80%, #9a9aa0 92%, #f7f7f7) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -2px 3px rgba(0,0,0,.45) inset, 0 8px 14px rgba(0,0,0,.75), 0 2px 0 #0a0a0a !important}
+#s-play .btn3d.stop{width:58px; height:58px !important; position:relative; overflow:hidden; font-family:Oswald,sans-serif; font-size:12px !important; letter-spacing:.12em;
+  background:radial-gradient(circle at 50% 35%, #6a6a70 0%, #303036 50%, #121215 100%) !important;
+  box-shadow:0 5px 0 #050506, 0 7px 10px rgba(0,0,0,.7), inset 0 -6px 10px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08) !important; color:#6c6c72 !important}
+/* ガラスの映りこみ（上のハイライト）と下の照り返し */
+#s-play .btn3d.stop::before{content:""; position:absolute; left:16%; right:16%; top:7%; height:40%; border-radius:50%;
+  background:linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.08)); pointer-events:none}
+#s-play .btn3d.stop::after{content:""; position:absolute; left:22%; right:22%; bottom:8%; height:16%; border-radius:50%;
+  background:radial-gradient(ellipse, rgba(255,255,255,.28), transparent 70%); pointer-events:none}
+#s-play .btn3d.stop.live{color:#fff !important; text-shadow:0 1px 2px rgba(80,0,0,.8) !important;
+  background:radial-gradient(circle at 50% 38%, #ff8a80 0%, #ff2d20 32%, #c40f06 62%, #5e0300 100%) !important;
+  box-shadow:0 5px 0 #3a0000, 0 7px 12px rgba(0,0,0,.6), 0 0 18px rgba(255,40,20,.55), 0 0 40px rgba(255,40,20,.25), inset 0 -8px 12px rgba(60,0,0,.6), inset 0 0 14px rgba(255,120,100,.35) !important}
+/* --- 黄金のSTOP：磨いた金属＋光のにじみ（光線はやめる） --- */
+.stopwrap::before{display:none !important}
+#s-play .stopwrap.goldopen{
+  background:
+    radial-gradient(circle at 50% 50%, transparent 58%, rgba(60,30,0,.6) 60%, transparent 66%),
+    conic-gradient(from 210deg, #fffbe8, #b07a10 12%, #ffe9a6 24%, #7a4e00 38%, #ffd86a 52%, #8a5a08 66%, #fff6d6 80%, #c08a18 92%, #fffbe8) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset, 0 -2px 3px rgba(80,40,0,.5) inset, 0 8px 14px rgba(0,0,0,.75),
+    0 0 14px rgba(255,214,90,.9), 0 0 34px rgba(255,190,40,.65), 0 0 70px rgba(255,170,0,.35) !important;
+  animation:ringopen .7s cubic-bezier(.2,1.4,.4,1), goldbreath 1.1s ease-in-out .7s infinite !important}
+@keyframes goldbreath{50%{box-shadow:0 1px 0 rgba(255,255,255,.5) inset, 0 -2px 3px rgba(80,40,0,.5) inset, 0 8px 14px rgba(0,0,0,.75),
+    0 0 20px rgba(255,224,120,1), 0 0 50px rgba(255,190,40,.8), 0 0 100px rgba(255,170,0,.45)}}
+/* 床（操作パネル）への光の映りこみ */
+#s-play .stopwrap.goldopen::after{content:""; position:absolute; left:50%; top:62%; width:170%; height:90%; transform:translateX(-50%); z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 30%, rgba(255,200,70,.45), transparent 65%); filter:blur(4px)}
+#s-play .btn3d.stop.gold{animation:goldpress .6s cubic-bezier(.2,1.3,.4,1) !important; color:#4a2c00 !important; text-shadow:0 1px 0 rgba(255,240,200,.8) !important;
+  background:
+    radial-gradient(ellipse at 50% 30%, #fffdf2 0%, #ffe9a0 18%, transparent 42%),
+    radial-gradient(circle at 50% 60%, #ffd24a 0%, #e0a316 40%, #a66d00 75%, #5a3800 100%) !important;
+  box-shadow:0 5px 0 #4a2e00, 0 7px 12px rgba(0,0,0,.6), inset 0 -7px 10px rgba(110,60,0,.55), inset 0 2px 3px rgba(255,255,255,.9), inset 0 0 16px rgba(255,240,180,.6) !important}
+/* 金属の表面を光が流れる */
+#s-play .btn3d.stop.gold::after{left:-40%; right:auto; bottom:auto; top:0; width:40%; height:100%; border-radius:0;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.85), transparent); transform:skewX(-18deg); animation:goldsheen 1.6s ease-in-out .5s infinite}
+@keyframes goldsheen{0%{left:-50%} 60%,100%{left:120%}}
+@keyframes goldpress{0%{transform:scale(.82); filter:brightness(2.2)} 60%{transform:scale(1.08)} 100%{transform:scale(1); filter:brightness(1)}}
+#s-play .btn3d.stop.press{transform:translateY(4px) !important}
+
+/* --- START：小さめ・メタルの縁＋光るアクリル --- */
+#s-play .startrow{gap:16px !important; margin-top:12px !important; padding:0 28px 2px !important}
+#s-play .start{flex:0 1 190px; margin:0 auto; height:46px !important; font-size:17px !important; letter-spacing:.2em; border-radius:9px !important; position:relative; overflow:hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.12) 45%, transparent 50%),
+    linear-gradient(180deg,#ffcf5a 0%,#ff9d0a 55%,#d86d00 100%) !important; color:#3a1a00 !important; text-shadow:0 1px 0 rgba(255,230,170,.7);
+  box-shadow:0 0 0 2px #1a1a1d, 0 0 0 4px #8d8d93, 0 0 0 5px #2a2a2e, 0 6px 0 5px #0a0a0b, 0 10px 18px rgba(0,0,0,.7), 0 0 26px rgba(255,160,20,.45), inset 0 -4px 8px rgba(120,50,0,.4) !important}
+#s-play .start:disabled{background:linear-gradient(180deg, rgba(255,255,255,.18), transparent 50%), linear-gradient(180deg,#4a4a50,#26262b) !important; color:#6a6a70 !important; text-shadow:none;
+  box-shadow:0 0 0 2px #1a1a1d, 0 0 0 4px #6a6a70, 0 0 0 5px #2a2a2e, 0 6px 0 5px #0a0a0b, 0 10px 18px rgba(0,0,0,.7) !important}
+#s-play .start.press{transform:translateY(5px) !important}
+#s-play .credit b{font-size:18px}
+
+/* --- 台の枠：本物の電球のように（粒＋にじみ＋照り返し） --- */
+.cf-side{overflow:visible}
+.cf-side::after{left:1px !important; width:8px !important; top:4px !important; bottom:4px !important; border-radius:0 !important; opacity:1 !important;
+  background:radial-gradient(circle at 50% 50%, #fff 0 1.2px, var(--accent) 2px, rgba(0,0,0,0) 3.6px) 0 0/8px 12px repeat-y !important;
+  box-shadow:none !important; filter:drop-shadow(0 0 2px var(--accent)) drop-shadow(0 0 5px var(--accent));
+  animation:bulbchase 1.2s steps(12) infinite !important}
+@keyframes bulbchase{to{background-position:0 12px}}
+/* 柱の光が画面側へにじむ */
+.cf-side::before{content:""; position:absolute; top:0; bottom:0; left:100%; width:22px; pointer-events:none;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent); opacity:.6; transition:opacity .3s}
+/* リーチ中：金の電球が速く流れ、強くにじむ */
+.cab-frame.gold .cf-side::after{background:radial-gradient(circle at 50% 50%, #fff 0 1.5px, #ffd34d 2.4px, rgba(0,0,0,0) 4px) 0 0/8px 12px repeat-y !important;
+  filter:drop-shadow(0 0 3px #ffd34d) drop-shadow(0 0 8px #ffb300) drop-shadow(0 0 14px rgba(255,170,0,.7)); animation-duration:.4s !important}
+.cab-frame.gold .cf-side::before{background:linear-gradient(90deg, rgba(255,200,60,.45), transparent); opacity:1; width:40px}
+.cab-frame::after{box-shadow:none !important; animation:none !important;
+  background:
+    linear-gradient(180deg, rgba(255,205,80,.32), transparent 9%),
+    linear-gradient(0deg, rgba(255,205,80,.28), transparent 7%)}
+.cab-frame.gold::after{opacity:1; animation:goldspill 1.1s ease-in-out infinite !important}
+@keyframes goldspill{50%{opacity:.6}}
+/* リーチのリール枠：金の縁取り＋にじみ（チカチカ点滅はやめる） */
+.cabinet .reel.reach{animation:reelglow 1.1s ease-in-out infinite !important}
+@keyframes reelglow{
+  0%,100%{box-shadow:0 0 0 2px #fff1b8, 0 0 0 4px #c98e12, 0 0 14px 2px rgba(255,205,70,.75), 0 0 34px 6px rgba(255,170,0,.35), inset 0 0 16px rgba(255,214,90,.45)}
+  50%{box-shadow:0 0 0 2px #fffbe6, 0 0 0 4px #e8ab22, 0 0 22px 4px rgba(255,220,110,.95), 0 0 56px 12px rgba(255,170,0,.5), inset 0 0 26px rgba(255,224,120,.7)}}
+.reel.tension{animation:reelglow .38s ease-in-out infinite !important}
+
+/* ===== カード：つながりのある出し方 ===== */
+/* 吸い込まれる絵柄 */
+.flyer{position:fixed; z-index:70; display:grid; place-items:center; pointer-events:none; border-radius:10px;
+  background:radial-gradient(circle, rgba(255,240,190,.9), rgba(255,211,77,.35) 55%, transparent 72%);
+  animation:flyup 1.35s cubic-bezier(.5,0,.7,.25) both}
+.flyer img{width:80%; height:80%; object-fit:contain; filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #ffd34d)}
+@keyframes flyup{
+  0%{transform:translate(0,0) scale(1); opacity:1; filter:brightness(1.4)}
+  25%{transform:translate(0,-10px) scale(1.15)}
+  100%{transform:translate(var(--dx),var(--dy)) scale(.12); opacity:.85; filter:brightness(2.2)}}
+/* 取り出し口がチャージされて光る */
+.cab-frame.charged .cf-slot{box-shadow:0 0 0 2px #fff3c4, 0 0 24px #ffd34d, 0 0 50px rgba(255,180,0,.7); animation:slotkick .3s ease}
+.cab-frame.charged .cf-slot i{background:#fff6d6; box-shadow:0 0 10px #fff, 0 0 24px #ffd34d}
+@keyframes slotkick{50%{transform:translateX(-50%) scale(1.06)}}
+/* 台は見せたまま、少しだけ暗く */
+#cardStage{background:radial-gradient(ellipse at 50% 30%, rgba(30,22,8,.35), rgba(0,0,0,.62)) !important; animation:fadein .35s ease}
+@keyframes fadein{from{opacity:0}}
+#cardStage .cardClip::before{opacity:0}
+#cardStage.out .cardClip::before{opacity:1; transition:opacity .4s .3s}
+.cardBtns{padding:10px 10px 4px; border-radius:14px; background:rgba(8,8,10,.82); box-shadow:0 -6px 20px rgba(0,0,0,.6)}
+/* 一気にシューッと出て、少し揺れて止まる（裏向き） */
+.tcard.feed{animation:feedslide 1.7s cubic-bezier(.25,.7,.25,1) forwards !important}
+@keyframes feedslide{
+  0%{transform:translateY(-102%) rotateY(180deg) rotateZ(0)}
+  62%{transform:translateY(5%) rotateY(180deg) rotateZ(.8deg)}
+  78%{transform:translateY(-2%) rotateY(180deg) rotateZ(-.6deg)}
+  90%{transform:translateY(1%) rotateY(180deg) rotateZ(.3deg)}
+  100%{transform:translateY(0) rotateY(180deg) rotateZ(0)}}
+/* 1回だけ裏返して大きく */
+#cardStage.out .tcard{transform:translateY(var(--ty,18px)) scale(var(--s,1.04)) rotateX(var(--rx)) rotateY(calc(360deg + var(--ry))) !important;
+  transition:transform .85s cubic-bezier(.3,1.25,.4,1) !important}
+#cardStage:not(.out) .tcard:not(.feed){transform:translateY(-102%) rotateY(180deg)}
+
+/* ===== 質問の画面も固定 ===== */
+html.lockplay #s-q,html.lockplay #s-decide{height:calc(100svh - var(--fTop) - var(--fB)); min-height:0; overflow:hidden; touch-action:none}
+#s-q .wrap,#s-decide .wrap{will-change:transform}
+#s-q .wrap{padding-top:10px; padding-bottom:10px}
+#s-q .progress{margin:12px 0 14px}
+
+/* ===== カードの裏面（マルト水谷） ===== */
+.tc-back{gap:14px !important;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.06) 0 1px, transparent 1px 9px),
+    radial-gradient(circle at 50% 42%, #1d4fa8 0%, #10306e 45%, #071a3e 100%) !important;
+  box-shadow:0 0 0 2px #0b0b0b, inset 0 0 0 6px #e8edf6, inset 0 0 0 8px #0d2a5e, inset 0 0 0 9px #c9a043, 0 20px 46px rgba(0,0,0,.75) !important}
+.tb-frame{position:absolute; inset:18px; border-radius:10px; pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(201,160,67,.8), inset 0 0 0 5px rgba(255,255,255,.04), inset 0 0 0 6px rgba(201,160,67,.45)}
+.tb-frame::before,.tb-frame::after{content:"✦"; position:absolute; color:#c9a043; font-size:14px; left:50%; transform:translateX(-50%)}
+.tb-frame::before{top:6px} .tb-frame::after{bottom:6px}
+.tb-plate{width:78%; padding:16px 14px; border-radius:12px; background:linear-gradient(180deg,#ffffff,#eef2f8);
+  box-shadow:0 0 0 3px #c9a043, 0 0 0 5px #0d2a5e, 0 0 0 6px #c9a043, 0 10px 24px rgba(0,0,0,.45), 0 0 40px rgba(120,170,255,.35)}
+.tb-plate img{display:block; width:100%; height:auto}
+.tb-ring{display:none}
+.tb-title{color:#f3e2a8 !important; text-shadow:0 0 10px rgba(255,214,120,.5) !important; font-size:16px !important}
+.tb-sub{color:#9fb4d8 !important}
+
+/* カードの表と裏：クラスで切りかえる（iPhoneでも確実に） */
+.tcard.showback .tc-inner,.tcard.showback .tc-foil,.tcard.showback .tc-glare,.tcard.showback .tc-gloss{visibility:hidden}
+.tcard:not(.showback) .tc-back{visibility:hidden}
+.tc-back,.tc-inner{-webkit-backface-visibility:visible !important; backface-visibility:visible !important}
+#cardStage .tcard.flip1{transform:translateY(calc(var(--ty,18px) * .4)) scale(calc(1 + (var(--s,1) - 1) * .4)) rotateY(270deg) !important;
+  transition:transform .38s cubic-bezier(.55,0,.9,.45) !important}
+#cardStage.out .tcard{transition:transform .7s cubic-bezier(.15,.9,.3,1.15) !important}
+/* リールの絵柄はセルの大きさに合わせる */
+.cell img{height:calc(var(--cell) * .86) !important}
+
+/* ===== お酒の注意書き（台座） ===== */
+:root{--fB:22px !important}
+.cf-bottom{display:flex; align-items:center; justify-content:center; padding-bottom:env(safe-area-inset-bottom)}
+.cf-bottom span{font-size:9.5px; letter-spacing:.04em; color:#c9c1b4; white-space:nowrap; transform:translateY(1px)}
+@supports(height:env(safe-area-inset-bottom)){ :root{--fB:calc(22px + env(safe-area-inset-bottom)) !important} .cf-bottom{height:var(--fB) !important} }
+
+/* ===== 横向きのときは縦向きをお願いする ===== */
+.rotate-msg{display:none}
+@media (orientation:landscape) and (max-height:520px){
+  .rotate-msg{display:flex; position:fixed; inset:0; z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center;
+    background:radial-gradient(ellipse at 50% 40%, #2a1e0c, #050403 75%); color:#f3e6c8; font-size:17px; line-height:1.7}
+  .rotate-msg b{color:#ffd34d}
+  .rm-phone{width:44px; height:78px; border-radius:9px; border:3px solid #ffd34d; box-shadow:0 0 18px rgba(255,211,77,.5); position:relative; animation:rotphone 2s ease-in-out infinite}
+  .rm-phone::after{content:""; position:absolute; left:50%; bottom:5px; width:10px; height:3px; margin-left:-5px; border-radius:2px; background:#ffd34d}
+  @keyframes rotphone{0%,20%{transform:rotate(-90deg)} 55%,100%{transform:rotate(0)}}
+}
+</style>
+</head>
+<body data-m="beer">
+<div class="cab-frame" id="cabFrame" aria-hidden="true">
+  <div class="cf-top">
+    <span class="cf-lamps l"></span><span class="cf-lamps r"></span>
+    <div class="cf-sign">TONIGHT'S SLOT</div>
+    <div class="cf-slot"><em>CARD</em><i></i><b></b></div>
+  </div>
+  <div class="cf-side l"></div><div class="cf-side r"></div>
+  <div class="cf-bottom"><span>飲酒は20歳になってから。飲酒運転は法律で禁止されています。</span></div>
+</div>
+<div class="frame-inner" id="frameInner"></div>
+<div class="rotate-msg" aria-live="polite">
+  <div class="rm-phone"></div>
+  <p>スマホを<b>縦向き</b>にして<br>お楽しみください</p>
+</div>
+
+<!-- 絵柄（SVGスプライト）はJSで生成 -->
+<div id="sprite" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"></div>
+
+<!-- ===== 質問 ===== -->
+<section class="screen active" id="s-q">
+  <div class="wrap">
+    <div class="brand"><i></i>TONIGHT'S SLOT<i></i></div>
+    <div class="qtitle">今夜の一杯<span class="gold">スロット</span></div>
+    <div class="intro">
+      <p>何が出るかはお楽しみの<b>お酒スロット</b></p>
+      <p>普段飲まないようなお酒も</p>
+      <p>ぜひ知って飲んでみてくださいね！</p>
+      <p class="intro-go">酒類と味を選んでスタートしてください！！</p>
+    </div>
+    <div class="progress"><span></span><span></span></div>
+    <div id="qbody"></div>
+  </div>
+</section>
+
+<!-- ===== 台の決定 ===== -->
+<section class="screen" id="s-decide">
+  <div class="wrap decide">
+    <div class="marquee-box">
+      <div class="lead">あなたの台は</div>
+      <div class="mname" id="d-name"></div>
+      <div class="tags" id="d-tags"></div>
+    </div>
+    <div class="d-maybe">この絵柄がそろうかも…!?</div>
+    <div class="preview" id="d-prev"></div>
+    <button class="cta" id="d-go"><span>台の前に座る</span><i>▶</i></button>
+    <button class="qback" id="d-redo">質問をやり直す</button>
+  </div>
+</section>
+
+<!-- ===== スロット台 ===== -->
+<section class="screen" id="s-play">
+  <div class="wrap">
+    <div class="topbar">
+      <button id="p-redo">‹ 質問から</button>
+    </div>
+    <div class="scene">
+      <div class="cabinet" id="cab">
+        <div class="monitor" id="monitor">
+          <canvas id="mc"></canvas>
+          <div class="monfx" id="monfx"></div>
+          <div class="mon-ui">
+            <div class="logo" id="logo">BEER</div>
+            <div class="logo-sub" id="logosub">TONIGHT'S PINT</div>
+          </div>
+          <div class="lcd" id="lcd">PRESS START</div>
+          <div class="leds" id="leds"></div>
+        </div>
+        <div class="bezel">
+          <div class="reels" id="reels">
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+          </div>
+          <div class="glass"></div>
+          <div class="payline"></div>
+          <div class="losetoast" id="losetoast"></div>
+        </div>
+        <div class="trim"><i></i></div>
+        <div class="deck">
+          <div class="stops">
+            <div class="stopwrap"><button class="btn3d stop" data-i="0" disabled>STOP</button></div>
+            <div class="stopwrap"><button class="btn3d stop" data-i="1" disabled>STOP</button></div>
+            <div class="stopwrap"><button class="btn3d stop" data-i="2" disabled>STOP</button></div>
+          </div>
+          <div class="startrow">
+            <div class="credit">PLAY<b id="count">0</b></div>
+            <button class="btn3d start live" id="start">START</button>
+            <div class="credit">JACKPOT<b id="wins">0</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- リーチ演出 -->
+<div id="cardStage">
+  <div class="slotbar"><span class="sb-lamp"></span><span class="sb-slit"></span><span class="sb-label">CARD OUT</span></div>
+  <div class="cardClip"><div class="tcard" id="tcard"></div></div>
+  <div class="cardFlash" id="cardFlash"></div>
+  <div class="cardBtns" id="cardBtns">
+    <div class="cb-note">この画面を店員さんに見せてください</div>
+    <div class="cb-row"><button class="b-sec" id="c-redo">選びなおす</button><button class="b-pri" id="c-again">もう一回まわす</button></div>
+  </div>
+</div>
+<div id="reachDim"></div>
+<div id="reach"><canvas id="rc"></canvas><div class="skip">TAP TO SKIP</div></div>
+
+<!-- 結果・絵柄表 -->
+<div class="overlay" id="ov"><div class="card" id="card"></div></div>
+
+<script>
+/* =================================================================
+   設定
+   ================================================================= */
+// リーチ演出の動画（速達生 鮮度の旅：出発の動画）。空にすると内蔵のアニメーション演出が流れます。
+const REACH_MP4S = ["assets/sokunamatabi.mp4", "assets/reach2.mp4"];   // リーチのたびにランダムで1本
+const REACH_VIDEO = { beer:REACH_MP4S, sake:REACH_MP4S, wine:REACH_MP4S };
+const reachList = m => [].concat(REACH_VIDEO[m]||[]).filter(Boolean);
+let nextReachSrc = null;
+
+// 台のモニターに流す「速達生便」の素材
+const TRUCK_IMG = "assets/truck.webp";
+const ROUTE = [   // 流れていく景色（左から順に。最後まで行くと最初に戻る）。road は道路の高さ（画像の上からの割合）
+  {f:"assets/bg/tokyo_haru.webp",    road:.86},
+  {f:"assets/bg/fuji_natsu.webp",    road:.92},
+  {f:"assets/bg/nagoya_aki.webp",    road:.85},
+  {f:"assets/bg/kyoto_haru.webp",    road:.90},
+  {f:"assets/bg/yokohama_natsu.webp",road:.84},
+  {f:"assets/bg/okazaki_aki.webp",   road:.88},
+];
+
+const RATE = { rare:1/15 };   // 大当たり（店長の隠し酒）の確率。ハズレはなし：毎回必ず3つ揃います
+
+/* =================================================================
+   絵柄（SVG）
+   ================================================================= */
+function buildSprite(){
+  const crimp = (() => { let p=[]; for(let i=0;i<42;i++){ const a=i/42*Math.PI*2, r=i%2?40:45; p.push((50+r*Math.cos(a)).toFixed(1)+","+(50+r*Math.sin(a)).toFixed(1)); } return p.join(" "); })();
+  const fan = (() => { let s=""; const n=10, R=46, cx=50, cy=86; for(let i=0;i<n;i++){ const a0=(-160+i*14)*Math.PI/180, a1=(-160+(i+1)*14)*Math.PI/180;
+      s+=`<path d="M${cx} ${cy} L${(cx+R*Math.cos(a0)).toFixed(1)} ${(cy+R*Math.sin(a0)).toFixed(1)} A${R} ${R} 0 0 1 ${(cx+R*Math.cos(a1)).toFixed(1)} ${(cy+R*Math.sin(a1)).toFixed(1)}Z" fill="${i%2?'url(#gGold)':'url(#gGold2)'}" stroke="#8a5a08" stroke-width=".8"/>`; } return s; })();
+  const sugiDots = (() => { let s=""; for(let i=0;i<70;i++){ const a=i*2.39996, r=Math.sqrt(i/70)*30; s+=`<path d="M${(50+r*Math.cos(a)).toFixed(1)} ${(54+r*Math.sin(a)).toFixed(1)} l2 -4" stroke="#2f5414" stroke-width="1.6" stroke-linecap="round"/>`; } return s; })();
+  const grapePts = [[36,34],[52,32],[68,36],[30,48],[46,47],[62,50],[38,62],[54,63],[46,78]];
+  const grapes = fill => grapePts.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="9.5" fill="${fill}" stroke="rgba(0,0,0,.25)" stroke-width=".8"/><circle cx="${x-3}" cy="${y-3.5}" r="2.6" fill="#fff" opacity=".55"/>`).join("");
+  const hopRows = [[50,16],[41,28],[59,28],[33,41],[50,41],[67,41],[40,54],[60,54],[50,66]];
+
+  document.getElementById("sprite").innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs>
+  <linearGradient id="gAmber" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd85e"/><stop offset="1" stop-color="#d97500"/></linearGradient>
+  <linearGradient id="gFoam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#eadcc0"/></linearGradient>
+  <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c2"/><stop offset=".45" stop-color="#f2c443"/><stop offset="1" stop-color="#9c6a0c"/></linearGradient>
+  <linearGradient id="gGold2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe98a"/><stop offset="1" stop-color="#c98d14"/></linearGradient>
+  <linearGradient id="gWheat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe59a"/><stop offset="1" stop-color="#c78b22"/></linearGradient>
+  <linearGradient id="gWood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a4520"/><stop offset=".5" stop-color="#cf9356"/><stop offset="1" stop-color="#6e3d1b"/></linearGradient>
+  <linearGradient id="gDark" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a0b03"/><stop offset=".45" stop-color="#5c3014"/><stop offset="1" stop-color="#140802"/></linearGradient>
+  <linearGradient id="gHop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4f29a"/><stop offset="1" stop-color="#5c9a2c"/></linearGradient>
+  <linearGradient id="gPorc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c3cbd8"/><stop offset=".4" stop-color="#fff"/><stop offset="1" stop-color="#aab4c4"/></linearGradient>
+  <linearGradient id="gIndigo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4069b8"/><stop offset="1" stop-color="#18295a"/></linearGradient>
+  <linearGradient id="gLacq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4a3c"/><stop offset="1" stop-color="#7d110b"/></linearGradient>
+  <linearGradient id="gSake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8f3ff"/><stop offset="1" stop-color="#a9c8ea"/></linearGradient>
+  <linearGradient id="gKoshu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6d58a"/><stop offset="1" stop-color="#c07d1e"/></linearGradient>
+  <radialGradient id="gSugi" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#a9d86a"/><stop offset="1" stop-color="#3c6a1a"/></radialGradient>
+  <linearGradient id="gStraw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cdbb92"/><stop offset=".5" stop-color="#f6ecd2"/><stop offset="1" stop-color="#bfa97c"/></linearGradient>
+  <linearGradient id="gWine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8174a"/><stop offset="1" stop-color="#4d0315"/></linearGradient>
+  <radialGradient id="gGrape" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#a874e0"/><stop offset="1" stop-color="#3a1466"/></radialGradient>
+  <radialGradient id="gLemon" cx=".5" cy=".5" r=".55"><stop offset="0" stop-color="#fffbd0"/><stop offset="1" stop-color="#f6cf18"/></radialGradient>
+  <radialGradient id="gRose" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ffd2dd"/><stop offset="1" stop-color="#d9476e"/></radialGradient>
+  <linearGradient id="gBottle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#112410"/><stop offset=".42" stop-color="#4b7d41"/><stop offset="1" stop-color="#0e1f0d"/></linearGradient>
+  <linearGradient id="gGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity=".25"/><stop offset=".35" stop-color="#ffffff" stop-opacity=".75"/><stop offset="1" stop-color="#ffffff" stop-opacity=".2"/></linearGradient>
+  <linearGradient id="gSpark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4b8"/><stop offset="1" stop-color="#e9a81d"/></linearGradient>
+  <path id="hopScale" d="M0 0 C-12 6 -12 20 0 27 C12 20 12 6 0 0z"/>
+  <clipPath id="cpTok"><path d="M34 10 h16 v6 c0 6 -4 10 -4 16 c10 8 22 20 22 38 c0 14 -10 22 -26 22 c-16 0 -26 -8 -26 -22 c0 -18 12 -30 22 -38 c0 -6 -4 -10 -4 -16z"/></clipPath>
+  </defs>
+
+  <!-- ===== BEER ===== -->
+  <symbol id="beer-mug" viewBox="0 0 100 100">
+    <path d="M70 42 h7 a12 12 0 0 1 12 12 v12 a12 12 0 0 1 -12 12 h-7" fill="none" stroke="#d7dee2" stroke-width="7"/>
+    <rect x="20" y="34" width="52" height="58" rx="8" fill="url(#gAmber)"/>
+    <rect x="20" y="34" width="52" height="58" rx="8" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.5"/>
+    <rect x="27" y="46" width="6" height="40" rx="3" fill="#fff" opacity=".45"/>
+    <circle cx="50" cy="76" r="2" fill="#fff" opacity=".8"/><circle cx="58" cy="64" r="1.6" fill="#fff" opacity=".8"/><circle cx="46" cy="58" r="1.3" fill="#fff" opacity=".8"/><circle cx="62" cy="82" r="1.8" fill="#fff" opacity=".7"/>
+    <path d="M16 40 q0 -14 14 -14 q4 -11 17 -9 q9 -9 19 0 q13 0 13 13 q4 6 -2 10 H16z" fill="url(#gFoam)"/>
+  </symbol>
+  <symbol id="beer-wheat" viewBox="0 0 100 100">
+    <path d="M50 96 C50 72 50 44 50 14" stroke="#b07f25" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    ${[24,38,52,66].map(y=>`<ellipse cx="41" cy="${y}" rx="7.5" ry="12" transform="rotate(-32 41 ${y})" fill="url(#gWheat)" stroke="#a3721c" stroke-width="1"/><ellipse cx="59" cy="${y}" rx="7.5" ry="12" transform="rotate(32 59 ${y})" fill="url(#gWheat)" stroke="#a3721c" stroke-width="1"/><path d="M36 ${y-8} L24 ${y-24} M64 ${y-8} L76 ${y-24}" stroke="#c99a3a" stroke-width="1.2"/>`).join("")}
+    <ellipse cx="50" cy="13" rx="6.5" ry="11" fill="url(#gWheat)" stroke="#a3721c" stroke-width="1"/>
+  </symbol>
+  <symbol id="beer-hop" viewBox="0 0 100 100">
+    <path d="M52 16 C68 0 92 8 90 28 C78 24 64 26 52 16z" fill="#4f8f2a"/><path d="M54 16 C68 12 80 16 88 26" stroke="#2f5d17" stroke-width="1.4" fill="none"/>
+    <path d="M50 18 V6" stroke="#3d6b20" stroke-width="3" stroke-linecap="round"/>
+    <g stroke="#3d7520" stroke-width="1.4" fill="url(#gHop)">${hopRows.map(([x,y])=>`<use href="#hopScale" x="${x}" y="${y}"/>`).join("")}</g>
+  </symbol>
+  <symbol id="beer-stout" viewBox="0 0 100 100">
+    <path d="M43 8 h14 v18 c0 7 13 11 13 25 v39 a6 6 0 0 1 -6 6 h-28 a6 6 0 0 1 -6 -6 v-39 c0 -14 13 -18 13 -25z" fill="url(#gDark)"/>
+    <rect x="41" y="4" width="18" height="8" rx="2" fill="url(#gGold)"/>
+    <rect x="32" y="54" width="36" height="26" rx="3" fill="#f3e6c8"/><rect x="32" y="54" width="36" height="26" rx="3" fill="none" stroke="#c9a24d" stroke-width="1.5"/>
+    <rect x="37" y="60" width="26" height="5" rx="1" fill="#6b2e0e"/><rect x="41" y="69" width="18" height="3" rx="1" fill="#b0895a"/>
+    <rect x="36" y="32" width="4" height="56" rx="2" fill="#fff" opacity=".18"/>
+  </symbol>
+  <symbol id="beer-keg" viewBox="0 0 100 100">
+    <path d="M26 12 h48 c9 20 9 56 0 76 h-48 c-9 -20 -9 -56 0 -76z" fill="url(#gWood)"/>
+    <path d="M38 12 c-4 20 -4 56 0 76 M50 12 v76 M62 12 c4 20 4 56 0 76" stroke="#5a3214" stroke-width="1.4" opacity=".55" fill="none"/>
+    <rect x="22" y="24" width="56" height="5" rx="2" fill="#3c3a38"/><rect x="19" y="47" width="62" height="6" rx="2" fill="#3c3a38"/><rect x="22" y="71" width="56" height="5" rx="2" fill="#3c3a38"/>
+    <circle cx="50" cy="50" r="7" fill="#d9a441" stroke="#6b3d12" stroke-width="2"/>
+  </symbol>
+  <symbol id="beer-pretzel" viewBox="0 0 100 100">
+    <g fill="none" stroke-linecap="round">
+      <path d="M50 64 C36 86 12 74 14 52 C16 28 42 24 50 42 C58 24 84 28 86 52 C88 74 64 86 50 64" stroke="#6e3510" stroke-width="13"/>
+      <path d="M28 84 L58 48 M72 84 L42 48" stroke="#6e3510" stroke-width="12"/>
+      <path d="M50 64 C36 86 12 74 14 52 C16 28 42 24 50 42 C58 24 84 28 86 52 C88 74 64 86 50 64" stroke="#b8692a" stroke-width="7"/>
+      <path d="M28 84 L58 48 M72 84 L42 48" stroke="#b8692a" stroke-width="6.5"/>
+    </g>
+    <g fill="#fff">${[[24,40],[34,32],[70,34],[78,46],[20,62],[80,64],[40,74],[62,72],[50,56]].map(([x,y])=>`<rect x="${x}" y="${y}" width="3" height="2.4" rx=".6"/>`).join("")}</g>
+  </symbol>
+  <symbol id="beer-rare" viewBox="0 0 100 100">
+    <polygon points="${crimp}" fill="url(#gGold)" stroke="#8a5a08" stroke-width="1.2"/>
+    <circle cx="50" cy="50" r="31" fill="url(#gGold2)" stroke="#8a5a08" stroke-width="1.5"/>
+    <circle cx="50" cy="50" r="25" fill="none" stroke="#fff6c2" stroke-width="1.2" opacity=".8"/>
+    <text x="50" y="62" font-size="34" font-weight="900" text-anchor="middle" fill="#b3261e" font-family="sans-serif">★</text>
+  </symbol>
+
+  <!-- ===== SAKE ===== -->
+  <symbol id="sake-masu" viewBox="0 0 100 100">
+    <polygon points="16,38 50,52 50,90 16,76" fill="#d6a865"/>
+    <polygon points="84,38 50,52 50,90 84,76" fill="#b5844a"/>
+    <polygon points="50,24 84,38 50,52 16,38" fill="#e8c48e"/>
+    <polygon points="50,29 76,38 50,47 24,38" fill="#a87a43"/>
+    <polygon points="50,31 72,38.5 50,46 28,38.5" fill="url(#gSake)"/>
+    <path d="M22 50 L44 59 M22 62 L44 71 M56 59 L78 50 M56 71 L78 62" stroke="#8c6234" stroke-width="1" opacity=".5"/>
+    <path d="M50 52 V90" stroke="#8c6234" stroke-width="1.2"/>
+  </symbol>
+  <symbol id="sake-ine" viewBox="0 0 100 100">
+    <path d="M26 96 C32 64 48 34 70 22" stroke="#9a7b2a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M22 96 C36 74 58 64 88 64" stroke="#5f8e30" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M64 24 C76 26 84 40 84 60" stroke="#9a7b2a" stroke-width="2" fill="none"/>
+    ${[[66,26,-10],[72,30,20],[76,36,-5],[80,42,25],[81,49,0],[84,55,25],[83,62,5],[60,24,-30]].map(([x,y,r])=>`<ellipse cx="${x}" cy="${y}" rx="4.6" ry="7" transform="rotate(${r} ${x} ${y})" fill="url(#gWheat)" stroke="#9c6f19" stroke-width=".8"/>`).join("")}
+    <ellipse cx="34" cy="40" rx="8" ry="11" fill="#fffdf5" stroke="#d9cfb8" stroke-width="1.4" transform="rotate(-20 34 40)"/>
+    <ellipse cx="31" cy="37" rx="2.5" ry="4" fill="#fff" transform="rotate(-20 31 37)"/>
+  </symbol>
+  <symbol id="sake-sugidama" viewBox="0 0 100 100">
+    <path d="M50 2 V22" stroke="#7a5a2a" stroke-width="3"/><path d="M42 20 h16" stroke="#7a5a2a" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="50" cy="56" r="34" fill="url(#gSugi)"/>
+    ${sugiDots}
+    <ellipse cx="38" cy="42" rx="10" ry="6" fill="#fff" opacity=".18" transform="rotate(-30 38 42)"/>
+  </symbol>
+  <symbol id="sake-tokkuri" viewBox="0 0 100 100">
+    <path d="M34 10 h16 v6 c0 6 -4 10 -4 16 c10 8 22 20 22 38 c0 14 -10 22 -26 22 c-16 0 -26 -8 -26 -22 c0 -18 12 -30 22 -38 c0 -6 -4 -10 -4 -16z" fill="url(#gPorc)" stroke="#97a3b6" stroke-width="1.5"/>
+    <g clip-path="url(#cpTok)"><rect x="0" y="52" width="100" height="16" fill="url(#gIndigo)"/>
+      <path d="M10 60 q5 -6 10 0 t10 0 t10 0 t10 0 t10 0 t10 0" stroke="#fff" stroke-width="1.6" fill="none" opacity=".85"/></g>
+    <rect x="31" y="34" width="4" height="40" rx="2" fill="#fff" opacity=".7"/>
+    <path d="M68 76 h24 l-4 15 h-16z" fill="url(#gPorc)" stroke="#97a3b6" stroke-width="1.3"/>
+    <ellipse cx="80" cy="76" rx="12" ry="3" fill="url(#gSake)" stroke="#97a3b6" stroke-width="1"/>
+  </symbol>
+  <symbol id="sake-taru" viewBox="0 0 100 100">
+    <rect x="20" y="26" width="60" height="62" fill="url(#gStraw)"/>
+    ${[26,32,38,44,56,62,68,74].map(x=>`<path d="M${x} 28 V86" stroke="#bda874" stroke-width=".8"/>`).join("")}
+    <ellipse cx="50" cy="88" rx="30" ry="7" fill="#bfa97c"/>
+    <ellipse cx="50" cy="26" rx="30" ry="8" fill="#c08a4e"/><ellipse cx="50" cy="26" rx="25" ry="5.5" fill="#d9a466"/>
+    <path d="M20 38 H80 M20 80 H80" stroke="#6e4c1e" stroke-width="3"/>
+    <path d="M30 30 V90 M70 30 V90" stroke="#6e4c1e" stroke-width="2.2"/>
+    <rect x="35" y="45" width="30" height="28" rx="2" fill="#c62828"/><rect x="37.5" y="47.5" width="25" height="23" fill="none" stroke="#f6d36b" stroke-width="1"/>
+    <text x="50" y="66" font-size="19" font-weight="800" text-anchor="middle" fill="#fff" font-family="'Shippori Mincho B1',serif">酒</text>
+  </symbol>
+  <symbol id="sake-sakazuki" viewBox="0 0 100 100">
+    <path d="M38 66 l-5 14 h34 l-5 -14z" fill="#8d150e"/>
+    <path d="M8 46 C12 72 88 72 92 46z" fill="url(#gLacq)"/>
+    <ellipse cx="50" cy="46" rx="42" ry="14" fill="#a3170f" stroke="url(#gGold)" stroke-width="3"/>
+    <ellipse cx="50" cy="47" rx="35" ry="10" fill="url(#gKoshu)"/>
+    <ellipse cx="40" cy="44" rx="10" ry="2.5" fill="#fff" opacity=".45"/>
+    <path d="M30 60 q6 -5 12 0 q6 5 12 0 q6 -5 12 0" stroke="#f6d36b" stroke-width="1.6" fill="none"/>
+  </symbol>
+  <symbol id="sake-rare" viewBox="0 0 100 100">
+    ${fan}
+    <circle cx="50" cy="56" r="10" fill="#d32f2f" stroke="#fff3c4" stroke-width="1.5"/>
+    <circle cx="50" cy="86" r="4" fill="#5a3a06"/>
+  </symbol>
+
+  <!-- ===== WINE ===== -->
+  <symbol id="wine-flute" viewBox="0 0 100 100">
+    <path d="M39 6 h22 c0 26 -2 42 -11 48 c-9 -6 -11 -22 -11 -48z" fill="url(#gGlass)" stroke="#fff" stroke-opacity=".9" stroke-width="1.4"/>
+    <path d="M40.5 18 h19 c-1 19 -3 29 -9.5 34 c-6.5 -5 -8.5 -15 -9.5 -34z" fill="url(#gSpark)"/>
+    <circle cx="47" cy="40" r="1.4" fill="#fff"/><circle cx="53" cy="32" r="1.2" fill="#fff"/><circle cx="49" cy="26" r="1" fill="#fff"/><circle cx="52" cy="45" r="1.1" fill="#fff"/>
+    <path d="M50 54 V86" stroke="#e8eef2" stroke-width="3"/><ellipse cx="50" cy="88" rx="15" ry="3.8" fill="#e8eef2" stroke="#b5c0c8" stroke-width="1"/>
+  </symbol>
+  <symbol id="wine-citrus" viewBox="0 0 100 100">
+    <path d="M70 18 C78 2 96 6 96 14 C88 22 78 22 70 18z" fill="#5a9b33"/>
+    <circle cx="48" cy="54" r="38" fill="#f4c21b"/><circle cx="48" cy="54" r="34" fill="#fff6c9"/><circle cx="48" cy="54" r="31" fill="url(#gLemon)"/>
+    <g stroke="#fff8d8" stroke-width="2.6">${[0,1,2,3,4,5,6,7,8,9].map(i=>{const a=i/10*Math.PI*2; return `<line x1="48" y1="54" x2="${(48+31*Math.cos(a)).toFixed(1)}" y2="${(54+31*Math.sin(a)).toFixed(1)}"/>`}).join("")}</g>
+    <circle cx="48" cy="54" r="4" fill="#fff8d8"/>
+  </symbol>
+  <symbol id="wine-rose" viewBox="0 0 100 100">
+    <path d="M30 70 C10 68 6 84 10 92 C24 92 34 84 30 70z" fill="#4f8f2a"/><path d="M70 70 C90 68 94 84 90 92 C76 92 66 84 70 70z" fill="#4f8f2a"/>
+    <circle cx="50" cy="50" r="33" fill="url(#gRose)"/>
+    <g fill="none" stroke="#b8304f" stroke-width="2.2" stroke-linecap="round">
+      <path d="M50 50 c4 -4 8 2 4 6 c-6 6 -16 -2 -10 -12 c8 -10 24 -2 20 12 c-4 14 -26 14 -30 -2 c-4 -18 16 -28 30 -22"/>
+      <path d="M22 44 c4 -12 16 -20 28 -18"/><path d="M78 56 c-2 12 -14 22 -28 20"/>
+    </g>
+  </symbol>
+  <symbol id="wine-grapes" viewBox="0 0 100 100">
+    <path d="M54 24 C56 14 62 10 68 6" stroke="#6b4a22" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M56 22 C66 4 88 8 86 22 C76 28 64 28 56 22z" fill="#4f8f2a"/>
+    ${grapes("url(#gGrape)")}
+  </symbol>
+  <symbol id="wine-bottle" viewBox="0 0 100 100">
+    <path d="M43 4 h14 v24 c0 6 14 10 14 26 v36 a6 6 0 0 1 -6 6 h-30 a6 6 0 0 1 -6 -6 v-36 c0 -16 14 -20 14 -26z" fill="url(#gBottle)"/>
+    <rect x="42" y="3" width="16" height="18" rx="2" fill="url(#gGold)"/>
+    <rect x="31" y="56" width="38" height="28" rx="2" fill="#f7f0de"/><rect x="33" y="58" width="34" height="24" fill="none" stroke="#c9a24d" stroke-width="1"/>
+    <text x="50" y="71" font-size="7.5" text-anchor="middle" fill="#6b4a22" font-family="Oswald,sans-serif" letter-spacing="1">CHÂTEAU</text>
+    <rect x="40" y="75" width="20" height="2" fill="#c9a24d"/>
+    <rect x="35" y="34" width="4" height="54" rx="2" fill="#fff" opacity=".2"/>
+  </symbol>
+  <symbol id="wine-red" viewBox="0 0 100 100">
+    <path d="M28 8 h44 c3 28 -4 46 -22 48 c-18 -2 -25 -20 -22 -48z" fill="url(#gGlass)" stroke="#fff" stroke-opacity=".9" stroke-width="1.4"/>
+    <path d="M29 28 h42 c-1 17 -8 26 -21 27 c-13 -1 -20 -10 -21 -27z" fill="url(#gWine)"/>
+    <ellipse cx="50" cy="28" rx="21" ry="3" fill="#e0365f"/>
+    <path d="M33 12 c-1 10 0 22 4 30" stroke="#fff" stroke-width="2.5" opacity=".6" fill="none"/>
+    <path d="M50 56 V86" stroke="#e8eef2" stroke-width="3"/><ellipse cx="50" cy="88" rx="16" ry="4" fill="#e8eef2" stroke="#b5c0c8" stroke-width="1"/>
+  </symbol>
+  <symbol id="wine-rare" viewBox="0 0 100 100">
+    <path d="M54 24 C56 14 62 10 68 6" stroke="#8a5a08" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M56 22 C66 4 88 8 86 22 C76 28 64 28 56 22z" fill="url(#gGold2)" stroke="#8a5a08" stroke-width="1"/>
+    ${grapes("url(#gGold)")}
+    <path d="M18 18 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#fff6c2"/><path d="M84 66 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#fff6c2"/>
+  </symbol>
+  </svg>`;
+}
+
+/* =================================================================
+   リールの絵柄（実写）とお酒のデータ
+   どの台も同じリール（6種×2コマ＋ロゴ1コマ）。台ごとに「揃う絵柄」が変わります。
+   ================================================================= */
+const ITEMS = {   // 揃うとお酒が決まる絵柄
+  beer:   {img:"img/beer.webp", n:"生ビール", cat:"ビール",
+           d:"泡まできめ細かい、キンキンの生ビール。まずはこれで乾杯！", f:["唐揚げ","枝豆","焼き餃子"], s:["キンキンのジョッキ","薄はりグラス"]},
+  truck:  {img:"img/truck.webp", n:"速達生ビール", cat:"ビール",
+           d:"速達トラックで届いた、鮮度自慢の生ビール。", f:["唐揚げ","フライドポテト","焼き鳥"], s:["キンキンのジョッキ"]},
+  taru:   {img:"img/sake_taru.webp", n:"日本酒", cat:"日本酒",
+           d:"お祝いの樽酒のように、華やかでめでたい一杯。お米の旨みをゆっくりどうぞ。", f:["刺身盛り","だし巻き玉子","塩焼き"], s:["冷や","常温"]},
+  tokkuri:{img:"img/sake_logo.webp", n:"燗酒", cat:"日本酒",
+           d:"とっくりで温めた日本酒。ふわっと香りが立ち、体の芯からあたたまります。", f:["おでん","焼き魚","煮物"], s:["ぬる燗","熱燗"]},
+  grapes: {img:"img/grapes.webp", n:"グラスワイン", cat:"ワイン",
+           d:"ブドウの果実味がそのまま広がる、飲みやすい一杯。", f:["生ハム","チーズ盛り","カプレーゼ"], s:["グラスで"]},
+  red:    {img:"img/wine_glass.webp", n:"赤ワイン", cat:"ワイン",
+           d:"しなやかな渋みと深い色。お肉料理と一緒にゆっくり味わう赤。", f:["ステーキ","チーズ盛り","ミートソースパスタ"], s:["大ぶりのグラスで","常温寄り"]},
+  white:  {img:"img/wine_white.webp", n:"白ワイン", cat:"ワイン",
+           d:"キリッと冷えた白。爽やかな酸味で料理がすすみます。", f:["カルパッチョ","エビのアヒージョ","グリーンサラダ"], s:["よく冷やして","グラスで"]},
+};
+// 大当たりの絵柄（スロットの7）
+const RARE = {id:"seven", img:"img/seven.svg", n:"店長の隠し酒", d:"メニューに載っていない、店長とっておきの一杯。中身は店員さんに聞いてからのお楽しみ。"};
+// リールに流れるだけの絵柄（ロゴ）
+const DECOR = [ {id:"maruto", img:"img/logo_maruto.webp"}, {id:"happy", img:"img/logo_happyring.webp"} ];
+const PHOTO = Object.fromEntries([...Object.entries(ITEMS).map(([k,v])=>[k,v.img]), [RARE.id, RARE.img], ...DECOR.map(d=>[d.id,d.img])]);
+
+const MACHINES = {   // 台ごとに「揃う絵柄」（好みの味ごと）
+  beer:{ name:"ビール台", q:"ビール",  pool:{"すっきり":["beer","truck"],    "しっとり":["beer","truck"]} },
+  sake:{ name:"日本酒台", q:"日本酒", pool:{"すっきり":["taru"],            "しっとり":["tokkuri","taru"]} },
+  wine:{ name:"ワイン台", q:"ワイン", pool:{"すっきり":["white","grapes"],  "しっとり":["red","grapes"]} },
+};
+
+const MOODS = {
+  otsukare:{l:"おつかれ", e:"🛋️", m:["今日もよく頑張りました。まずはゆっくり一口どうぞ。","肩の力を抜いて、今夜は自分にごほうびを。","おつかれさまでした。この一杯で、今日をいい日に。"]},
+  gokigen: {l:"ごきげん", e:"🎶", m:["いい日には、いい一杯を。ごきげんな夜をもっとごきげんに。","その笑顔に乾杯！ 今夜はきっと楽しい夜になります。","ごきげんな今日にぴったりの一杯が出ました。"]},
+  shippori:{l:"しっぽり", e:"🌙", m:["静かな夜には、じっくり味わう一杯を。","ゆっくり、ゆったり。会話と一緒に味わってください。","しっぽり飲むなら、この一杯がちょうどいい。"]},
+  hashagu: {l:"はしゃぎたい", e:"🎉", m:["今夜は盛り上がっていきましょう！ まずは乾杯から！","テーブルのみんなで同じ一杯を頼んで、一斉に乾杯！","はしゃぐ夜のスタートにぴったりの一杯です。"]},
+};
+
+/* =================================================================
+   質問
+   ================================================================= */
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const icon = id => PHOTO[id] ? `<img src="${PHOTO[id]}" alt="" draggable="false" decoding="async">` : `<svg viewBox="0 0 100 100"><use href="#${id}"/></svg>`;
+const ans = {};
+let qi = 0;
+
+const QUESTIONS = [
+  {key:"m", text:"今夜飲みたいのは？", layout:"", opts:[
+    {v:"beer", t:"ビール", d:"キレの一杯から、コクの一杯まで", ic:"beer", cls:"c-beer"},
+    {v:"sake", t:"日本酒", d:"冷やか燗か、今夜の一合を", ic:"taru", cls:"c-sake"},
+    {v:"wine", t:"ワイン", d:"泡・白・赤、今夜のグラスを", ic:"red", cls:"c-wine"}]},
+  {key:"taste", text:"好みの味は？", layout:"two", opts:[
+    {v:"すっきり", t:"すっきり", d:"キレ・爽快・軽やか", emo:"💧"},
+    {v:"しっとり", t:"しっとり", d:"コク・まろやか・余韻", emo:"🌰"}]},
+];
+
+/* ===== 1問目：カードを選ぶ（運だめし） ===== */
+const CARD_INFO = {
+  beer:{en:"BEER", t:"ビール", d:"キレとのどごし"},
+  sake:{en:"SAKE", t:"日本酒", d:"香りと旨み"},
+  wine:{en:"WINE", t:"ワイン", d:"果実と余韻"},
+};
+function renderQ1(){
+  const q = QUESTIONS[0];
+  $("#qbody").innerHTML = `<div class="qstep q1">
+    <div class="qnum">STEP 1 / 2</div>
+    <div class="qtext">どの<span class="gold">ドリンク台</span>にしますか？？</div>
+    <div class="hall">
+      ${q.opts.map((o,i)=>`<button class="mini ${o.cls}" data-v="${o.v}" style="--i:${i}">
+        <span class="mini-sign">${CARD_INFO[o.v].en}</span>
+        <span class="mini-lamps">${"<i></i>".repeat(7)}</span>
+        <span class="mini-screen">${icon(o.ic)}</span>
+        <span class="mini-name">${CARD_INFO[o.v].t}台</span>
+        <span class="mini-btn">この台</span>
+      </button>`).join("")}
+    </div>
+  </div>`;
+  const cabs = [...document.querySelectorAll(".mini")];
+  let locked = false;
+  cabs.forEach(c=>c.onclick=()=>{
+    if(locked) return; locked = true; sfx.ctx();
+    cabs.forEach(x=>x.classList.toggle("dim", x!==c));
+    c.classList.add("chosen");
+    sfx.lever(); setTimeout(()=>sfx.fanfare(false),150); buzz([30,40,60]); burst(c);
+    setTimeout(()=>{ ans.m = c.dataset.v; qi = 1; renderQ(); }, 950);
+  });
+}
+function burst(el){
+  const r = el.getBoundingClientRect(), cols=["#ffd34d","#fff3c4","#ff9f1a","#ffffff"];
+  for(let i=0;i<26;i++){
+    const d=document.createElement("div"); d.className="spark";
+    const a=Math.random()*Math.PI*2, dist=60+Math.random()*90;
+    d.style.left=(r.left+r.width/2)+"px"; d.style.top=(r.top+r.height/2)+"px"; d.style.background=pick(cols);
+    d.style.setProperty("--dx",Math.cos(a)*dist+"px"); d.style.setProperty("--dy",Math.sin(a)*dist+"px");
+    document.body.appendChild(d); setTimeout(()=>d.remove(),900);
+  }
+}
+
+function renderQ2(){
+  const M = MACHINES[ans.m];
+  const T = [
+    {v:"すっきり", en:"CRISP",  icon:"💧", sub:"キレ・爽快・軽やか"},
+    {v:"しっとり", en:"MELLOW", icon:"🍯", sub:"コク・まろやか・余韻"},
+  ];
+  $("#qbody").innerHTML = `<div class="qstep q2">
+    <div class="qnum">STEP 2 / 2</div>
+    <div class="qtext"><span class="gold">${M.name}</span>の味は？</div>
+    <div class="tastes">
+      ${T.map((t,i)=>`<button class="tbtn t${i}" data-v="${t.v}" style="--i:${i}">
+        <span class="tb-bulbs"></span>
+        <span class="tb-en">${t.en}</span>
+        <span class="tb-icon">${t.icon}</span>
+        <span class="tb-name">${t.v}</span>
+        <span class="tb-sub">${t.sub}</span>
+        <span class="tb-maybe">そろうかも!?</span>
+        <span class="tb-syms">${M.pool[t.v].map(id=>`<b>${icon(id)}</b>`).join("")}</span>
+        <span class="tb-push">PUSH</span>
+      </button>`).join("")}
+    </div>
+    <button class="qback" id="qprev">‹ 台を選びなおす</button>
+  </div>`;
+  const btns = [...document.querySelectorAll(".tbtn")];
+  let locked = false;
+  btns.forEach(bn=>bn.onclick=()=>{
+    if(locked) return; locked = true; sfx.ctx();
+    btns.forEach(x=>x.classList.toggle("dim", x!==bn)); bn.classList.add("chosen");
+    sfx.lever(); setTimeout(()=>sfx.fanfare(false),150); buzz([30,40,60]); burst(bn);
+    setTimeout(()=>{ ans.taste = bn.dataset.v; decide(); }, 950);
+  });
+  $("#qprev").onclick = ()=>{ qi = 0; renderQ(); };
+}
+
+function renderQ(){
+  setTimeout(fitScreen, 0); setTimeout(fitScreen, 700);
+  document.querySelectorAll(".progress span").forEach((s,i)=>s.classList.toggle("on", i<=qi));
+  if(qi===0) return renderQ1();
+  if(qi===1) return renderQ2();
+  const q = QUESTIONS[qi];
+  $("#qbody").innerHTML = `<div class="qstep q2">
+    <div class="qnum">STEP ${qi+1} / 2</div>
+    <div class="qtext">${q.text}</div>
+    <div class="opts ${q.layout}">
+      ${q.opts.map(o=>`<button class="opt ${o.cls||""}" data-v="${o.v}">
+        ${o.ic?`<span class="ic">${icon(o.ic)}</span>`:`<span class="emo">${o.emo}</span>`}
+        <span><div class="t">${o.t}</div>${o.d?`<div class="d">${o.d}</div>`:""}</span></button>`).join("")}
+    </div>
+    ${qi>0?`<button class="qback" id="qprev">‹ ひとつ前に戻る</button>`:""}
+  </div>`;
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    ans[q.key]=b.dataset.v; sfx.tick(900,.05);
+    if(qi<QUESTIONS.length-1){ qi++; renderQ(); } else decide();
+  });
+  const p=$("#qprev"); if(p) p.onclick=()=>{ qi--; renderQ(); };
+}
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active", s.id===id));
+  document.documentElement.classList.toggle("lockplay", true);
+  window.scrollTo(0,0);
+  fitScreen();
+}
+function fitScreen(){
+  const sc = document.querySelector(".screen.active"); if(!sc || sc.id==="s-play") return;
+  const w = sc.querySelector(".wrap"); if(!w) return;
+  w.style.transform = ""; 
+  const avail = sc.clientHeight, need = w.scrollHeight;
+  const k = need > avail ? Math.max(.6, avail/need) : 1;
+  w.style.transformOrigin = "50% 0"; w.style.transform = k<1 ? `scale(${k.toFixed(3)})` : "";
+}
+addEventListener("resize", fitScreen);
+document.documentElement.classList.add("lockplay");
+// 遊ぶ画面では、スクロールや引っぱりで画面が動かないようにする
+document.addEventListener("touchmove", e=>{ if(document.documentElement.classList.contains("lockplay")) e.preventDefault(); }, {passive:false});
+
+function decide(){
+  const M = MACHINES[ans.m];
+  document.body.dataset.m = ans.m;
+  $("#d-name").textContent = M.name;
+  $("#d-tags").innerHTML = `<span class="tag">${M.q}</span><span class="tag">${ans.taste}</span>`;
+  $("#d-prev").innerHTML = M.pool[ans.taste].map((id,i)=>`<div style="--i:${i}">${icon(id)}</div>`).join("");
+  const wrap = $("#s-decide .decide"); wrap.classList.remove("revealed"); void wrap.offsetWidth; wrap.classList.add("revealed");
+  show("s-decide"); setTimeout(fitScreen, 50);
+  sfx.fanfare(false);
+}
+$("#d-go").onclick = ()=>{ setupMachine(); show("s-play"); fitPlay(); const c=$("#cab"); c.classList.remove("enter"); void c.offsetWidth; c.classList.add("enter"); sfx.ctx(); };
+$("#d-redo").onclick = $("#p-redo").onclick = ()=>{ if(busy()) return; qi=0; renderQ(); show("s-q"); };
+
+/* =================================================================
+   スロット本体
+   ================================================================= */
+const reelEls = [...document.querySelectorAll(".reel")];
+const stopBtns = [...document.querySelectorAll(".btn3d.stop")];
+const V_MAX = 19;            // 回転速度（コマ/秒）
+let reels = [], L = 13, syms = [], outcome = null, reachLock = false, plays = 0, wins = 0, spinTicker = null;
+const mod = (a,n)=>((a%n)+n)%n;
+
+function shuffleStrip(list){
+  for(let tries=0; tries<200; tries++){
+    const a=[...list].sort(()=>Math.random()-.5);
+    if(a.every((x,i)=>x!==a[(i+1)%a.length])) return a;
+  }
+  return list;
+}
+
+// 映像（モニター）を優先して大きく。足りない分はリールを小さくする
+function fitPlay(){
+  const sc = $("#s-play"); if(!sc.classList.contains("active")) return;
+  const root = document.documentElement;
+  root.style.setProperty("--cell", "58px");
+  const avail = sc.clientHeight;
+  const others = $("#s-play .topbar").offsetHeight + 6 + $("#s-play .trim").offsetHeight + $("#s-play .deck").offsetHeight + 24;
+  const monWant = Math.max(avail*.42, 200);
+  const cell = Math.max(34, Math.min(58, Math.floor((avail - others - monWant)/3)));
+  root.style.setProperty("--cell", cell+"px");
+  if(reels.length) render();
+}
+addEventListener("resize", ()=>setTimeout(fitPlay, 50));
+
+function setupMachine(){
+  tries = 0;
+  reachList(ans.m).forEach(src=>getVideo(src).load());
+  const M = MACHINES[ans.m];
+
+  $("#leds").innerHTML = Array.from({length:16},(_,i)=>`<i style="animation-delay:${-i*1.4/16}s"></i>`).join("");
+  syms = Object.keys(ITEMS);
+  const base = [...syms, ...syms, ...DECOR.map(d=>d.id), RARE.id];   // お酒の絵柄×2 + ロゴ各1 + 7
+  L = base.length;
+  reels = reelEls.map((el,i)=>{
+    const order = shuffleStrip(base);
+    const strip = el.querySelector(".strip");
+    strip.innerHTML = [0,1,2].map(()=>order.map(id=>`<div class="cell" data-id="${id}">${icon(id)}</div>`).join("")).join("");
+    return {el, strip, order, offset: Math.floor(Math.random()*L), v:0, state:"stopped", anim:null};
+  });
+  setLCD(ans.taste);
+  render();
+  setButtons();
+}
+
+function cellH(){ return reelEls[0].clientHeight/3; }
+function render(){
+  const h = cellH();
+  reels.forEach(r=>{
+    r.strip.style.transform = `translate3d(0,${-(mod(r.offset,L)+L)*h}px,0)`;
+    r.strip.classList.toggle("fast", r.v>V_MAX*.6 && r.state==="spin");
+  });
+}
+const symAt = (r,T)=>r.order[mod(Math.round(T)+1, L)];       // ペイライン（真ん中）の絵柄
+
+let last = performance.now();
+/* ===== 台のモニター（待機映像。リーチ中は演出に切り替わる） ===== */
+const monCv = document.getElementById("mc"), monCtx = monCv.getContext("2d");
+const monParts = Array.from({length:70},()=>({x:Math.random(), y:Math.random(), r:1+Math.random()*4, s:.3+Math.random()*1.2, a:Math.random()*6.28, w:(Math.random()-.5)*2}));
+let monitorOverride = null;
+const IDLE = {
+  beer(ctx,W,H,s,P){
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#d98a0c"); g.addColorStop(.55,"#8a4a02"); g.addColorStop(1,"#2a1300");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation="lighter";
+    for(let i=0;i<4;i++){ const x=W*(.15+.25*i)+Math.sin(s*.4+i)*30; const gr=ctx.createLinearGradient(x,0,x+60,H);
+      gr.addColorStop(0,"rgba(255,230,150,.10)"); gr.addColorStop(1,"rgba(255,230,150,0)"); ctx.fillStyle=gr;
+      ctx.beginPath(); ctx.moveTo(x-20,0); ctx.lineTo(x+40,0); ctx.lineTo(x+120,H); ctx.lineTo(x+40,H); ctx.fill(); }
+    ctx.globalCompositeOperation="source-over";
+    ctx.fillStyle="rgba(255,250,230,.75)";
+    P.forEach(p=>{ const y=H-((p.y*H + s*p.s*60)%H); ctx.beginPath(); ctx.arc(p.x*W+Math.sin(s*2+p.a)*3, y, p.r*.6, 0, 7); ctx.fill(); });
+    ctx.fillStyle="rgba(255,250,238,.95)";
+    for(let x=-20;x<W+40;x+=30){ ctx.beginPath(); ctx.arc(x, 6+Math.sin(x*.5+s*1.5)*3, 16+Math.sin(x)*5, 0, 7); ctx.fill(); }
+  },
+  sake(ctx,W,H,s,P){
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0e2350"); g.addColorStop(1,"#02050e");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const mx=W*.78, my=H*.22, mr=Math.min(W,H)*.11;
+    const mg=ctx.createRadialGradient(mx,my,mr*.6,mx,my,mr*3.2); mg.addColorStop(0,"rgba(255,240,200,.35)"); mg.addColorStop(1,"rgba(255,240,200,0)");
+    ctx.fillStyle=mg; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#fff4d6"; ctx.beginPath(); ctx.arc(mx,my,mr,0,7); ctx.fill();
+    ctx.fillStyle="#0a1530"; ctx.beginPath(); ctx.moveTo(0,H*.62);
+    for(let x=0;x<=W;x+=10) ctx.lineTo(x, H*.6 - Math.max(0,Math.sin(x/W*3.2+.3))*H*.16 - Math.sin(x/23)*3); ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.fill();
+    ctx.strokeStyle="rgba(255,240,200,.25)"; ctx.lineWidth=2;
+    for(let i=0;i<6;i++){ const y=H*.66+i*9, w=30-i*4; ctx.beginPath(); ctx.moveTo(mx-w+Math.sin(s*2+i)*4,y); ctx.lineTo(mx+w+Math.sin(s*2+i)*4,y); ctx.stroke(); }
+    P.forEach(q=>{ const y=((q.y*H + s*q.s*28))%H, x=(q.x*W+Math.sin(s*.8+q.a)*24+W)%W;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(q.a+s*q.w); ctx.fillStyle="rgba(255,190,205,.85)";
+      ctx.beginPath(); ctx.ellipse(0,0,q.r+2,q.r*.55+1,0,0,7); ctx.fill(); ctx.restore(); });
+  },
+  wine(ctx,W,H,s,P){
+    ctx.fillStyle="#12020a"; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation="lighter";
+    for(let k=0;k<3;k++){ const a=s*.35+k*2.1, R=Math.min(W,H)*(.45+.1*k);
+      const x=W/2+Math.cos(a)*W*.25, y=H*.45+Math.sin(a)*H*.15;
+      const g=ctx.createRadialGradient(x,y,0,x,y,R); g.addColorStop(0,`rgba(${170-k*25},12,${55+k*12},.45)`); g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+    P.forEach(q=>{ const tw=(Math.sin(s*2+q.a*3)+1)/2; ctx.fillStyle=`rgba(255,215,150,${tw*.55})`;
+      ctx.beginPath(); ctx.arc(q.x*W, q.y*H, q.r*1.2*tw+.4, 0, 7); ctx.fill(); });
+    ctx.globalCompositeOperation="source-over";
+  }
+};
+/* ===== 速達生便：景色が流れ、トラックが左から右へ走る ===== */
+const Delivery = (()=>{
+  const OVERLAP = .24;
+  const load = src=>{ const im=new Image(); im.decoding="async"; im.src=src; return im; };
+  const truck = load(TRUCK_IMG);
+  const segs = ROUTE.map(r=>({...r, im:load(r.f)}));
+  let panU = 0, jump = 0, boost = 0, t = 0, puffT = 0, puffs = [], last = 0, brakeT = 0, bubble = null;
+  const ok = im=>im.complete && im.naturalWidth;
+  // 右向きのトラック：左右反転し、荷台の広告だけ元の向きで貼りなおす（文字が鏡文字にならないように）
+  let truckR = null;
+  const truckRight = ()=>{
+    if(truckR) return truckR;
+    const w=truck.naturalWidth, h=truck.naturalHeight, c=document.createElement("canvas"); c.width=w; c.height=h;
+    const x=c.getContext("2d"); x.save(); x.translate(w,0); x.scale(-1,1); x.drawImage(truck,0,0); x.restore();
+    const a=.33, b=.945, tt=.06, bt=.70;
+    x.drawImage(truck, w*a, h*tt, w*(b-a), h*(bt-tt), w*(1-b), h*tt, w*(b-a), h*(bt-tt));
+    return (truckR=c);
+  };
+  const feather = im=>{   // 左はしを透明にぼかした版（前の景色に重ねて、つなぎ目をなめらかに）
+    if(im.fe) return im.fe;
+    const c=document.createElement("canvas"); c.width=im.naturalWidth; c.height=im.naturalHeight;
+    const x=c.getContext("2d"); x.drawImage(im,0,0); x.globalCompositeOperation="destination-in";
+    const g=x.createLinearGradient(0,0,c.width,0); g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(OVERLAP,"#000"); g.addColorStop(1,"#000");
+    x.fillStyle=g; x.fillRect(0,0,c.width,c.height); return (im.fe=c);
+  };
+  const aspect = sg=> ok(sg.im) ? sg.im.naturalWidth/sg.im.naturalHeight : 1.98;
+
+  function draw(c, W, H, now, ovPx){
+    const dt = Math.min(.05, last ? (now-last)/1000 : 0); last = now; t += dt;
+    const visH = H - ovPx;                       // リールに隠れない部分
+    const ih = Math.max(visH*.98, W/1.98);       // 景色の高さ
+    brakeT = Math.max(0, brakeT-dt);
+    const brk = brakeT>0 ? (brakeT>.9 ? 1-(brakeT-.9)/.5 : brakeT/.9) : 0;   // 0→1→0：止まって、また走り出す
+    const speedU = .34*(boost>0 ? 2.3 : 1)*(1-brk*.98), speed = speedU*ih;   // 1秒に景色の高さの何倍進むか
+    panU += speedU*dt; boost = Math.max(0, boost-dt); jump = Math.max(0, jump-dt*1.7);
+    if(bubble) bubble.t += dt;
+
+    // 景色（ずっとループ）
+    const starts=[]; let u=0; segs.forEach(sg=>{ starts.push(u); u += aspect(sg)*ih*(1-OVERLAP); });
+    const loopLen = u;
+    c.fillStyle="#9cc3e6"; c.fillRect(0,0,W,H);
+    const pan = panU*ih, p = ((pan % loopLen)+loopLen)%loopLen;
+    const vis=[];
+    for(let rep=-1; rep<=1; rep++) segs.forEach((sg,i)=>{ const xl=starts[i]-p+rep*loopLen, w=aspect(sg)*ih; if(xl<W && xl+w>0) vis.push({sg,xl,w}); });
+    vis.sort((a,b)=>a.xl-b.xl);
+    vis.forEach((v,k)=>{ if(!ok(v.sg.im)) return; c.drawImage(k===0 ? v.sg.im : feather(v.sg.im), v.xl, 0, v.w, ih); });
+    // 景色の下（リールの裏）は道路の色でつなぐ
+    const gr=c.createLinearGradient(0,ih-2,0,H); gr.addColorStop(0,"#4a4d52"); gr.addColorStop(1,"#141518");
+    c.fillStyle=gr; c.fillRect(0,ih-2,W,H-ih+2);
+
+    // トラックの位置の道路の高さ（2枚が重なる所は間をとる）
+    const tx = W*.44, TW = Math.min(W*.5, ih*.6), TH = TW*178/436;
+    let road = .88, best=-1;
+    vis.forEach(v=>{ const cx=tx-v.xl; if(cx>=0 && cx<=v.w){ const into=cx/(v.w*OVERLAP); if(best<0){ road=v.sg.road; best=1; } else road = road*(1-Math.min(1,into)) + v.sg.road*Math.min(1,into); } });
+    const base = road*ih;
+    const bob = Math.sin(t*22)*.8, jh = jump>0 ? Math.sin(jump*Math.PI)*TH*.75 : 0;
+    const x = tx-TW/2, y = base-TH+bob-jh;
+
+    // 影・スピード線・けむり
+    const sl = 1-Math.sin(jump*Math.PI)*.45;
+    c.fillStyle="rgba(0,0,0,.32)"; c.beginPath(); c.ellipse(tx, base+1, TW*.48*sl, 4*sl, 0, 0, 7); c.fill();
+    if(boost>0){ c.strokeStyle=`rgba(255,255,255,${Math.min(1,boost)*.85})`; c.lineCap="round"; c.lineWidth=2.5;
+      for(let k=0;k<5;k++){ const yy=y+TH*(.2+k*.16), l=30+((t*400+k*53)%50); c.beginPath(); c.moveTo(x-6-l,yy); c.lineTo(x-6,yy); c.stroke(); } }
+    puffT -= dt;
+    // けむりはトラックからの相対位置（景色の高さ基準）で持つ
+    if(puffT<=0){ puffT = boost>0 ? .05 : .13; puffs.push({dx:-TW*.48/ih, dy:(TH*.86-TH)/ih, r:.01, a:.45});
+      if(brakeT>.9){ puffs.push({dx:-TW*.25/ih, dy:-TH*.05/ih, r:.016, a:.7}, {dx:TW*.28/ih, dy:-TH*.05/ih, r:.016, a:.7}); puffT=.03; } }
+    puffs.forEach(q=>{ q.dx -= (.12+speedU*.35)*dt; q.dy -= .04*dt; q.r += .05*dt; q.a -= .55*dt; });
+    puffs = puffs.filter(q=>q.a>0);
+    puffs.forEach(q=>{ c.fillStyle=`rgba(235,235,235,${q.a})`; c.beginPath(); c.arc(tx+q.dx*ih, base+q.dy*ih, q.r*ih, 0, 7); c.fill(); });
+    if(ok(truck)){
+      c.save(); c.translate(x,y);
+      if(jump>0){ c.translate(TW/2,TH); c.rotate(-Math.sin(jump*Math.PI)*.08); c.translate(-TW/2,-TH); }
+      if(brakeT>.9){ c.translate(TW,TH); c.rotate(.05*Math.sin((brakeT-.9)/.5*Math.PI)); c.translate(-TW,-TH); }
+      c.drawImage(truckRight(), 0, 0, TW, TH); c.restore();
+    }
+    // 吹き出し
+    if(bubble && bubble.t < 1.5){
+      const bt = bubble.t, pop = bt<.18 ? easeOutBack(bt/.18) : 1, fade = bt>1.25 ? 1-(bt-1.25)/.25 : 1;
+      const fs = Math.max(13, Math.min(24, ih*.075));
+      c.save(); c.globalAlpha = fade;
+      c.font = `900 ${fs}px "Noto Sans JP", sans-serif`;
+      const tw = c.measureText(bubble.text).width, bw = tw+fs*1.3, bh = fs*1.9;
+      const bx = Math.min(W-bw/2-8, Math.max(bw/2+8, tx+TW*.18)), by = y - bh*.75 - 8;
+      c.translate(bx, by); c.scale(pop, pop);
+      c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=8; c.shadowOffsetY=3;
+      c.fillStyle="#fff"; c.strokeStyle="#1a1a1a"; c.lineWidth=2.5;
+      c.beginPath(); c.roundRect(-bw/2,-bh/2,bw,bh,bh/2); c.fill(); c.shadowColor="transparent"; c.stroke();
+      c.beginPath(); c.moveTo(-bw*.12, bh/2-1); c.lineTo(-bw*.22, bh/2+fs*.7); c.lineTo(bw*.02, bh/2-1); c.closePath();
+      c.fill(); c.beginPath(); c.moveTo(-bw*.12, bh/2); c.lineTo(-bw*.22, bh/2+fs*.7); c.lineTo(bw*.02, bh/2); c.stroke();
+      c.fillStyle="#1a1a1a"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(bubble.text, 0, 1);
+      c.restore();
+    }
+  }
+  return { draw, say(text){ bubble = {text, t:0}; }, jump(){ jump=1; boost=Math.max(boost,.7); }, dash(sec){ boost=Math.max(boost,sec); jump=1; brakeT=0; }, brake(){ brakeT=1.4; boost=0; } };
+})();
+
+function ovOf(fallback){ const v = parseFloat(getComputedStyle($("#cab")).getPropertyValue("--ov")); return isNaN(v) ? fallback : v; }
+function drawMonitor(now){
+  if(!document.getElementById("s-play").classList.contains("active")) return;
+  const dpr=Math.min(2, devicePixelRatio||1), w=monCv.clientWidth, h=monCv.clientHeight;
+  if(!w) return;
+  if(monCv.width!==Math.round(w*dpr) || monCv.height!==Math.round(h*dpr)){ monCv.width=Math.round(w*dpr); monCv.height=Math.round(h*dpr); }
+  monCtx.setTransform(dpr,0,0,dpr,0,0);
+  monCtx.save();
+  if(monitorOverride) monitorOverride(monCtx,w,h);
+  else Delivery.draw(monCtx, w, h, now, ovOf(h*.3));
+  monCtx.restore();
+}
+
+function loop(now){
+  const dt = Math.min(.05,(now-last)/1000); last=now;
+  reels.forEach((r,i)=>{
+    if(r.state==="spin"){ r.v=Math.min(V_MAX, r.v+V_MAX*3*dt); r.offset-=r.v*dt; }
+    else if(r.state==="stopping"){
+      const a=r.anim, p=Math.min(1,(now-a.t0)/a.dur);
+      r.offset = a.o0 - a.d*(a.slow ? easeSlide(p) : easeOutBack(p));
+      if(a.slow){ const cell=Math.floor(r.offset); if(cell!==a.lastCell){ a.lastCell=cell; sfx.slide(p); } }
+      if(p>=1){ r.offset=a.T; r.v=0; r.state="stopped"; onStopped(i); }
+    }
+  });
+  if(reels.length) render();
+  drawMonitor(now);
+  requestAnimationFrame(loop);
+}
+function easeSlide(x){ return 1-Math.pow(1-x,4); }
+function easeOutBack(x){ const c1=1.25, c3=c1+1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); }
+
+let stopLock = false, uiLock = false;   // stopLock：止めている最中 ／ uiLock：当たり・ハズレの演出中
+const busy = ()=> reels.some(r=>r.state!=="stopped") || reachLock || uiLock;
+
+function setButtons(){
+  const spinning = reels.some(r=>r.state!=="stopped");
+  $("#start").disabled = spinning || reachLock || uiLock;
+  $("#start").classList.toggle("live", !spinning && !reachLock && !uiLock);
+  stopBtns.forEach((b,i)=>{
+    const ok = reels[i] && reels[i].state==="spin" && reels[i].v>=V_MAX*.95 && !reachLock && !stopLock && !uiLock;
+    b.disabled = !ok; b.classList.toggle("live", ok);
+  });
+}
+setInterval(()=>{ if(reels.length) setButtons(); }, 100);
+
+function press(btn){ btn.classList.add("press"); setTimeout(()=>btn.classList.remove("press"),120); }
+
+$("#start").addEventListener("pointerdown", ()=>{
+  if(busy() || $("#start").disabled) return;
+  stopLock = false;
+  press($("#start"));
+  sfx.ctx(); sfx.lever(); buzz(25);
+  clearWin();
+  outcome = decideOutcome();
+  plays++; $("#count").textContent = plays;
+  reels.forEach(r=>{ r.state="spin"; r.v=0; });
+  setLCD("STOPボタンで止めよう");
+  runYokoku(outcome.yokoku);
+  spinTicker = setInterval(()=>sfx.tick(520+Math.random()*120,.018), 75);
+});
+const BUBBLES = [
+  ["いくぞー！","よいしょっ！","速達中！","それっ！"],
+  ["そろうかな…？","いい感じ！","鮮度MAX！","あと1つ！"],
+  ["きまれー！","たのむっ！","届けー！","いっけー！"],
+];
+let autoStopT = null;
+stopBtns.forEach((b,i)=>b.addEventListener("pointerdown", ()=>doStop(i)));
+function doStop(i){
+  const b = stopBtns[i], r = reels[i];
+  if(b.disabled || r.state!=="spin" || stopLock || reachLock || uiLock) return;
+  stopLock = true;
+  clearTimeout(autoStopT);
+  press(b); buzz(15); Delivery.jump(); sfx.hop();
+  Delivery.say(pick(BUBBLES[Math.min(2, reels.filter(x=>x.state!=="spin").length)]));
+  reachList(ans.m).forEach(src=>{ const pv = getVideo(src);
+    if(!pv.primed){ pv.primed = true; pv.muted = false; const pr = pv.play(); if(pr) pr.then(()=>{ pv.pause(); pv.currentTime = 0; }).catch(()=>{}); } });
+  const committed = reels.filter(x=>x.state!=="spin").length;   // すでに止めた（止めている）リール数
+  const pred = targetFor(i, committed);
+  const last3 = committed===2;                    // 最後のリール
+  // 現在位置から最低1コマ（最後のリールは2〜3コマ）すべらせて、条件を満たす位置で止める
+  const base = Math.floor(r.offset-1) - (last3 ? 2 : 0);
+  let T = base;
+  for(let k=0;k<L*2;k++){ if(pred(base-k)){ T=base-k; break; } }
+  const d = r.offset - T;
+  r.anim = last3
+    ? {o0:r.offset, T, d, t0:performance.now(), dur: 900 + d*45, slow:true, lastCell: Math.floor(r.offset)}
+    : {o0:r.offset, T, d, t0:performance.now(), dur: Math.min(900, Math.max(260, 2400*d/r.v/1.6))};
+  if(last3){ clearInterval(spinTicker); r.el.classList.add("tension"); sfx.heart(); }
+  r.state = "stopping";
+  setButtons();
+}
+
+// リーチの色：上に行くほど7（大当たり）が来やすい
+const TIERS = ["blue","green","red","gold","rainbow"];
+const TIER_W = {                     // 出やすさ（合計1）
+  normal:{blue:.50, green:.32, red:.15, gold:.03, rainbow:0},
+  rare:  {blue:0,   green:.05, red:.15, gold:.40, rainbow:.40},
+};
+// STARTを押した瞬間の予告が出る確率
+const YOKOKU = { normal:.12, rare:.65 };
+function pickW(w){ let x=Math.random(); for(const k of Object.keys(w)){ x-=w[k]; if(x<0) return k; } return Object.keys(w).pop(); }
+function runYokoku(kind){
+  if(!kind) return;
+  if(kind==="blackout"){                       // モニターが一瞬まっ暗に
+    const f=$("#monfx"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+    sfx.boom(); buzz([60,40,60]);
+  } else if(kind==="shake"){                   // 台がガタッと揺れる
+    const c=$("#cab"); c.classList.remove("bigshake"); void c.offsetWidth; c.classList.add("bigshake");
+    sfx.boom(); buzz([120,60,80]);
+  } else if(kind==="brake"){                   // トラックが急ブレーキ
+    Delivery.brake(); sfx.screech(); buzz(200);
+  }
+}
+// 何回目で当たるか（1回目・2回目・3回目以降の当たる確率）
+const HIT_BY_TRY = [0, .5, 1];
+// ハズレのとき、リーチまで行ってから外れる確率
+const REACH_MISS_RATE = .6;
+// ハズレのリーチの色（青・緑が多め）
+const MISS_TIER_W = {blue:.55, green:.33, red:.12, gold:0, rainbow:0};
+let tries = 0;   // 前の当たりから何回まわしたか
+function decideOutcome(){
+  const M = MACHINES[ans.m];
+  const pool = M.pool[ans.taste];
+  tries++;
+  const hitRate = HIT_BY_TRY[Math.min(tries, HIT_BY_TRY.length)-1];
+  if(Math.random() >= hitRate){
+    // ハズレ
+    if(Math.random() < REACH_MISS_RATE)
+      return {type:"reachMiss", sym:pick(pool), rare:false, tier:pickW(MISS_TIER_W),
+              yokoku: Math.random() < .05 ? pick(["blackout","shake","brake"]) : null};
+    const items = Object.keys(ITEMS).sort(()=>Math.random()-.5);
+    return {type:"miss", syms:items.slice(0,3), rare:false, tier:"blue", yokoku:null};
+  }
+  tries = 0;
+  const rare = Math.random() < RATE.rare;
+  const kind = rare ? "rare" : "normal";
+  return {type:"hit", sym: rare ? RARE.id : pick(pool), rare,
+          tier: pickW(TIER_W[kind]),
+          yokoku: Math.random() < YOKOKU[kind] ? pick(["blackout","shake","brake"]) : null};
+}
+function targetFor(i, committed){
+  const r = reels[i], o = outcome;
+  if(o.type==="miss") return T=>symAt(r,T)===o.syms[i];
+  if(o.type==="reachMiss" && committed>=2)   // 最後のリールは1コマずれて止まる（おしい！）
+    return T=>symAt(r,T)!==o.sym && (r.order[mod(T,L)]===o.sym || r.order[mod(T+2,L)]===o.sym);
+  return T=>symAt(r,T)===o.sym;
+}
+
+async function onStopped(i){
+  sfx.clunk(); buzz(12);
+  setTimeout(()=>{ stopLock = false; setButtons(); }, 220);   // 止まりきって少し待ってから次を押せる
+  const stopped = reels.map((r,k)=>r.state==="stopped"?k:-1).filter(k=>k>=0);
+  setButtons();
+  if(stopped.length===2){
+    const [a,b] = stopped;
+    if(symAt(reels[a],reels[a].offset)===symAt(reels[b],reels[b].offset)){
+      // ===== リーチ！ =====
+      const left = [0,1,2].find(k=>!stopped.includes(k));
+      reachLock = true; setButtons();
+      reels[left].el.classList.add("reach");
+      $("#cabFrame").classList.add("gold");
+      $("#cab").dataset.tier = outcome.tier;
+      $("#cab").classList.add("fever");
+      setLCD("REACH!!", true);
+      clearInterval(spinTicker);
+      const rareReach = symAt(reels[a],reels[a].offset)===RARE.id;
+      $("#monitor").classList.add("prereach");                 // モニターがぐっと前に出てくる「溜め」
+      await new Promise(r=>setTimeout(r,320));
+      $("#monitor").classList.remove("prereach");
+      await playReach(ans.m, rareReach, outcome.tier);
+      reachLock = false; setButtons();
+      setLCD(rareReach ? "★ PREMIUM ★ STOPを押せ！" : "最後のSTOPを押せ！", true);
+      spinTicker = setInterval(()=>sfx.tick(420+Math.random()*80,.02), 110);
+      // 最後のSTOPが黄金に開く
+      const sw = stopBtns[left].parentElement; sw.classList.remove("goldopen"); void sw.offsetWidth; sw.classList.add("goldopen");
+      stopBtns[left].classList.add("gold"); sfx.goldopen(); buzz([30,30,60]);
+      // 押さなくても、少し待つと自動で止まる
+      clearTimeout(autoStopT); autoStopT = setTimeout(()=>doStop(left), 2600);
+    }
+  }
+  if(stopped.length===3){
+    clearInterval(spinTicker); clearTimeout(autoStopT);
+    $("#cabFrame").classList.remove("gold");
+    document.querySelectorAll(".stopwrap").forEach(w=>w.classList.remove("goldopen"));
+    stopBtns.forEach(b=>b.classList.remove("gold"));
+    reelEls.forEach(e=>e.classList.remove("tension"));
+    reelEls.forEach(e=>e.classList.remove("reach"));
+    delete $("#cab").dataset.tier;
+    $("#cab").classList.remove("fever");
+    const s = reels.map(r=>symAt(r,r.offset));
+    if(s[0]===s[1] && s[1]===s[2]) win(s[0]);
+    else lose(outcome.type==="reachMiss");
+  }
+}
+
+function lose(wasReach){
+  uiLock = true; setButtons(); setTimeout(()=>{ uiLock = false; setButtons(); }, 1300);
+  sfx.miss(); buzz(wasReach ? [80,60,80] : 40);
+  const t = $("#losetoast");
+  t.innerHTML = wasReach ? `<b>おしい!!</b><small>次は来るかも…!?</small>` : `<b>ざんねん…</b><small>もう一回まわしてみよう！</small>`;
+  t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+  Delivery.say(wasReach ? pick(["おしい〜っ！","くやしい！","つぎこそ！"]) : pick(["つぎいこう！","まだまだ！","ドンマイ！"]));
+  if(wasReach) shake();
+}
+function win(id){
+  const rare = id===RARE.id;
+  uiLock = true; setButtons();
+  if(rare){ wins++; $("#wins").textContent = wins; }
+  $("#cab").classList.add("win");
+  reels.forEach(r=>{ const idx = mod(Math.round(r.offset),L)+L+1; r.strip.children[idx].classList.add("win"); });
+  setLCD(rare ? "★ JACKPOT ★" : "BINGO!! 今夜の一杯が決定", true);
+  sfx.fanfare(rare); buzz([40,60,40,60,120]);
+  if(rare) confetti(60); else confetti(24);
+  setTimeout(()=>flyToSlot(()=>showCard(id, rare)), 900);
+}
+function flyToSlot(done){
+  const slot = document.querySelector(".cf-slot i").getBoundingClientRect();
+  const tx = slot.left + slot.width/2, ty = slot.top + slot.height/2;
+  const cells = reels.map(r=>r.strip.children[mod(Math.round(r.offset),L)+L+1]);
+  cells.forEach((cell,k)=>{
+    const r = cell.getBoundingClientRect(), img = cell.querySelector("img,svg");
+    const f = document.createElement("div"); f.className = "flyer";
+    f.style.left = r.left+"px"; f.style.top = r.top+"px"; f.style.width = r.width+"px"; f.style.height = r.height+"px";
+    if(img) f.appendChild(img.cloneNode(true));
+    f.style.setProperty("--dx", (tx-(r.left+r.width/2))+"px"); f.style.setProperty("--dy", (ty-(r.top+r.height/2))+"px");
+    f.style.animationDelay = (k*160)+"ms";
+    document.body.appendChild(f); setTimeout(()=>f.remove(), 2000);
+  });
+  sfx.suck();
+  setTimeout(()=>{ $("#cabFrame").classList.add("feeding","charged"); buzz(30); }, 1650);
+  setTimeout(()=>{ $("#cabFrame").classList.remove("charged"); done(); }, 2100);
+}
+function clearWin(){
+  $("#cab").classList.remove("win");
+  document.querySelectorAll(".cell.win").forEach(c=>c.classList.remove("win"));
+}
+function shake(){ const c=$("#cab"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); }
+function setLCD(t, blink){ const l=$("#lcd"); l.textContent=t; l.classList.toggle("blink", !!blink); }
+
+/* ===== 結果：レアカード排出 ===== */
+// カードの色（揃ったお酒ごと）  cA:枠の色 cB:枠の濃い色 cC:枠の光 bg:地の色 plate:名前の帯
+const CARD_THEME = {
+  beer:   {cA:"#f3c14b", cB:"#8a5a0c", cC:"#fff3c4", bg1:"#fff8e6", bg2:"#f6dc9a", ink:"#2a1a04", plate1:"#7a4c06", plate2:"#2e1c02", pt:"#fff2c8"},
+  truck:  {cA:"#ff9a3d", cB:"#9a2f00", cC:"#ffe0c2", bg1:"#fff4ea", bg2:"#ffd2b0", ink:"#3a1200", plate1:"#c43c00", plate2:"#5a1600", pt:"#fff0e0"},
+  taru:   {cA:"#d9e2ef", cB:"#2c4a7c", cC:"#ffffff", bg1:"#fbf8f0", bg2:"#e9e2cf", ink:"#13213b", plate1:"#28467a", plate2:"#0d1a33", pt:"#e8f0ff"},
+  tokkuri:{cA:"#ef4d57", cB:"#2a0a0c", cC:"#ffd6d8", bg1:"#fdf6f1", bg2:"#f2dccf", ink:"#2a0a0c", plate1:"#1e1a1a", plate2:"#000000", pt:"#ffe3e5"},
+  grapes: {cA:"#c39af0", cB:"#4a1f75", cC:"#f1e4ff", bg1:"#faf5ff", bg2:"#e6d4f7", ink:"#2a0d45", plate1:"#5a2a8c", plate2:"#250a40", pt:"#f4e9ff"},
+  red:    {cA:"#e0627b", cB:"#5a0a1c", cC:"#ffd6de", bg1:"#fdf2f4", bg2:"#f1cdd5", ink:"#3a0612", plate1:"#7a0e26", plate2:"#30040e", pt:"#ffe6eb"},
+  white:  {cA:"#efe2a2", cB:"#7a6a2a", cC:"#fffbe2", bg1:"#fffdf2", bg2:"#f4ecc6", ink:"#3a3010", plate1:"#8a7a32", plate2:"#3a320c", pt:"#fffbe6"},
+  seven:  {cA:"#ffd34d", cB:"#111111", cC:"#ffffff", bg1:"#22222a", bg2:"#0b0b10", ink:"#ffffff", plate1:"#1a1a1a", plate2:"#000000", pt:"#ffd34d"},
+};
+let cardNo = 0;
+const MARUTO_LOGO = DECOR.find(d=>d.id==="maruto").img;   // カード裏面のロゴ
+const CARD_PHOTO = ITEMS.truck.img;   // カードの写真（ひとまず全部トラック）
+function showCard(id, rare){
+  const it = rare ? null : ITEMS[id];
+  const photo = CARD_PHOTO;
+  const name = rare ? RARE.n : it.n, desc = rare ? RARE.d : it.d;
+  cardNo++;
+  const st = $("#cardStage"), card = $("#tcard");
+  card.className = "tcard " + (rare ? "ur" : "r");
+  const th = CARD_THEME[rare ? "seven" : id] || CARD_THEME.beer;
+  Object.entries(th).forEach(([k,v])=>card.style.setProperty("--"+k, v));
+  card.innerHTML = `
+    <div class="tc-inner">
+      <div class="tc-head">
+        <div class="tc-sym">${icon(id)}</div>
+        <div class="tc-title"><div class="tc-cat">${rare?"JACKPOT":it.cat}</div><div class="tc-name">${name}</div></div>
+        <div class="tc-rar">${rare?"UR":"SR"}</div>
+      </div>
+      <div class="tc-photo"><img src="${photo}" alt=""></div>
+      <div class="tc-desc">${desc}</div>
+      ${rare?"":`<div class="tc-meta"><span>合わせるなら<b>${pick(it.f)}</b></span><span>飲み方<b>${pick(it.s)}</b></span></div>`}
+      <div class="tc-foot"><span>TONIGHT'S SLOT</span><span>No.${String(cardNo).padStart(3,"0")}</span></div>
+    </div>
+    <div class="tc-foil"></div><div class="tc-glare"></div><div class="tc-gloss"></div>
+    <div class="tc-back">
+      <div class="tb-frame"></div>
+      <div class="tb-plate"><img src="${MARUTO_LOGO}" alt=""></div>
+      <div class="tb-title">TONIGHT'S SLOT</div>
+      <div class="tb-sub">OFFICIAL CARD</div>
+    </div>`;
+  $("#cardBtns").classList.remove("show");
+  card.classList.add("showback");          // 出てくる間は裏面だけを見せる
+  card.classList.remove("flip1");
+  st.classList.remove("out"); st.classList.add("show");
+  void card.offsetWidth; card.classList.add("feed");
+  sfx.feed(); $("#cabFrame").classList.add("feeding");
+  setTimeout(()=>$("#cabFrame").classList.remove("feeding"), 1700);
+  card.style.removeProperty("--s"); card.style.removeProperty("--ty"); card.style.transform = "";
+  card.style.setProperty("--rx","0deg"); card.style.setProperty("--ry","0deg");
+  setTimeout(()=>{
+    // 枠の内側いっぱいになる大きさを計算
+    const fi = $("#frameInner").getBoundingClientRect(), w = card.offsetWidth, h = card.offsetHeight;
+    const sc = Math.min((fi.width-16)/w, (fi.height-112)/h);
+    card.style.setProperty("--s", sc.toFixed(3));
+    card.style.setProperty("--ty", ((h*sc-h)/2 + 8).toFixed(1)+"px");
+    card.dataset.t0 = performance.now();
+    card.style.transform = "translateY(0px) scale(1) rotateX(0deg) rotateY(180deg)";   // 出きった位置から回し始める
+    card.classList.remove("feed"); void card.offsetWidth;
+    // ① 裏面のまま、横向き（真横）になるまで回す
+    card.classList.add("flip1"); sfx.flip();
+    setTimeout(()=>{
+      // ② 真横になった瞬間に表へ入れかえて、残りを回しきる
+      card.classList.remove("showback"); void card.offsetWidth;
+      st.classList.add("out"); card.classList.remove("flip1");
+      const f=$("#cardFlash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+      sfx.fanfare(rare); buzz([40,60,90]); if(rare) confetti(60);
+    }, 380);
+  }, 1900);
+  setTimeout(()=>$("#cardBtns").classList.add("show"), 3200);
+}
+(()=>{
+  const card = ()=>$("#tcard");
+  const move = (x,y)=>{ const c=card(); if(!c || !$("#cardStage").classList.contains("out")) return;
+    const r=c.getBoundingClientRect(), px=(x-r.left)/r.width-.5, py=(y-r.top)/r.height-.5;
+    c.style.setProperty("--rx", (-py*18).toFixed(2)+"deg"); c.style.setProperty("--ry", (px*22).toFixed(2)+"deg");
+    c.style.setProperty("--mx", ((px+.5)*100).toFixed(1)+"%"); c.style.setProperty("--my", ((py+.5)*100).toFixed(1)+"%"); };
+  let lastTouch = 0;
+  addEventListener("pointermove", e=>{ lastTouch = performance.now(); move(e.clientX,e.clientY); });
+  addEventListener("pointerdown", e=>{ lastTouch = performance.now(); move(e.clientX,e.clientY); });
+  // 触っていないときは、ゆっくり傾いて光が流れる
+  const idle = now=>{
+    const c = card(), st = $("#cardStage");
+    if(c && st.classList.contains("out") && now-lastTouch > 1500){
+      const t = (now - (+c.dataset.t0||0))/1000;
+      if(t > 1.1){
+        const rx = Math.sin(t*.9)*7, ry = Math.sin(t*.6+1)*12;
+        c.style.setProperty("--rx", rx.toFixed(2)+"deg"); c.style.setProperty("--ry", ry.toFixed(2)+"deg");
+        c.style.setProperty("--mx", (50+ry*3).toFixed(1)+"%"); c.style.setProperty("--my", (50-rx*4).toFixed(1)+"%");
+      }
+    }
+    requestAnimationFrame(idle);
+  };
+  requestAnimationFrame(idle);
+})();
+function closeCard(){ $("#cardStage").classList.remove("show","out"); uiLock = false; setButtons(); }
+
+/* ===== 結果（旧） ===== */
+function showResult(id, rare){
+  const M = MACHINES[ans.m], mood = MOODS[ans.mood];
+  const it = rare ? null : ITEMS[id];
+  const card = $("#card");
+  card.className = "card" + (rare?" rare":"");
+  card.innerHTML = `<div class="grab"></div>
+    <div class="r-label">${rare?"JACKPOT":"TONIGHT'S PICK"}</div>
+    <div class="r-hero">${icon(id)}</div>
+    <div class="r-name">${rare?RARE.n:it.n}</div>
+    ${rare?"":`<span class="r-taste">${it.cat}</span>`}
+    <div class="r-desc">${rare?RARE.d:it.d}</div>
+    ${rare?"":`<div class="r-grid">
+      <div class="r-box"><div class="k">合わせるなら</div><div class="v">${pick(it.f)}</div></div>
+      <div class="r-box"><div class="k">おすすめの飲み方</div><div class="v">${pick(it.s)}</div></div></div>`}
+    <div class="r-staff">${rare?"この画面を店員さんに見せて「隠し酒ください」と伝えてください":"この画面を店員さんに見せると、注文がスムーズです"}</div>
+    <div class="r-btns"><button class="b-sec" id="r-redo">質問から</button><button class="b-pri" id="r-again">もう一回まわす</button></div>`;
+  $("#ov").classList.add("show");
+  $("#r-again").onclick = ()=>{ $("#ov").classList.remove("show"); setLCD("PRESS START"); };
+  $("#r-redo").onclick = ()=>{ $("#ov").classList.remove("show"); clearWin(); qi=0; renderQ(); show("s-q"); };
+}
+$("#ov").addEventListener("click", e=>{ if(e.target.id==="ov") $("#ov").classList.remove("show"); });
+
+$("#c-again").onclick = ()=>{ closeCard(); setLCD("PRESS START"); };
+$("#c-redo").onclick = ()=>{ closeCard(); clearWin(); qi=0; renderQ(); show("s-q"); };
+
+/* ===== 絵柄表 ===== */
+if($("#p-pay")) $("#p-pay").onclick = ()=>{
+  const M = MACHINES[ans.m];
+  const row = (id,n,tg,mine)=>`<div class="pay-row${mine?" mine":""}"><div class="three">${[0,1,2].map(()=>`<div class="ic">${icon(id)}</div>`).join("")}</div><div><div class="nm">${n}</div><div class="tg">${tg}</div></div></div>`;
+  $("#card").className="card";
+  $("#card").innerHTML = `<div class="grab"></div><div class="r-label">PAY TABLE</div><div class="r-name" style="font-size:20px">${M.name}の絵柄</div>
+    <div class="r-desc" style="margin:6px 0 4px">3つ揃うと、その絵柄のお酒が今夜の一杯に。<br>枠のついた絵柄が、この台で揃う絵柄です。</div>
+    <div class="pay">${row(RARE.id, "7 ・ "+RARE.n, "激レア・大当たり", false)}${syms.map(id=>row(id, ITEMS[id].n, ITEMS[id].cat, M.pool[ans.taste].includes(id))).join("")}</div>
+    <div class="r-btns" style="grid-template-columns:1fr; margin-top:16px"><button class="b-pri" id="pay-close">台にもどる</button></div>`;
+  $("#ov").classList.add("show");
+  $("#pay-close").onclick = ()=>$("#ov").classList.remove("show");
+};
+
+/* =================================================================
+   リーチ演出（動画 or 内蔵アニメーション）
+   ================================================================= */
+const videoCache = {};
+function getVideo(src){
+  if(videoCache[src]) return videoCache[src];
+  const v = document.createElement("video");
+  v.src = src; v.preload = "auto"; v.playsInline = true; v.setAttribute("playsinline","");
+  v.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none";
+  document.body.appendChild(v);
+  return (videoCache[src] = v);
+}
+const TIER_STYLE = {
+  blue:   {stops:["#f2fbff","#9fd8ff","#2f8cff","#d6efff","#1f6fe0","#0a3a8a"], rim:["#e8f6ff","#2a6fd0"], glow:"#3da5ff", lines:"170,215,255"},
+  green:  {stops:["#f2fff4","#a6f5b8","#25c25a","#d8ffe2","#1aa14a","#0b5a26"], rim:["#eaffef","#1f9a4a"], glow:"#3fe07a", lines:"190,255,210"},
+  red:    {stops:["#fff3f0","#ffb3a6","#ff3b2b","#ffe0d9","#e01b0b","#7a0600"], rim:["#fff0ec","#c4160a"], glow:"#ff3b2b", lines:"255,190,180"},
+  gold:   {stops:["#fffbe6","#ffe27a","#d9a21a","#fff1b0","#e0a816","#8a5a00"], rim:["#fff6cf","#b8860b"], glow:"#ffd34d", lines:"255,235,170"},
+};
+function drawReachText(c, w, h, ms, cy, tier){
+  const st = TIER_STYLE.gold, rainbow = false;   // 「リーチ!!」の文字はいつも金色
+  // 虹：背景にも虹色の光をまわす
+  if(rainbow){
+    c.save(); c.globalCompositeOperation="lighter"; c.translate(w/2,cy); c.rotate(ms/900);
+    for(let i=0;i<12;i++){ c.rotate(Math.PI/6); c.fillStyle=`hsla(${(i*30+ms/6)%360},100%,60%,.22)`;
+      c.beginPath(); c.moveTo(0,0); c.lineTo(Math.hypot(w,h),-60); c.lineTo(Math.hypot(w,h),60); c.fill(); }
+    c.restore();
+  }
+  // 集中線
+  c.save(); c.translate(w/2, cy);
+  const R = Math.hypot(w,h), n = 46;
+  for(let i=0;i<n;i++){
+    const a = i/n*Math.PI*2 + Math.sin(i*7.3)*.04, len = R*(.55+.45*((i*37)%10)/10);
+    c.strokeStyle = rainbow ? `hsla(${(i*24+ms/4)%360},100%,75%,${.18+.14*((i*13)%5)/5})` : `rgba(${st.lines},${.12+.14*((i*13)%5)/5})`; c.lineWidth = 1.5+((i*7)%4);
+    c.beginPath(); c.moveTo(Math.cos(a)*R*.28, Math.sin(a)*R*.28); c.lineTo(Math.cos(a)*len, Math.sin(a)*len); c.stroke();
+  }
+  c.restore();
+  // 文字
+  const p = Math.min(1, ms/420), sc = (1.7 - .7*easeOutBack(p)) * (1 + Math.sin(ms/110)*.02*(p>=1));
+  c.globalAlpha = Math.min(1, ms/220);
+  const size = Math.min(w*.2, h*.34, 130);
+  c.save(); c.translate(w/2 + (p<1?0:Math.sin(ms/23)*1.2), cy); c.scale(sc,sc); c.rotate(-.06);
+  c.font = `900 ${size}px "Noto Sans JP", sans-serif`; c.textAlign="center"; c.textBaseline="middle";
+  let g;
+  if(rainbow){
+    g = c.createLinearGradient(-size*2,0,size*2,0);
+    for(let k=0;k<=6;k++) g.addColorStop(k/6, `hsl(${(k*60+ms/3)%360},100%,${k%2?62:55}%)`);
+  } else {
+    g = c.createLinearGradient(0,-size/2,0,size/2);
+    [0,.28,.48,.52,.75,1].forEach((o,k)=>g.addColorStop(o, st.stops[k]));
+  }
+  c.lineJoin="round";
+  c.lineWidth = size*.26; c.strokeStyle="#140a00"; c.strokeText("リーチ!!",0,0);
+  const rim = c.createLinearGradient(0,-size/2,0,size/2);
+  if(rainbow){ rim.addColorStop(0,"#ffffff"); rim.addColorStop(1,"#ffe6ff"); } else { rim.addColorStop(0,st.rim[0]); rim.addColorStop(1,st.rim[1]); }
+  c.lineWidth = size*.13; c.strokeStyle=rim; c.strokeText("リーチ!!",0,0);
+  c.shadowColor = rainbow ? `hsl(${(ms/3)%360},100%,60%)` : st.glow; c.shadowBlur = 34;
+  c.fillStyle = g; c.fillText("リーチ!!",0,0);
+  c.shadowBlur = 0; c.globalCompositeOperation = "lighter";   // きらっと光るハイライト
+  const sh = c.createLinearGradient(-size*2,0,size*2,0), x = ((ms/700)%1.6)-.3;
+  sh.addColorStop(clamp01(x-.08),"rgba(255,255,255,0)"); sh.addColorStop(clamp01(x),"rgba(255,255,255,.55)"); sh.addColorStop(clamp01(x+.08),"rgba(255,255,255,0)");
+  c.fillStyle = sh; c.fillText("リーチ!!",0,0); c.globalCompositeOperation = "source-over";
+  c.restore();
+}
+
+function playReach(m, rare, tier="gold"){
+  return new Promise(resolve=>{
+    const box = $("#reach"), mon = $("#monitor"), cv = $("#rc"), ctx = cv.getContext("2d");
+    const dpr = Math.min(2, devicePixelRatio||1);
+    const INTRO = 1700, EXP = 750, XF = 500, FULL = rare ? 3200 : 2400, SHR = 650;  // ①モニターで「リーチ!!」＋トラック ②全画面へ ③動画へクロスフェード ④モニターへ戻る
+    const VIDEO_RATE = 1.35;   // 動画の再生速度（1＝そのまま）
+    const ease = x=>x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
+    const parts = Array.from({length:90},()=>({x:Math.random(), y:Math.random(), r:1+Math.random()*4, s:.3+Math.random()*1.2, a:Math.random()*6.28, w:(Math.random()-.5)*2}));
+    const t0 = performance.now();
+    let shrinkAt = null, done = false, raf, video = null, videoStarted = false, curT = 0;
+    const ovPx = ()=> ovOf(0);
+
+    const list = reachList(m).filter(src=>!getVideo(src).error);
+    if(list.length){ video = getVideo(pick(list)); }
+    const startVideo = ()=>{
+      if(!video || videoStarted) return; videoStarted = true;
+      video.currentTime = 0; video.muted = false; video.playbackRate = VIDEO_RATE;
+      video.onended = ()=>{ if(shrinkAt===null) shrinkAt = performance.now(); };
+      video.onerror = ()=>{ video = null; };
+      video.play().catch(()=>{ if(!video) return; video.muted = true; video.play().catch(()=>{ video = null; }); });
+    };
+
+    // 描画：前半はトラックの映像＋「リーチ!!」、後半はガチャ動画（無ければ内蔵アニメ）
+    const intro = (c,w,h,e,isMonitor)=>{
+      const ov = isMonitor ? ovPx() : ovPx()*(1-clamp01((e-INTRO)/EXP));
+      Delivery.draw(c, w, h, performance.now(), ov);
+      drawReachText(c, w, h, e, (h-ov)/2, tier);
+    };
+    // 動画：少しずつズームインしながら、入りの一瞬だけ画面を揺らして躍動感を出す
+    // 動画は切らずに全体を見せる（すき間は同じ動画をぼかして敷く）
+    const drawVideo = (c,w,h)=>{
+      const vw0=video.videoWidth, vh0=video.videoHeight;
+      const cs = Math.max(w/vw0, h/vh0);
+      c.save(); c.filter="blur(18px) brightness(.55)"; c.drawImage(video,(w-vw0*cs*1.1)/2,(h-vh0*cs*1.1)/2,vw0*cs*1.1,vh0*cs*1.1); c.restore();
+      const pr = video.duration ? video.currentTime/video.duration : 0, kick = Math.max(0, 1-video.currentTime/.4);
+      const sc = Math.min(w/vw0, h/vh0)*(1 + pr*.05), vw=vw0*sc, vh=vh0*sc;
+      const jx = Math.sin(performance.now()/22)*4*kick, jy = Math.cos(performance.now()/19)*3*kick;
+      c.drawImage(video,(w-vw)/2+jx,(h-vh)/2+jy,vw,vh);
+    };
+    const videoReady = ()=> video && video.readyState>=2 && video.videoWidth;
+    let vReadyAt = 0;
+    const paint = (c,w,h,isMonitor)=>{
+      const now = performance.now(), e = (shrinkAt!==null ? shrinkAt : now) - t0;
+      if(e < INTRO+EXP){ intro(c,w,h,e,isMonitor); return; }
+      // 動画の絵が来てから切り替える（来るまではトラックの映像のまま＝黒い画面にならない）
+      if(video && !vReadyAt && videoReady() && video.currentTime>0) vReadyAt = now;
+      const xf = video ? (vReadyAt ? clamp01((now-vReadyAt)/XF) : 0) : clamp01((e-INTRO-EXP)/XF);
+      if(xf<1) intro(c,w,h,Math.min(e, INTRO+EXP+XF),isMonitor);
+      c.save(); c.globalAlpha = xf*xf*(3-2*xf);
+      if(video && vReadyAt) drawVideo(c,w,h);
+      else if(!video){ SCENES[m](c,w,h,curT,parts,rare); if(rare) goldBurst(c,w,h,curT); }
+      c.restore();
+      // 終わり：モニターへ戻りながら、トラックの映像へふわっと戻す
+      if(shrinkAt!==null){
+        const p = clamp01((now-shrinkAt)/SHR), a = clamp01((p-.35)/.65);
+        if(a>0){ c.save(); c.globalAlpha=a; Delivery.draw(c,w,h,now, isMonitor ? ovPx() : ovPx()*a); c.restore(); }
+      }
+    };
+
+    mon.classList.add("live");
+    monitorOverride = (c,w,h)=>paint(c,w,h,true);
+    Delivery.dash(INTRO/1000);
+    sfx.reach(tier);
+    box.dataset.tier = tier;
+    box.onclick = ()=>{ const e=performance.now()-t0; if(e > INTRO+EXP && shrinkAt===null) shrinkAt = performance.now(); };
+
+    const setGeo = (k,r0)=>{
+      const fi = $("#frameInner").getBoundingClientRect();
+      box.style.left   = r0.left+(fi.left-r0.left)*k+"px";
+      box.style.top    = r0.top+(fi.top-r0.top)*k+"px";
+      box.style.width  = r0.width+(fi.width-r0.width)*k+"px";
+      box.style.height = r0.height+(fi.height-r0.height)*k+"px";
+      box.style.borderRadius = 6*(1-k)+"px";
+      box.classList.toggle("full", k>=1);
+      $("#reachDim").style.opacity = (k*.85).toFixed(3);   // 後ろの台をふわっと暗く
+    };
+    const finish = ()=>{
+      if(done) return; done = true;
+      cancelAnimationFrame(raf);
+      if(video){ video.pause(); video.onended = null; }
+      box.classList.remove("show","full"); mon.classList.remove("live");
+      $("#reachDim").style.opacity = 0;
+      monitorOverride = null;
+      resolve();
+    };
+    const frame = now=>{
+      const e = now - t0;
+      if(e >= INTRO+EXP-120) startVideo();
+      if(shrinkAt===null && !video && e >= INTRO+EXP+FULL) shrinkAt = now;
+      curT = clamp01((Math.min(e, shrinkAt!==null ? shrinkAt-t0 : e) - INTRO - EXP)/FULL);
+      const r0 = $("#mc").getBoundingClientRect();
+      let k;
+      if(shrinkAt!==null){
+        const p = clamp01((now-shrinkAt)/SHR);
+        if(p>=1){ finish(); return; }
+        k = 1-ease(p);
+      } else k = e<INTRO ? -1 : ease(clamp01((e-INTRO)/EXP));
+
+      if(k<0) box.classList.remove("show");
+      else {
+        box.classList.add("show"); setGeo(k, r0);
+        const w = box.clientWidth, h = box.clientHeight;
+        if(cv.width!==Math.round(w*dpr) || cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.save(); paint(ctx,w,h,false); ctx.restore();
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+  });
+}
+const clamp01 = x=>Math.max(0,Math.min(1,x));
+const eOut = x=>1-Math.pow(1-x,3);
+
+const SCENES = {
+  // ビール：画面いっぱいにビールが注がれ、泡があふれる
+  beer(ctx,W,H,t,parts){
+    ctx.fillStyle="#0d0702"; ctx.fillRect(0,0,W,H);
+    const lvl = H*(1-eOut(clamp01(t/.7))*.92);
+    const g = ctx.createLinearGradient(0,lvl,0,H); g.addColorStop(0,"#ffd24f"); g.addColorStop(1,"#c96a00");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=8) ctx.lineTo(x, lvl+Math.sin(x/38+t*18)*7);
+    ctx.lineTo(W,H); ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.7)";
+    parts.forEach(p=>{ const y = H-((p.y*H + t*p.s*H*1.4)%H); if(y>lvl+10){ ctx.beginPath(); ctx.arc(p.x*W+Math.sin(t*10+p.a)*4, y, p.r*.7, 0, 7); ctx.fill(); }});
+    // 泡
+    const fh = 30+eOut(clamp01((t-.25)/.5))*70;
+    ctx.fillStyle="#fffaf0";
+    for(let x=-20;x<W+40;x+=34){ const y=lvl-fh*.4+Math.sin(x*.7+t*6)*6; ctx.beginPath(); ctx.arc(x, y, 26+Math.sin(x)*8, 0, 7); ctx.fill(); }
+    ctx.fillRect(0, lvl-fh*.4, W, fh*.6);
+  },
+  // 日本酒：藍の夜に朱の筆が走り、桜が舞う
+  sake(ctx,W,H,t,parts){
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0b1a3d"); g.addColorStop(1,"#02040b");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle="rgba(255,255,255,.05)"; for(let y=0;y<H;y+=6){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y+3); ctx.stroke(); }
+    const p = eOut(clamp01((t-.04)/.3)), cy=H*.5, x1=W*.04+W*.92*p;
+    for(let k=0;k<26;k++){
+      ctx.strokeStyle=`rgba(${200+k%3*15},${30+k%5*6},${35},${.55+.02*k})`;
+      ctx.lineWidth = 3+((k*37)%9); ctx.lineCap="round";
+      const off=(k-13)*4.2;
+      ctx.beginPath(); ctx.moveTo(W*.04, cy+off+Math.sin(k)*3);
+      ctx.quadraticCurveTo((W*.04+x1)/2, cy+off-26*p, x1-((k*13)%30)*p, cy+off+18*p+Math.cos(k)*4); ctx.stroke();
+    }
+    parts.forEach(q=>{
+      const y=((q.y*H + t*q.s*H*.9))%H, x=q.x*W+Math.sin(t*4+q.a)*30;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(q.a+t*q.w*6);
+      ctx.fillStyle="rgba(255,190,205,.9)"; ctx.beginPath(); ctx.ellipse(0,0,q.r+3,q.r*.6+1.5,0,0,7); ctx.fill(); ctx.restore();
+    });
+  },
+  // ワイン：深紅のうずとグラスの輝き
+  wine(ctx,W,H,t,parts){
+    ctx.fillStyle="#0c0105"; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation="lighter";
+    for(let k=0;k<4;k++){
+      const a=t*5+k*1.57, R=Math.min(W,H)*(.25+.06*k);
+      const x=W/2+Math.cos(a)*R*.5, y=H/2+Math.sin(a)*R*.5;
+      const g=ctx.createRadialGradient(x,y,0,x,y,R*1.2);
+      g.addColorStop(0,`rgba(${200-k*20},10,${50+k*10},.55)`); g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    }
+    parts.forEach(q=>{ const tw=(Math.sin(t*20+q.a*3)+1)/2; ctx.fillStyle=`rgba(255,215,140,${tw*.8})`;
+      ctx.beginPath(); ctx.arc(q.x*W, q.y*H, q.r*.6*tw+.3, 0, 7); ctx.fill(); });
+    ctx.globalCompositeOperation="source-over";
+    // 波打つワインの水面
+    const lvl = H*(1-.32*eOut(clamp01(t/.5)));
+    const g=ctx.createLinearGradient(0,lvl,0,H); g.addColorStop(0,"#b0103c"); g.addColorStop(1,"#3a0010");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=8) ctx.lineTo(x, lvl+Math.sin(x/60+t*10)*12);
+    ctx.lineTo(W,H); ctx.fill();
+  }
+};
+function goldBurst(ctx,W,H,t){
+  ctx.save(); ctx.translate(W/2,H*.45); ctx.rotate(t*2);
+  const n=18, R=Math.hypot(W,H);
+  for(let i=0;i<n;i++){ ctx.rotate(Math.PI*2/n); ctx.fillStyle=i%2?"rgba(255,215,80,.28)":"rgba(255,245,200,.12)";
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(R,-R*.09); ctx.lineTo(R,R*.09); ctx.fill(); }
+  ctx.restore();
+}
+function drawTitle(ctx,W,H,t,m,rare){
+  const p = clamp01((t-.18)/.16);
+  if(p<=0) return;
+  const sc = 2.6 - 1.6*easeOutBack(p), shake = p<1?0:Math.sin(t*90)*1.5;
+  const main = rare ? "激アツ" : ({beer:"REACH!", sake:"好機", wine:"CHANCE"})[m];
+  const sub  = rare ? "PREMIUM REACH" : ({beer:"泡立つリーチ", sake:"リーチ", wine:"リーチ"})[m];
+  const latin = /^[A-Z!]+$/.test(main);
+  const size = Math.min(W*.24, H*.4, 150) * (latin?.9:1);
+  ctx.save(); ctx.translate(W/2+shake, H*.45); ctx.scale(sc,sc); ctx.globalAlpha=clamp01(p*1.5);
+  ctx.font = latin ? `700 ${size}px Oswald, sans-serif` : `800 ${size}px "Shippori Mincho B1", serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  const gr = ctx.createLinearGradient(0,-size/2,0,size/2);
+  if(rare){ gr.addColorStop(0,"#fffbe0"); gr.addColorStop(.5,"#ffd34d"); gr.addColorStop(1,"#b77905"); }
+  else if(m==="beer"){ gr.addColorStop(0,"#fff"); gr.addColorStop(1,"#ffcf4a"); }
+  else if(m==="sake"){ gr.addColorStop(0,"#fff"); gr.addColorStop(1,"#d7e4ff"); }
+  else { gr.addColorStop(0,"#fff"); gr.addColorStop(1,"#ffc0cf"); }
+  ctx.lineWidth = size*.1; ctx.strokeStyle = rare?"#5a2a00":(m==="beer"?"#5a2a00":m==="sake"?"#7a0f12":"#3d0012");
+  ctx.shadowColor = rare?"#ffb300":"rgba(0,0,0,.8)"; ctx.shadowBlur = 30;
+  ctx.strokeText(main,0,0); ctx.shadowBlur=0; ctx.fillStyle=gr; ctx.fillText(main,0,0);
+  ctx.font = `900 ${Math.max(16,size*.2)}px "Noto Sans JP", sans-serif`;
+  ctx.fillStyle="#fff"; ctx.globalAlpha=clamp01((t-.3)/.1);
+  ctx.fillText(sub, 0, size*.78);
+  ctx.restore();
+}
+
+/* =================================================================
+   効果音（外部ファイル不要）・振動・紙吹雪
+   ================================================================= */
+const sfx = (()=>{
+  let ac=null, master=null, verb=null, noiseBuf=null;
+  const ctx=()=>{
+    try{
+      if(!ac){
+        ac=new (window.AudioContext||window.webkitAudioContext)();
+        master=ac.createGain(); master.gain.value=.9;
+        const comp=ac.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=4;
+        master.connect(comp).connect(ac.destination);
+        // 残響（ホールっぽい響き）
+        const len=ac.sampleRate*1.6, ir=ac.createBuffer(2,len,ac.sampleRate);
+        for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6); }
+        verb=ac.createConvolver(); verb.buffer=ir; const vg=ac.createGain(); vg.gain.value=.28; verb.connect(vg).connect(master);
+        noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate); const nd=noiseBuf.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+      }
+      if(ac.state==="suspended") ac.resume();
+    }catch(e){ ac=null; }
+    return ac;
+  };
+  const out=(node,wet=0)=>{ node.connect(master); if(wet&&verb){ const g=ac.createGain(); g.gain.value=wet; node.connect(g).connect(verb); } };
+  const tone=(f,dur,vol,type="square",when=0,slide=0,wet=0)=>{ if(!ac) return;
+    const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime+when;
+    o.type=type; o.frequency.setValueAtTime(f,t); if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.005); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); out(g,wet); o.start(t); o.stop(t+dur+.05); };
+  const noise=(dur,vol,type="bandpass",freq=1200,q=1,when=0,freqEnd=0,wet=0)=>{ if(!ac) return;
+    const n=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain(), t=ac.currentTime+when;
+    n.buffer=noiseBuf; n.loop=true; f.type=type; f.frequency.setValueAtTime(freq,t); if(freqEnd) f.frequency.exponentialRampToValueAtTime(freqEnd,t+dur); f.Q.value=q;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.004); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    n.connect(f).connect(g); out(g,wet); n.start(t); n.stop(t+dur+.05); };
+  const chord=(fs,dur,vol,when,type="sawtooth",wet=.4)=>fs.forEach(f=>{ tone(f,dur,vol,type,when,0,wet); tone(f*1.004,dur,vol*.6,type,when,0,wet); });
+  return {
+    ctx,
+    // リールが回る「カタカタ」
+    tick:(f,v)=>{ noise(.03,v*6,"bandpass",2400+Math.random()*600,6); tone(f*.5,.02,v*.6,"triangle"); },
+    // START：レバーを叩く「ガシャン」
+    lever:()=>{ noise(.09,.5,"bandpass",900,1.4); noise(.25,.25,"lowpass",400,1,.02); tone(95,.22,.5,"sine",0,55); tone(1800,.05,.12,"square",.03); },
+    // STOP：リールが止まる「ガチッ」
+    clunk:()=>{ noise(.05,.6,"highpass",3000,1); tone(160,.12,.45,"sine",0,70); noise(.08,.25,"bandpass",600,2,.01); },
+    // 最後のリールがすべるときの「カチッ…カチッ」
+    slide:p=>{ noise(.04,.35,"bandpass",2200-p*900,5); tone(320-p*120,.05,.18,"triangle"); },
+    // リーチ：色ごとに音が派手になる
+    reach:tier=>{
+      const lv = {blue:0, green:1, red:2, gold:3, rainbow:4}[tier] ?? 3;
+      noise(.5,.35,"bandpass",400,1,0,4000,.5);                                    // シュワッ
+      const arp=[523,659,784,1047,1319,1568,2093].slice(0,4+lv);
+      arp.forEach((f,i)=>{ tone(f,.18,.14,"square",.05+i*.07,0,.3); tone(f*2,.12,.04,"triangle",.05+i*.07); });
+      if(lv>=2){ tone(400,.5,.18,"sawtooth",.1+arp.length*.07,2600,.4); }       // キュイン
+      if(lv>=3){ chord([523,659,784],.9,.06,.2+arp.length*.07); noise(1.2,.12,"highpass",6000,.7,.2+arp.length*.07,0,.6); }
+      if(lv>=4){ chord([587,740,880,1175],1.2,.05,.6+arp.length*.07); }
+    },
+    // 当たり：和音のファンファーレ（7は豪華に）
+    fanfare:rare=>{
+      const seq = rare ? [[523,659,784],[587,740,880],[659,830,988],[784,988,1175,1568]] : [[523,659,784],[659,784,1047]];
+      seq.forEach((c,i)=>chord(c, i===seq.length-1?1.4:.24, .07, i*.18));
+      noise(rare?1.8:1,.15,"highpass",5000,.7,seq.length*.18-.18,0,.7);         // シャーン
+      tone(rare?130:196, 1.2, .25, "sine", seq.length*.18-.18);
+    },
+    feed:()=>{ noise(1.5,.22,"bandpass",600,2,0,2400,.2); tone(160,1.45,.08,"sawtooth",0,420); tone(1400,.06,.12,"square",1.5); tone(1900,.1,.1,"square",1.58); },
+    flip:()=>{ noise(.25,.3,"bandpass",2200,2,0,600,.3); tone(500,.3,.08,"triangle",0,1200,.3); },
+    spin:()=>{ for(let i=0;i<7;i++) noise(.09,.22,"bandpass",1500+i*180,3,i*.16,0,.3); tone(300,1.1,.1,"sawtooth",0,1400,.3); },
+    goldopen:()=>{ tone(800,.5,.12,"triangle",0,2400,.5); noise(.6,.2,"highpass",5000,.7,.05,0,.6); [1047,1319,1568,2093].forEach((f,i)=>tone(f,.25,.08,"square",.1+i*.06,0,.4)); },
+    heart:()=>{ [0,.32,.64].forEach(w=>{ tone(62,.16,.6,"sine",w,40); tone(58,.14,.45,"sine",w+.14,38); }); },
+    suck:()=>{ tone(300,.7,.12,"sine",0,1800,.4); noise(.7,.18,"bandpass",600,2,0,5000,.5); tone(1568,.18,.1,"triangle",.62,0,.5); },
+    hop:()=>{ tone(420,.12,.1,"triangle",0,880); noise(.05,.15,"bandpass",1500,2); },
+    // 予告：ドーン
+    boom:()=>{ tone(70,1.1,.7,"sine",0,32); noise(.9,.4,"lowpass",300,1,0,80,.6); },
+    // 予告：キキーッ（急ブレーキ）
+    screech:()=>{ noise(.9,.35,"bandpass",2600,9,0,1700,.3); tone(1900,.8,.06,"sawtooth",0,1500); },
+    miss:()=>{ tone(330,.25,.08,"triangle",0,220); },
+  };
+})();
+function buzz(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
+function confetti(n){
+  const cols=["#ffd34d","#ff6b8b","#8fb8ff","#ffffff","#7ee0a1"];
+  for(let i=0;i<n;i++){
+    const s=document.createElement("div"); s.className="sparkle";
+    s.style.left=Math.random()*100+"vw"; s.style.top="-20px"; s.style.background=pick(cols);
+    s.style.animationDuration=1.6+Math.random()*1.6+"s"; s.style.animationDelay=Math.random()*.5+"s";
+    document.body.appendChild(s); setTimeout(()=>s.remove(),4000);
+  }
+}
+
+/* 起動 */
+buildSprite();
+renderQ();
+requestAnimationFrame(loop);
+addEventListener("resize", ()=>reels.length && render());
+</script>
+</body>
+</html>

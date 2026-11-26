@@ -365,13 +365,16 @@
   /* ---------- お酒シート ---------- */
   #sheet-bg { position: fixed; inset: 0; background: rgba(20,15,10,.45); opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 60; }
   #sheet-bg.show { opacity: 1; pointer-events: auto; }
-  #sheet { position: fixed; left: 50%; bottom: 0; width: min(440px, 100%); max-height: 92vh; overflow-y: auto;
+  #sheet { position: fixed; left: 50%; bottom: 0; width: min(440px, 100%); max-height: 92vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
     transform: translate(-50%, 105%); transition: transform .5s cubic-bezier(.2,.9,.25,1); z-index: 61;
     background: var(--paper); border-radius: 26px 26px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.25);
     padding: 10px 22px max(24px, env(safe-area-inset-bottom)); }
   #sheet.show { transform: translate(-50%, 0); }
   .grip { width: 44px; height: 5px; border-radius: 9px; background: var(--line); margin: 0 auto 14px; }
-  .sheet-close { position: absolute; top: 14px; right: 16px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: #fff; font-size: 16px; }
+  /* ✕ボタン：シートをスクロールしても上に固定（スマホで戻れなくならないように） */
+  .sheet-x-wrap { position: sticky; top: 0; height: 0; z-index: 5; }
+  .sheet-close { position: absolute; top: 2px; right: -8px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 18px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.22); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .sake-hero { display: flex; gap: 18px; align-items: flex-end; }
   .bottle { width: 110px; flex-shrink: 0; filter: drop-shadow(0 10px 14px rgba(0,0,0,.18)); }
   .sake-hero .eyebrow { font-size: 12px; color: var(--accent); font-weight: 700; letter-spacing: .2em; }
@@ -406,7 +409,7 @@
   .mbar[hidden] { display: none; }
   #mpanel-bg { position: fixed; inset: 0; background: rgba(20,15,10,.45); z-index: 69; opacity: 0; pointer-events: none; transition: opacity .3s; }
   #mpanel-bg.show { opacity: 1; pointer-events: auto; }
-  #mpanel { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 440px; height: 80%; background: var(--paper); border-radius: 24px 24px 0 0; z-index: 70;
+  #mpanel { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 440px; height: 80%; height: 80dvh; background: var(--paper); border-radius: 24px 24px 0 0; z-index: 70;
     box-shadow: 0 -10px 40px rgba(0,0,0,.25); display: flex; flex-direction: column; transform: translateY(105%); transition: transform .45s cubic-bezier(.2,.9,.25,1); }
   #mpanel.show { transform: none; }
   #mpanel { --c: #A8322A; } #mpanel.food { --c: #2F6F52; }
@@ -414,7 +417,7 @@
   .mp-ttl { display: flex; align-items: center; gap: 10px; }
   .mp-ttl i { font-style: normal; flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--c); font-family: "Shippori Mincho", serif; font-weight: 800; font-size: 20px; }
   .mp-ttl h3 { margin: 0; font-size: 19px; } .mp-ttl small { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
-  .mp-x { margin-left: auto; flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; }
+  .mp-x { margin-left: auto; flex: none; width: 44px; height: 44px; font-size: 18px; color: var(--ink); touch-action: manipulation; border-radius: 50%; border: 1px solid var(--line); background: #fff; }
   .mp-tabs { display: flex; gap: 6px; margin: 12px -16px 0; padding: 0 16px 2px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
   .mp-tabs:empty, .mp-taste:empty { display: none; }
   .mp-tabs button { flex: none; font-size: 12.5px; font-weight: 800; padding: 6px 14px; border-radius: 99px; background: #fff; border: 1px solid var(--line); color: var(--muted); }
@@ -672,7 +675,7 @@
 <div id="sheet-bg"></div>
 <article id="sheet" aria-modal="true" role="dialog">
   <div class="grip"></div>
-  <button class="sheet-close" id="sheet-close" aria-label="閉じる">✕</button>
+  <div class="sheet-x-wrap"><button class="sheet-close" id="sheet-close" aria-label="閉じる">✕</button></div>
   <div id="sheet-body"></div>
 </article>
 
